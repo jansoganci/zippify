@@ -1,0 +1,64 @@
+# Zippify - Windsurf Rules
+
+## Coding Permissions
+- Cascade MUST NOT write or modify code without explicit approval.
+- All changes require explicit user authorization.
+
+## Modular Structure
+- Components must be independent, clearly separated modules.
+- Service integrations strictly separated:
+  - `/services/auth/`
+  - `/services/deepseek/`
+  - `/services/eachlabs/`
+  - `/services/google-image/`
+
+## Clean Code Principles
+- Single Responsibility Principle: Modules perform exactly one responsibility.
+- DRY (Don't Repeat Yourself)
+- KISS (Keep It Simple, Stupid)
+- Clear, descriptive naming conventions.
+
+## Style Rules
+- Modular CSS: each component has its dedicated CSS file.
+- Global styles minimized.
+- Follow specified color and typography standards strictly.
+
+## Security Implementation
+- JWT-based authentication mandatory.
+- Secure token refresh mechanism required.
+- Unauthorized routes must redirect users to login immediately.
+
+## Authentication Rules
+- Dashboard and protected routes require authentication.
+- Users must complete their profile before creating listings.
+- Prompt users explicitly if the profile is incomplete.
+
+## Listings Creation Rules
+- All required fields (title, description, images) must be validated before submission.
+- Inform users clearly on missing fields.
+
+## File Storage Rules
+- Generated files available strictly for 24 hours.
+- Files automatically deleted after exactly 24 hours.
+- Notify users explicitly to download files promptly.
+
+## Logging & Monitoring
+- Log user authentication attempts, listing creations, API errors.
+- Store logs in SQLite (`logs` table), regularly review logs.
+
+## Limits & Restrictions (MVP)
+- Users limited to a maximum of 20 listing generations per day.
+- Inform users explicitly about daily limitations.
+
+## Roles & Permissions
+- "User": Standard usage (create and download listings).
+- "Admin": Full access including viewing user data, logs, managing listings, and troubleshooting.
+
+## Error Handling
+- Display clear, user-friendly error messages on UI for:
+  - API errors
+  - Missing or invalid user inputs.
+
+## Performance
+- MVP supports up to 50 concurrent users.
+- Target response time: maximum 5 minutes per listing generation.
