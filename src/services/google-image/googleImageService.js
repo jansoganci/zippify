@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // API Configuration
-const API_KEY = process.env.GEMINI_API_KEY;
+const API_KEY = import.meta.env.GEMINI_API_KEY;
 
 // Initialize the Google Generative AI client
 const genAI = new GoogleGenerativeAI(API_KEY);
