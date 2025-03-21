@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Button, Container, Heading, Text, VStack, Grid, Flex, Icon } from '@chakra-ui/react';
 import { ArrowRightIcon } from '@chakra-ui/icons';
 import { Header } from '../common/Header';
+import Footer from '../layout/Footer';
 import { useNavigate } from 'react-router-dom';
 
 export const LandingPage = ({ isDark, onThemeToggle, language, onLanguageChange }) => {
@@ -12,7 +13,7 @@ export const LandingPage = ({ isDark, onThemeToggle, language, onLanguageChange 
   };
 
   return (
-    <Box minH="100vh" bg="background">
+    <Box minH="100vh" bg="background" position="relative" pb="16">
       <Header
         isDark={isDark}
         onThemeToggle={onThemeToggle}
@@ -150,6 +151,9 @@ export const LandingPage = ({ isDark, onThemeToggle, language, onLanguageChange 
           </VStack>
         </Box>
       </Container>
+      <Box position="absolute" bottom={0} left={0} right={0}>
+        <Footer />
+      </Box>
     </Box>
   );
 };

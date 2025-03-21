@@ -17,7 +17,7 @@ import { ArrowForwardIcon, StarIcon } from '@chakra-ui/icons';
 import { DashboardLayout } from '../../layout/DashboardLayout';
 import { optimizePattern } from '../../../services/workflow/optimizePattern';
 
-export const ContentOptimization = ({ onComplete }) => {
+export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, language, onLanguageChange }) => {
   const [content, setContent] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -77,7 +77,13 @@ export const ContentOptimization = ({ onComplete }) => {
   };
 
   return (
-    <DashboardLayout currentStep="optimize">
+    <DashboardLayout
+      currentStep="optimize"
+      isDark={isDark}
+      onThemeToggle={onThemeToggle}
+      language={language}
+      onLanguageChange={onLanguageChange}
+    >
       <LoadingTransition isLoading={isProcessing}>
         <VStack spacing={8} align="stretch" maxW="3xl" mx="auto">
         {/* Header */}

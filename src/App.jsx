@@ -7,10 +7,11 @@ import { LandingPage } from './components/landing/LandingPage';
 import { theme } from './styles/theme';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { CreateListing } from './components/workflow/CreateListing.jsx';
+import { ProfilePage } from './components/profile/ProfilePage';
+import { AuthProvider } from './hooks/useAuth';
 
-// Placeholder components for other routes
+// Placeholder component for My Listings
 const MyListings = () => <div>My Listings Page (Coming Soon)</div>;
-const Profile = () => <div>Profile Page (Coming Soon)</div>;
 
 const AppContent = () => {
   const location = useLocation();
@@ -79,7 +80,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/create"
+            path="/create-listing"
             element={
               <PageTransition>
                 <CreateListing />
@@ -87,7 +88,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/listings"
+            path="/my-listings"
             element={
               <PageTransition>
                 <MyListings />
@@ -98,7 +99,7 @@ const AppContent = () => {
             path="/profile"
             element={
               <PageTransition>
-                <Profile />
+                <ProfilePage />
               </PageTransition>
             }
           />
@@ -114,7 +115,9 @@ const AppContent = () => {
 const App = () => {
   return (
     <Router>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </Router>
   );
 };
