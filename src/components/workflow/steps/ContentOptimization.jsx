@@ -15,10 +15,12 @@ import {
 import { LoadingTransition } from '../../common/LoadingTransition';
 import { ArrowForwardIcon, StarIcon } from '@chakra-ui/icons';
 import { DashboardLayout } from '../../layout/DashboardLayout';
+import { ProgressBar } from '../../layout/ProgressBar';
 import { optimizePattern } from '../../../services/workflow/optimizePattern';
 
-export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, language, onLanguageChange }) => {
+export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, language, onLanguageChange, currentStep, completedSteps }) => {
   const [content, setContent] = useState('');
+  const [optimizedContent, setOptimizedContent] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const toast = useToast();
@@ -44,24 +46,36 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
         setProgress(prev => Math.min(prev + 10, 90));
       }, 1000);
 
-      // Call the optimization service
-      const result = await optimizePattern(content);
+      // Call the backend optimization endpoint
+      const response = await fetch('http://localhost:3001/api/optimize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to optimize content');
+      }
 
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (result.success) {
-        toast({
-          title: 'Success',
-          description: 'Content optimized successfully',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-        onComplete(result);
-      } else {
-        throw new Error(result.error);
-      }
+      // Update optimized content
+      setOptimizedContent(result.optimizedContent);
+      
+      toast({
+        title: 'Success',
+        description: 'Content optimized successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      
+      // Only call onComplete if needed
+      onComplete && onComplete(result);
     } catch (error) {
       toast({
         title: 'Error',
@@ -84,42 +98,56 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
       language={language}
       onLanguageChange={onLanguageChange}
     >
+      <ProgressBar currentStep={currentStep} completedSteps={completedSteps} />
       <LoadingTransition isLoading={isProcessing}>
-        <VStack spacing={8} align="stretch" maxW="3xl" mx="auto">
-        {/* Header */}
-        <Box>
-          <Text fontSize="2xl" fontWeight="bold" mb={2}>
-            Step 1: Content Optimization
-          </Text>
-          <Text color="gray.500">
-            Enter your product description below. Our AI will optimize it for better visibility
-            and engagement.
-          </Text>
-        </Box>
+        <VStack spacing={8} align="stretch" maxW="6xl" mx="auto">
+          {/* Header */}
+          <Box>
+            <Text fontSize="2xl" fontWeight="bold" mb={2}>
+              Step 1: Content Optimization
+            </Text>
+            <Text color="gray.500">
+              Enter your product description below. Our AI will optimize it for better visibility
+              and engagement.
+            </Text>
+          </Box>
 
-        {/* Input Form */}
-        <Box
-          bg="surface"
-          p={6}
-          borderRadius="xl"
-          boxShadow="sm"
-        >
-          <FormControl>
-            <FormLabel fontSize="lg">Product Description</FormLabel>
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Enter your product description here..."
-              size="lg"
-              minH="200px"
-              disabled={isProcessing}
-              _focus={{
-                borderColor: 'primary',
-                boxShadow: '0 0 0 1px var(--chakra-colors-primary)'
-              }}
-            />
-          </FormControl>
-        </Box>
+          {/* Two Column Layout */}
+          <Flex direction={{ base: 'column', md: 'row' }} gap={6}>
+            {/* Left: Input */}
+            <Box flex="1">
+              <FormControl>
+                <FormLabel fontSize="lg">Original Content</FormLabel>
+                <Textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Enter your content here..."
+                  size="lg"
+                  minH="300px"
+                  disabled={isProcessing}
+                  _focus={{
+                    borderColor: 'primary',
+                    boxShadow: '0 0 0 1px var(--chakra-colors-primary)'
+                  }}
+                />
+              </FormControl>
+            </Box>
+
+            {/* Right: Output */}
+            <Box flex="1">
+              <FormLabel fontSize="lg">Optimized Content</FormLabel>
+              <Box 
+                p={4} 
+                borderRadius="md" 
+                bg={isDark ? 'gray.700' : 'gray.50'}
+                minH="300px"
+                overflowY="auto"
+                whiteSpace="pre-wrap"
+              >
+                {optimizedContent || "Optimized content will appear here..."}
+              </Box>
+            </Box>
+          </Flex>
 
         {/* Processing Status */}
         {isProcessing && (
@@ -174,8 +202,8 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
             </Button>
           )}
         </Flex>
-        </VStack>
-      </LoadingTransition>
-    </DashboardLayout>
-  );
+      </VStack>
+    </LoadingTransition>
+  </DashboardLayout>
+);
 };

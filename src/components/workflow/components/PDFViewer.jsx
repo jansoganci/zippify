@@ -12,7 +12,8 @@ import {
   CopyIcon,
   DownloadIcon,
   AddIcon,
-  MinusIcon
+  MinusIcon,
+  AttachmentIcon as DocumentIcon
 } from '@chakra-ui/icons';
 
 export const PDFViewer = ({

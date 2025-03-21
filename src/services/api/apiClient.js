@@ -18,7 +18,43 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
+// Authentication related functions
+const handleAuthResponse = (response) => {
+  if (response.data.token) {
+    localStorage.setItem('zippify_token', response.data.token);
+  }
+  return response.data;
+};
+
 export const api = {
+  // Authentication endpoints
+  async login(email, password) {
+    const response = await apiClient.post('/auth/login', { email, password });
+    return handleAuthResponse(response);
+  },
+
+  async register(username, email, password) {
+    const response = await apiClient.post('/auth/register', { username, email, password });
+    return handleAuthResponse(response);
+  },
+
+  async forgotPassword(email) {
+    const response = await apiClient.post('/auth/forgot-password', { email });
+    return response.data;
+  },
+
+  async resetPassword(newPassword, token) {
+    const response = await apiClient.post('/auth/reset-password', { 
+      newPassword,
+      token
+    });
+    return response.data;
+  },
+
+  async verifyEmail(token) {
+    const response = await apiClient.post('/auth/verify-email', { token });
+    return response.data;
+  },
   // Profile endpoints
   async getProfile(userId) {
     const response = await apiClient.get(`/profiles/${userId}`);
