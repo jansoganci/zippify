@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { Box } from '@chakra-ui/react';
 import { ContentOptimization } from './steps/ContentOptimization';
 import { PDFGeneration } from './steps/PDFGeneration';
 import { EtsyListing } from './steps/EtsyListing';
+import { ProgressBar } from '../layout/ProgressBar';
 
 export const CreateListing = () => {
   const [step, setStep] = useState('optimize');
@@ -34,6 +36,10 @@ export const CreateListing = () => {
     }));
   };
 
+  const completedSteps = [];
+  if (step === 'pdf') completedSteps.push('optimize');
+  if (step === 'etsy') completedSteps.push('optimize', 'pdf');
+
   // Render the current step
   const renderStep = () => {
     switch (step) {
@@ -63,6 +69,11 @@ export const CreateListing = () => {
     }
   };
 
-  return renderStep();
+  return (
+    <Box position="relative">
+      <ProgressBar currentStep={step} completedSteps={completedSteps} />
+      {renderStep()}
+    </Box>
+  );
 };
 export default CreateListing;
