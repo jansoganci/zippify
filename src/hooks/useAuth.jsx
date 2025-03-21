@@ -1,12 +1,18 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const USER_DATA_KEY = 'zippify_user';
-const AuthContext = createContext(null);
+
+// Create context with default value
+export const AuthContext = createContext({
+  user: null,
+  login: () => {},
+  logout: () => {},
+  isAuthenticated: false
+});
 
 // Provider component that wraps the app
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    // Initialize from localStorage during first render
     try {
       const storedUser = localStorage.getItem(USER_DATA_KEY);
       return storedUser ? JSON.parse(storedUser) : null;
@@ -18,12 +24,9 @@ export const AuthProvider = ({ children }) => {
   });
 
   const login = useCallback((userData) => {
-    // Validate required user data
     if (!userData || !userData.id || !userData.email) {
       throw new Error('Invalid user data');
     }
-
-    // Store user data
     localStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
     setUser(userData);
   }, []);
@@ -33,23 +36,27 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }, []);
 
-  // Keep localStorage in sync with state changes
+  // Debug useEffect to monitor user state changes
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(USER_DATA_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(USER_DATA_KEY);
-    }
+    console.log('Current User State:', {
+      user,
+      isAuthenticated: !!user,
+      storedUser: localStorage.getItem(USER_DATA_KEY)
+    });
   }, [user]);
 
-  const value = {
+  const contextValue = {
     user,
     login,
     logout,
     isAuthenticated: !!user
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 // Custom hook to use the auth context
@@ -60,3 +67,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChakraProvider, CSSReset } from '@chakra-ui/react';
+import { ChakraProvider, CSSReset, useColorMode } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/common/PageTransition';
@@ -8,7 +8,13 @@ import { theme } from './styles/theme';
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { CreateListing } from './components/workflow/CreateListing.jsx';
 import { ProfilePage } from './components/profile/ProfilePage';
-import { AuthProvider } from './hooks/useAuth';
+import { AuthProvider } from './hooks/useAuth.jsx';
+import { PrivateRoute } from './components/auth/PrivateRoute';
+import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+import { VerifyEmailPage } from './pages/auth/VerifyEmailPage';
 
 // Placeholder component for My Listings
 const MyListings = () => <div>My Listings Page (Coming Soon)</div>;
@@ -16,11 +22,9 @@ const MyListings = () => <div>My Listings Page (Coming Soon)</div>;
 const AppContent = () => {
   const location = useLocation();
 
-  // Theme state
-  const [isDark, setIsDark] = useState(() => {
-    const saved = localStorage.getItem('theme');
-    return saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
+  // Theme handling
+  const { colorMode, toggleColorMode } = useColorMode();
+  const isDark = colorMode === 'dark';
 
   // Language state
   const [language, setLanguage] = useState(() => {
@@ -34,10 +38,7 @@ const AppContent = () => {
     completedSteps: []
   });
 
-  // Update theme in localStorage
-  useEffect(() => {
-    localStorage.setItem('theme', isDark ? 'dark' : 'light');
-  }, [isDark]);
+
 
   // Update language in localStorage
   useEffect(() => {
@@ -67,40 +68,92 @@ const AppContent = () => {
             }
           />
 
+          {/* Auth routes */}
+          <Route path="/auth">
+            <Route
+              path="login"
+              element={
+                <PageTransition>
+                  <LoginPage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="register"
+              element={
+                <PageTransition>
+                  <RegisterPage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="forgot-password"
+              element={
+                <PageTransition>
+                  <ForgotPasswordPage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="reset-password"
+              element={
+                <PageTransition>
+                  <ResetPasswordPage />
+                </PageTransition>
+              }
+            />
+            <Route
+              path="verify-email"
+              element={
+                <PageTransition>
+                  <VerifyEmailPage />
+                </PageTransition>
+              }
+            />
+          </Route>
+
           {/* Protected routes */}
           <Route
             path="/dashboard"
             element={
-              <PageTransition>
-                <DashboardPage
-                  workflowState={workflowState}
-                  setWorkflowState={setWorkflowState}
-                />
-              </PageTransition>
+              <PrivateRoute>
+                <PageTransition>
+                  <DashboardPage
+                    workflowState={workflowState}
+                    setWorkflowState={setWorkflowState}
+                  />
+                </PageTransition>
+              </PrivateRoute>
             }
           />
           <Route
             path="/create-listing"
             element={
-              <PageTransition>
-                <CreateListing />
-              </PageTransition>
+              <PrivateRoute>
+                <PageTransition>
+                  <CreateListing />
+                </PageTransition>
+              </PrivateRoute>
             }
           />
           <Route
             path="/my-listings"
             element={
-              <PageTransition>
-                <MyListings />
-              </PageTransition>
+              <PrivateRoute>
+                <PageTransition>
+                  <MyListings />
+                </PageTransition>
+              </PrivateRoute>
             }
           />
           <Route
             path="/profile"
             element={
-              <PageTransition>
-                <ProfilePage />
-              </PageTransition>
+              <PrivateRoute>
+                <PageTransition>
+                  <ProfilePage />
+                </PageTransition>
+              </PrivateRoute>
             }
           />
 

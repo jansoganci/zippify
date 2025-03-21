@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Flex, Text, Progress, useColorModeValue } from '@chakra-ui/react';
-import { CheckIcon } from '@chakra-ui/icons';
+import { CheckIcon, CheckCircleIcon } from '@chakra-ui/icons';
 
 const steps = [
   { id: 'optimize', label: 'Optimize Pattern' },

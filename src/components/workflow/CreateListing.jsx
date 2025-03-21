@@ -47,6 +47,8 @@ export const CreateListing = () => {
         return (
           <ContentOptimization
             onComplete={handleOptimizationComplete}
+            currentStep={step}
+            completedSteps={completedSteps}
           />
         );
       case 'pdf':
@@ -54,6 +56,8 @@ export const CreateListing = () => {
           <PDFGeneration
             optimizedContent={workflowData.optimize?.optimizedPattern}
             onComplete={handlePDFComplete}
+            currentStep={step}
+            completedSteps={completedSteps}
           />
         );
       case 'etsy':
@@ -62,6 +66,8 @@ export const CreateListing = () => {
             optimizedContent={workflowData.optimize?.optimizedPattern}
             pdfUrl={workflowData.pdf?.pdfUrl}
             onComplete={handleEtsyComplete}
+            currentStep={step}
+            completedSteps={completedSteps}
           />
         );
       default:
@@ -71,9 +77,7 @@ export const CreateListing = () => {
 
   return (
     <Box position="relative">
-      <ProgressBar currentStep={step} completedSteps={completedSteps} />
       {renderStep()}
     </Box>
   );
 };
-export default CreateListing;

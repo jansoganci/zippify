@@ -12,7 +12,7 @@ import {
 } from '@chakra-ui/react';
 import { DashboardLayout } from '../layout/DashboardLayout';
 import { profileService } from '../../services/profile/profileService';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 export const ProfilePage = () => {
   const [profile, setProfile] = useState({
@@ -25,6 +25,12 @@ export const ProfilePage = () => {
   const { user } = useAuth();
 
   useEffect(() => {
+    if (!user || !user.id) {
+      console.log('No user data available:', { user });
+      return;
+    }
+    console.log('Fetching profile for user:', { userId: user.id });
+
     const loadProfile = async () => {
       try {
         const data = await profileService.getProfile(user.id);
@@ -55,6 +61,19 @@ export const ProfilePage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!user || !user.id) {
+      toast({
+        title: 'Authentication Error',
+        description: 'User is not authenticated. Please log in again.',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+      return;
+    }
+
+    console.log('Updating profile for user:', { userId: user.id, profile });
     setIsLoading(true);
 
     try {

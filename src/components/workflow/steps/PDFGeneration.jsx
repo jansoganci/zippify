@@ -11,12 +11,13 @@ import {
   Divider
 } from '@chakra-ui/react';
 import { LoadingTransition } from '../../common/LoadingTransition';
-import { ArrowForwardIcon, CopyIcon } from '@chakra-ui/icons';
+import { ArrowForwardIcon, CopyIcon, AttachmentIcon as DocumentIcon } from '@chakra-ui/icons';
 import { DashboardLayout } from '../../layout/DashboardLayout';
+import { ProgressBar } from '../../layout/ProgressBar';
 import { PDFViewer } from '../components/PDFViewer';
 import { generatePDF } from '../../../services/workflow/generatePDF';
 
-export const PDFGeneration = ({ optimizedContent, onComplete }) => {
+export const PDFGeneration = ({ optimizedContent, onComplete, currentStep, completedSteps }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [pdfUrl, setPdfUrl] = useState(null);
@@ -32,24 +33,31 @@ export const PDFGeneration = ({ optimizedContent, onComplete }) => {
         setProgress(prev => Math.min(prev + 15, 90));
       }, 1000);
 
-      // Call the PDF generation service
-      const result = await generatePDF(optimizedContent);
+      // Call the backend PDF generation endpoint
+      const response = await fetch('http://localhost:3001/api/generate-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: optimizedContent })
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate PDF');
+      }
 
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (result.success) {
-        setPdfUrl(result.pdfUrl);
-        toast({
-          title: 'Success',
-          description: 'PDF generated successfully',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(result.error);
-      }
+      setPdfUrl(result.pdfContent);
+      toast({
+        title: 'Success',
+        description: 'PDF generated successfully',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
     } catch (error) {
       toast({
         title: 'Error',
@@ -77,6 +85,7 @@ export const PDFGeneration = ({ optimizedContent, onComplete }) => {
 
   return (
     <DashboardLayout currentStep="pdf" completedSteps={['optimize']}>
+      <ProgressBar currentStep={currentStep} completedSteps={completedSteps} />
       <LoadingTransition isLoading={isGenerating}>
         <VStack spacing={8} align="stretch" maxW="4xl" mx="auto">
         {/* Header */}

@@ -1,5 +1,6 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
+import path from 'path';
 
 class Database {
   constructor() {
@@ -8,17 +9,14 @@ class Database {
   }
 
   async getConnection() {
-    // Return existing connection if available
     if (this._db) {
       return this._db;
     }
 
-    // Return in-progress connection attempt if exists
     if (this._connectionPromise) {
       return this._connectionPromise;
     }
 
-    // Create new connection
     this._connectionPromise = this._connect();
     try {
       this._db = await this._connectionPromise;
@@ -30,19 +28,17 @@ class Database {
 
   async _connect() {
     try {
+      const dbPath = path.resolve(process.cwd(), 'db/zippify.db');
       const db = await open({
-        filename: './db/zippify.db',
+        filename: dbPath,
         driver: sqlite3.Database
       });
 
-      // Enable foreign keys
-      await db.run('PRAGMA foreign_keys = ON');
-      
-      // Enable WAL mode for better concurrency
-      await db.run('PRAGMA journal_mode = WAL');
-      
-      // Set busy timeout to handle concurrent requests
-      await db.run('PRAGMA busy_timeout = 5000');
+      await Promise.all([
+        db.run('PRAGMA foreign_keys = ON'),
+        db.run('PRAGMA journal_mode = WAL'),
+        db.run('PRAGMA busy_timeout = 5000')
+      ]);
 
       return db;
     } catch (error) {
@@ -91,5 +87,5 @@ class Database {
   }
 }
 
-// Export a singleton instance
 export const db = new Database();
+

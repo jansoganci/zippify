@@ -19,12 +19,13 @@ import {
   CopyIcon
 } from '@chakra-ui/icons';
 import { DashboardLayout } from '../../layout/DashboardLayout';
+import { ProgressBar } from '../../layout/ProgressBar';
 import { CopyableText } from '../components/CopyableText';
 import { SuccessModal } from '../components/SuccessModal';
 import { generateEtsyListing } from '../../../services/workflow/generateEtsyListing';
 import { useNavigate } from 'react-router-dom';
 
-export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete }) => {
+export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep, completedSteps }) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState(0);
   const [listingData, setListingData] = useState(null);
@@ -42,11 +43,19 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete }) => {
         setProgress(prev => Math.min(prev + 20, 90));
       }, 1000);
 
-      // Call the Etsy listing generation service
-      const result = await generateEtsyListing({
-        optimizedPattern: optimizedContent,
-        pdfUrl
+      // Call the backend Etsy listing generation endpoint
+      const response = await fetch('http://localhost:3001/api/generate-etsy', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ content: optimizedContent })
       });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate Etsy listing');
+      }
 
       clearInterval(progressInterval);
       setProgress(100);
