@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ChakraProvider, CSSReset, useColorMode } from '@chakra-ui/react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { PageTransition } from './components/common/PageTransition';
 import { LandingPage } from './components/landing/LandingPage';
-import { theme } from './styles/theme';
+
 import { DashboardPage } from './components/dashboard/DashboardPage';
 import { CreateListing } from './components/workflow/CreateListing.jsx';
 import { ProfilePage } from './components/profile/ProfilePage';
@@ -22,9 +21,7 @@ const MyListings = () => <div>My Listings Page (Coming Soon)</div>;
 const AppContent = () => {
   const location = useLocation();
 
-  // Theme handling
-  const { colorMode, toggleColorMode } = useColorMode();
-  const isDark = colorMode === 'dark';
+  // Theme handling removed - now handled directly in ThemeToggle component
 
   // Language state
   const [language, setLanguage] = useState(() => {
@@ -45,12 +42,9 @@ const AppContent = () => {
     localStorage.setItem('language', language);
   }, [language]);
 
-  const toggleTheme = () => setIsDark(!isDark);
   const handleLanguageChange = (newLang) => setLanguage(newLang);
 
   return (
-    <ChakraProvider theme={theme}>
-      <CSSReset />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           {/* Public routes */}
@@ -59,8 +53,6 @@ const AppContent = () => {
             element={
               <PageTransition>
                 <LandingPage
-                  isDark={isDark}
-                  onThemeToggle={toggleTheme}
                   language={language}
                   onLanguageChange={handleLanguageChange}
                 />
@@ -161,7 +153,6 @@ const AppContent = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AnimatePresence>
-    </ChakraProvider>
   );
 };
 

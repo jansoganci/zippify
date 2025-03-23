@@ -46,18 +46,36 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
         setProgress(prev => Math.min(prev + 10, 90));
       }, 1000);
 
-      // Call the backend optimization endpoint
+      // Call the backend optimization endpoint with improved error handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 dakika timeout
+      
+      console.log('Sending optimization request to backend');
       const response = await fetch('http://localhost:3001/api/optimize', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Request-ID': `frontend-${Date.now()}`
         },
-        body: JSON.stringify({ content })
+        body: JSON.stringify({ content }),
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
-      const result = await response.json();
+      // Daha iyi hata yakalama
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        throw new Error(`Failed to parse API response: ${parseError.message}`);
+      }
+      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to optimize content');
+        console.error('API error response:', result);
+        throw new Error(result.error || `Failed to optimize content: ${response.status} ${response.statusText}`);
       }
 
       clearInterval(progressInterval);
@@ -74,8 +92,8 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
         isClosable: true,
       });
       
-      // Only call onComplete if needed
-      onComplete && onComplete(result);
+      // Removed automatic navigation to next step
+      // The user will need to click the Next button
     } catch (error) {
       toast({
         title: 'Error',
@@ -190,15 +208,15 @@ export const ContentOptimization = ({ onComplete, isDark, onThemeToggle, languag
           >
             Optimize Content
           </Button>
-          {!isProcessing && progress === 100 && (
+          {!isProcessing && optimizedContent && (
             <Button
-              rightIcon={<ArrowRightIcon />}
+              rightIcon={<ArrowForwardIcon />}
               colorScheme="primary"
               variant="outline"
               size="lg"
-              onClick={() => onComplete()}
+              onClick={() => onComplete({ optimizedPattern: optimizedContent })}
             >
-              Continue to PDF Generation
+              Next
             </Button>
           )}
         </Flex>

@@ -5,12 +5,10 @@ import { PageTransition } from '../common/PageTransition';
 import { Header } from '../common/Header';
 import Footer from './Footer';
 
-export const DashboardLayout = ({ children, isDark, onThemeToggle, language, onLanguageChange }) => {
+export const DashboardLayout = ({ children, language, onLanguageChange }) => {
   return (
     <Box minH="100vh" bg={useColorModeValue('gray.50', 'gray.900')} position="relative">
       <Header
-        isDark={isDark}
-        onThemeToggle={onThemeToggle}
         language={language}
         onLanguageChange={onLanguageChange}
         position="fixed"
