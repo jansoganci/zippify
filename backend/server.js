@@ -7,10 +7,37 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
 
-dotenv.config({ path: '/Users/jans./CascadeProjects/zippify/.env.production' });
+// Önce varsayılan .env dosyasını yükle
+dotenv.config();
 
-// Debug: Log API key presence
-console.log('DeepSeek API Key:', process.env.DEEPSEEK_API_KEY ? 'Present' : 'Missing');
+// Ardından özel dosyaları kontrol et
+const envFiles = [
+  '.env.local',
+  '.env'
+];
+
+for (const file of envFiles) {
+  try {
+    dotenv.config({ path: file, override: true });
+    console.log(`Loaded environment variables from ${file}`);
+  } catch (error) {
+    console.warn(`Failed to load ${file}:`, error.message);
+  }
+}
+
+// Disable SSL certificate validation for development
+// NOT: Bu ayar sadece geliştirme ortamında kullanılmalıdır, production'da kaldırılmalıdır
+if (process.env.NODE_ENV === 'development') {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+  console.warn('WARNING: SSL certificate validation is disabled for development');
+}
+
+// Debug: Log API key presence and format
+console.log('DeepSeek API Key Status:', {
+  present: !!process.env.DEEPSEEK_API_KEY,
+  length: process.env.DEEPSEEK_API_KEY?.length,
+  prefix: process.env.DEEPSEEK_API_KEY?.substring(0, 5) + '...',
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,117 +52,67 @@ app.get('/api/health', (req, res) => {
 });
 
 // Content Optimization Route
-// Test DeepSeek API connection
-const testDeepSeekAPI = async () => {
-  try {
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'user', content: 'Hello' }
-        ]
-      })
-    });
 
-    const data = await response.json();
-    console.log('DeepSeek API Test Response:', data);
-    return data;
-  } catch (error) {
-    console.error('DeepSeek API Test Failed:', error);
-    throw error;
-  }
-};
-
-// Test the API connection when server starts
-testDeepSeekAPI().catch(console.error);
-
-const SYSTEM_PROMPT = `You are an AI assistant specializing in optimizing knitting pattern descriptions for Etsy listings. Your task is to analyze the provided PDF file and ensure the content is structured, clear, and free from inconsistencies. Focus on improving readability while preserving the original information. You do NOT add SEO keywords or rewrite for the target audience at this stage. Your job is to refine the content, fix missing details, and organize it for better comprehension.`;
-
-const USER_PROMPT = `Process the attached PDF file. Identify any missing or unclear information and improve the structure for better readability. Correct any inconsistencies while keeping the original meaning intact. Do NOT optimize for SEO or target audience at this stage. Your goal is to refine the content and make it more clear and logically structured.`;
-
-const callDeepSeekAPI = async (content) => {
-  const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: USER_PROMPT.replace('{{workflow.parameters.FILEPLEASE}}', content) }
-      ]
-    })
-  });
-
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.error || 'DeepSeek API call failed');
-  }
-
-  return data.choices[0].message.content;
-};
+// Import workflow services
+import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
+import { generatePDF } from '../src/services/workflow/generatePDF.js';
+import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
 
 app.post('/api/optimize', async (req, res) => {
+  const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
+  console.log(`[${requestId}] Received optimize request`);
+  
   try {
-    console.log('Received request body:', req.body);
+    console.log(`[${requestId}] Request body:`, req.body);
     const { content } = req.body;
-    if (!content) {
-      console.log('Content is missing from request');
-      return res.status(400).json({ error: 'Content is required' });
-    }
-
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: [
-          { role: 'system', content: `You are an expert in knitting and crochet patterns. Your task is to optimize and enhance the given pattern while:
-            1. Maintaining all technical instructions exactly as provided
-            2. Improving clarity and readability
-            3. Adding helpful notes for beginners where appropriate
-            4. Ensuring all abbreviations are properly explained
-            5. Organizing content into clear sections (Materials, Size Guide, Instructions, etc.)
-            6. Keeping the original measurements and stitch counts intact
-            7. Using standard knitting/crochet terminology
-            8. Adding any missing essential information (gauge, difficulty level, etc.)
-
-            Format the output as a clean, well-structured pattern that's easy to follow.` },
-          { role: 'user', content }
-        ]
-      })
-    });
-
-    const data = await response.json();
-    console.log('DeepSeek API Response:', data);
     
-    if (!response.ok) {
-      console.error('DeepSeek API Error:', data);
-      return res.status(response.status).json({
-        error: 'DeepSeek API Error',
-        details: data,
-        status: response.status
+    if (!content) {
+      console.log(`[${requestId}] Content is missing from request`);
+      return res.status(400).json({ 
+        error: 'Content is required',
+        requestId
       });
     }
 
-    const optimizedContent = await callDeepSeekAPI(
-      content,
-      'You are an expert content optimizer. Improve the given content while maintaining its core message.'
-    );
-    res.json({ optimizedContent });
+    // Validate content length
+    if (content.length < 10) {
+      console.log(`[${requestId}] Content too short: ${content.length} chars`);
+      return res.status(400).json({
+        error: 'Content is too short. Please provide a complete pattern.',
+        requestId
+      });
+    }
+
+    console.log(`[${requestId}] Calling optimizePattern with content length: ${content.length} chars`);
+    const result = await optimizePattern(content).catch(err => {
+      console.error(`[${requestId}] Error in optimizePattern:`, err);
+      return { success: false, error: err.message };
+    });
+    
+    console.log(`[${requestId}] optimizePattern result:`, {
+      success: result.success,
+      hasOptimizedPattern: !!result.optimizedPattern,
+      optimizedPatternLength: result.optimizedPattern?.length,
+      error: result.error
+    });
+    
+    if (result.success) {
+      res.json({
+        optimizedContent: result.optimizedPattern, // rename burada yapıldı
+        requestId
+      });
+    } else {
+      res.status(400).json({
+        error: result.error || 'Unknown error during pattern optimization',
+        requestId
+      });
+    }
   } catch (error) {
-    console.error('Optimization error:', error);
-    res.status(500).json({ error: 'Failed to optimize content' });
+    console.error(`[${requestId}] Pattern Optimization Error:`, error);
+    res.status(500).json({
+      error: `Failed to optimize pattern: ${error.message}`,
+      requestId
+    });
   }
 });
 
@@ -217,3 +194,45 @@ app.post('/api/auth/login', async (req, res) => {
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });
+
+app.post('/api/generate-pdf', async (req, res) => {
+    const { content } = req.body;
+    const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
+  
+    try {
+      if (!content) {
+        return res.status(400).json({ error: 'Content is required', requestId });
+      }
+  
+      const result = await generatePDF({ optimizedPattern: content });
+      if (result.success) {
+        return res.json({ pdfContent: result.pdfContent, pdfUrl: result.pdfUrl, requestId });
+      } else {
+        return res.status(400).json({ error: result.error || 'Failed to generate PDF', requestId });
+      }
+    } catch (error) {
+      console.error(`[${requestId}] PDF Generation Error:`, error);
+      res.status(500).json({ error: `Failed to generate PDF: ${error.message}`, requestId });
+    }
+  });
+
+  app.post('/api/generate-etsy', async (req, res) => {
+    const { content } = req.body;
+    const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
+  
+    try {
+      if (!content) {
+        return res.status(400).json({ error: 'Content is required', requestId });
+      }
+  
+      const result = await generateEtsyListing({ pdfContent: content });
+      if (result.success) {
+        return res.json({ ...result, requestId });
+      } else {
+        return res.status(400).json({ error: result.error || 'Failed to generate Etsy listing', requestId });
+      }
+    } catch (error) {
+      console.error(`[${requestId}] Etsy Listing Generation Error:`, error);
+      res.status(500).json({ error: `Failed to generate Etsy listing: ${error.message}`, requestId });
+    }
+  });

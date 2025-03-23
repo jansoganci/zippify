@@ -5,7 +5,7 @@ import { Header } from '../common/Header';
 import Footer from '../layout/Footer';
 import { useNavigate } from 'react-router-dom';
 
-export const LandingPage = ({ isDark, onThemeToggle, language, onLanguageChange }) => {
+export const LandingPage = ({ language, onLanguageChange }) => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
@@ -15,8 +15,6 @@ export const LandingPage = ({ isDark, onThemeToggle, language, onLanguageChange 
   return (
     <Box minH="100vh" bg="background" position="relative" pb="16">
       <Header
-        isDark={isDark}
-        onThemeToggle={onThemeToggle}
         language={language}
         onLanguageChange={onLanguageChange}
       />

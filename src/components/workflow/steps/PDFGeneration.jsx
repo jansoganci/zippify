@@ -58,6 +58,8 @@ export const PDFGeneration = ({ optimizedContent, onComplete, currentStep, compl
         duration: 3000,
         isClosable: true,
       });
+      // Removed automatic navigation to next step
+      // The user will need to click the Next button
     } catch (error) {
       toast({
         title: 'Error',
@@ -193,12 +195,12 @@ export const PDFGeneration = ({ optimizedContent, onComplete, currentStep, compl
                 Download PDF
               </Button>
               <Button
-                rightIcon={<ArrowRightIcon />}
+                rightIcon={<ArrowForwardIcon />}
                 colorScheme="primary"
                 size="lg"
                 onClick={() => onComplete({ pdfUrl })}
               >
-                Continue to Etsy Listing
+                Next
               </Button>
             </>
           )}

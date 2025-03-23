@@ -9,10 +9,8 @@ import {
   Button,
   Text,
   VStack,
-  Icon,
   useColorModeValue
 } from '@chakra-ui/react';
-import { CheckIcon, DownloadIcon, ViewIcon } from '@chakra-ui/icons';
 
 export const SuccessModal = ({
   isOpen,
@@ -41,15 +39,11 @@ export const SuccessModal = ({
       >
         <ModalHeader pt={6} px={6}>
           <VStack spacing={4} align="center">
-            <Icon
-              as={CheckCircleIcon}
-              boxSize={12}
-              color={successColor}
-            />
             <Text
               fontSize="xl"
               fontWeight="bold"
               textAlign="center"
+              color={successColor}
             >
               Workflow Completed Successfully!
             </Text>
@@ -72,7 +66,6 @@ export const SuccessModal = ({
           flexDirection={{ base: 'column', sm: 'row' }}
         >
           <Button
-            leftIcon={<DownloadIcon />}
             colorScheme="primary"
             variant="outline"
             w={{ base: 'full', sm: 'auto' }}
@@ -84,7 +77,6 @@ export const SuccessModal = ({
             Download PDF
           </Button>
           <Button
-            leftIcon={<HomeIcon />}
             colorScheme="primary"
             w={{ base: 'full', sm: 'auto' }}
             onClick={() => {

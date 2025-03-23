@@ -1,16 +1,50 @@
 import axios from 'axios';
-import logger from './utils/logger.js';
 import { createApiError, ErrorCodes } from './utils/errors.js';
 
-// API Configuration using Vite's import.meta.env
-const API_URL = import.meta.env.VITE_DEEPSEEK_API_URL || 'https://api.deepseek.com/v1';
-const API_KEY = import.meta.env.VITE_DEEPSEEK_API_KEY;
-const MODEL = import.meta.env.VITE_DEEPSEEK_MODEL || 'deepseek-chat';
-const MAX_TOKENS = parseInt(import.meta.env.VITE_DEEPSEEK_MAX_TOKENS, 10) || 4096;
-const MAX_RETRIES = parseInt(import.meta.env.VITE_DEEPSEEK_MAX_RETRIES, 10) || 3;
-const RETRY_DELAY = parseInt(import.meta.env.VITE_DEEPSEEK_RETRY_DELAY, 10) || 2000;
-const TIMEOUT = parseInt(import.meta.env.VITE_DEEPSEEK_TIMEOUT, 10) || 30000;
-const RATE_LIMIT = parseInt(import.meta.env.VITE_DEEPSEEK_RATE_LIMIT, 10) || 10;
+// Determine environment (Node.js or browser)
+const isBrowser = typeof window !== 'undefined';
+const isNode = !isBrowser && typeof process !== 'undefined';
+
+// Get environment variables based on runtime environment
+const getEnv = (key, defaultValue) => {
+  if (isNode) {
+    return process.env[key] || defaultValue;
+  } else if (isBrowser && typeof import.meta !== 'undefined' && import.meta.env) {
+    const viteKey = `VITE_${key}`;
+    return import.meta.env[viteKey] || defaultValue;
+  }
+  return defaultValue;
+};
+
+// API Configuration with environment-aware variables
+const API_URL = getEnv('DEEPSEEK_API_URL', 'https://api.deepseek.com/v1');
+const API_KEY = getEnv('DEEPSEEK_API_KEY', '');
+const MODEL = getEnv('DEEPSEEK_MODEL', 'deepseek-chat');
+const MAX_TOKENS = parseInt(getEnv('DEEPSEEK_MAX_TOKENS', '4096'), 10);
+const MAX_RETRIES = parseInt(getEnv('DEEPSEEK_MAX_RETRIES', '5'), 10); // Arttırıldı
+const RETRY_DELAY = parseInt(getEnv('DEEPSEEK_RETRY_DELAY', '3000'), 10); // Arttırıldı
+const TIMEOUT = parseInt(getEnv('DEEPSEEK_TIMEOUT', '60000'), 10); // Arttırıldı
+const RATE_LIMIT = parseInt(getEnv('DEEPSEEK_RATE_LIMIT', '5'), 10); // Azaltıldı
+
+// Debug: Log API configuration
+console.log('DeepSeek API Configuration:', {
+  API_URL,
+  MODEL,
+  MAX_TOKENS,
+  MAX_RETRIES,
+  RETRY_DELAY,
+  TIMEOUT,
+  RATE_LIMIT,
+  API_KEY_PRESENT: !!API_KEY,
+  ENVIRONMENT: isNode ? 'Node.js' : 'Browser'
+});
+
+// Securely log API key presence without exposing any part of the key
+if (API_KEY) {
+  console.log("Authorization header is present.");
+} else {
+  console.warn("Authorization header is missing!");
+}
 
 // Rate limiting queue
 let requestQueue = [];
@@ -30,7 +64,7 @@ const checkRateLimit = async () => {
 };
 
 // Mock responses for testing
-const USE_MOCK = import.meta.env.MODE === 'test';
+const USE_MOCK = getEnv('NODE_ENV', '') === 'test';
 const mockResponses = {
   optimizePattern: `Improved Beanie Pattern
 
@@ -95,33 +129,35 @@ Finished measurements: 8" tall, 18" circumference`,
 // Create axios instance with default configuration
 const apiClient = axios.create({
   baseURL: API_URL,
-  headers: {
-    'Authorization': `Bearer ${API_KEY}`,
-    'Content-Type': 'application/json',
-    'Accept-Encoding': 'gzip,deflate,compress'
-  },
   timeout: TIMEOUT,
   maxContentLength: 50 * 1024 * 1024, // 50MB
   maxBodyLength: 50 * 1024 * 1024, // 50MB
   decompress: true,
-  validateStatus: (status) => status >= 200 && status < 500 // Don't reject if status < 500
+  validateStatus: (status) => status >= 200 && status < 500, // Don't reject if status < 500
+  // Daha fazla hata ayıklama bilgisi için
+  headers: {
+    'User-Agent': 'Zippify/1.0',
+    'Accept': 'application/json',
+  },
+  // Bağlantı sorunlarını azaltmak için
+  // Agent'lar kaldırıldı - ES Module uyumluluğu için
 });
 
 // Add request interceptor for logging and rate limiting
 apiClient.interceptors.request.use(async (config) => {
   await checkRateLimit();
-  logger.debug(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+  console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
   return config;
 });
 
 // Add response interceptor for logging
 apiClient.interceptors.response.use(
   (response) => {
-    logger.debug(`API Response: ${response.status} ${response.statusText}`);
+    console.log(`API Response: ${response.status} ${response.statusText}`);
     return response;
   },
   (error) => {
-    logger.error('API Error:', {
+    console.error('API Error:', {
       message: error.message,
       code: error.code,
       status: error.response?.status,
@@ -140,6 +176,13 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * Validate API configuration
  */
 export const validateConfig = () => {
+  // In backend context, get API key from server.js if not already set
+  if (!API_KEY && isNode && process.env.DEEPSEEK_API_KEY) {
+    // Log that we're using the API key from process.env
+    console.log('Using DeepSeek API key from process.env');
+    return true;
+  }
+  
   if (!API_KEY) {
     throw createApiError('DeepSeek API key is not configured', { code: ErrorCodes.MISSING_REQUIRED_FIELD });
   }
@@ -158,36 +201,88 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
   const maxAttempts = retries + 1;
   const backoffFactor = 1.5;
 
+  // Get the current API key - this allows us to pick up changes if the key was updated
+  // In Node.js environment, we check both process.env and API_KEY
+  // In browser environment, we use API_KEY which comes from import.meta.env
+  const currentApiKey = API_KEY || (isNode ? process.env.DEEPSEEK_API_KEY : null);
+  
+  if (!currentApiKey) {
+    console.error('API Key not found. Environment:', isNode ? 'Node.js' : 'Browser');
+    throw createApiError('DeepSeek API key is not configured', { code: ErrorCodes.MISSING_REQUIRED_FIELD });
+  }
+
+  // Detaylı API URL logı
+  const fullUrl = `${API_URL}${endpoint}`;
+  console.log(`Full API URL: ${fullUrl}`);
+
   while (attempt <= maxAttempts) {
     try {
-      logger.debug(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { data });
+      console.log(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { 
+        endpoint,
+        model: data.model,
+        messagesCount: data.messages?.length,
+        maxTokens: data.max_tokens
+      });
       
       // Wait for rate limit if needed
       await checkRateLimit();
       
-      const response = await apiClient.post(endpoint, data);
+      // Set headers with current API key for each request
+      const headers = {
+        'Authorization': `Bearer ${currentApiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip,deflate,compress',
+        'User-Agent': 'Zippify/1.0',
+        'X-Request-ID': `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
+      };
+      
+      // Daha uzun timeout için özel yapılandırma
+      const requestConfig = { 
+        headers,
+        timeout: TIMEOUT // Her istek için timeout'u ayarla
+      };
+      
+      // Securely log API headers without exposing sensitive information
+      if (headers?.Authorization) {
+        console.log("Authorization header is present.");
+      } else {
+        console.warn("Authorization header is missing!");
+      }
+      
+      // Log non-sensitive headers
+      console.log(`API Request Headers:`, {
+        'Content-Type': headers['Content-Type'],
+        'Accept': headers['Accept'],
+        'User-Agent': headers['User-Agent'],
+        'X-Request-ID': headers['X-Request-ID']
+      });
+      
+      const response = await apiClient.post(endpoint, data, requestConfig);
       
       // Handle rate limiting response
       if (response.status === 429) {
         const retryAfter = parseInt(response.headers['retry-after'], 10) || RETRY_DELAY;
         throw createApiError('Rate limit exceeded', {
           code: ErrorCodes.RATE_LIMIT,
-          metadata: { retryAfter }
+          metadata: { retryAfter, headers: response.headers }
         });
       }
       
       // Handle successful response
       if (response.data?.choices) {
-        logger.debug(`API request successful`, {
+        console.log(`API request successful`, {
           endpoint,
           status: response.status,
           choices: response.data.choices.length,
-          attempt
+          attempt,
+          responseHeaders: response.headers
         });
         return response;
       }
       
       // Handle invalid response format
+      console.error('Invalid API response format:', response.data);
       throw createApiError('Invalid API response format', {
         code: ErrorCodes.INVALID_API_RESPONSE,
         metadata: { endpoint, response: response.data }
@@ -196,21 +291,57 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
     } catch (error) {
       lastError = error;
       
+      // Detaylı hata logı
+      console.error('API request error details:', {
+        message: error.message,
+        code: error.code,
+        name: error.name,
+        stack: error.stack,
+        response: {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          headers: error.response?.headers,
+          data: error.response?.data
+        },
+        request: {
+          method: error.config?.method,
+          url: error.config?.url,
+          headers: error.config?.headers,
+          data: error.config?.data
+        }
+      });
+      
+      // Daha fazla hata türü için kontrol
       const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
+      const isConnectionReset = error.code === 'ECONNRESET';
+      const isNetworkError = error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN' || error.message.includes('network');
       const isRateLimit = error.code === ErrorCodes.RATE_LIMIT || error.response?.status === 429;
       const isServerError = error.response?.status >= 500;
-      const isRetryable = isTimeout || isRateLimit || isServerError;
+      const isRetryable = isTimeout || isRateLimit || isServerError || isConnectionReset || isNetworkError;
       
       if (isRetryable && attempt < maxAttempts) {
-        const delay = isRateLimit
-          ? (error.metadata?.retryAfter || RETRY_DELAY)
-          : Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt - 1), 30000);
+        // Daha akıllı backoff stratejisi
+        let delay;
+        if (isRateLimit && error.metadata?.retryAfter) {
+          delay = error.metadata.retryAfter;
+        } else if (isConnectionReset || isNetworkError) {
+          // Ağ hataları için daha uzun bekleme
+          delay = Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt), 30000);
+        } else {
+          delay = Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt - 1), 30000);
+        }
         
-        logger.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
+        console.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
           endpoint,
           error: error.message,
+          errorCode: error.code,
           status: error.response?.status,
-          delay
+          delay,
+          retryReason: isTimeout ? 'timeout' : 
+                       isConnectionReset ? 'connection_reset' :
+                       isNetworkError ? 'network_error' :
+                       isRateLimit ? 'rate_limit' :
+                       isServerError ? 'server_error' : 'unknown'
         });
         
         await sleep(delay);
@@ -244,7 +375,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
 export const makeCompletion = async (systemPrompt, userPrompt) => {
   // Return mock response if in test mode
   if (USE_MOCK) {
-    logger.debug('Using mock response');
+    console.log('Using mock response');
     if (userPrompt.includes('optimize this knitting pattern')) {
       return mockResponses.optimizePattern;
     } else if (userPrompt.includes('format this knitting pattern for PDF')) {
@@ -284,7 +415,7 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
     return response.data.choices[0].message.content;
   } catch (error) {
     if (error.code === ErrorCodes.API_TIMEOUT) {
-      logger.error('API request timed out, using fallback response');
+      console.error('API request timed out, using fallback response');
       // Use mock response as fallback
       if (userPrompt.includes('optimize this knitting pattern')) {
         return mockResponses.optimizePattern;

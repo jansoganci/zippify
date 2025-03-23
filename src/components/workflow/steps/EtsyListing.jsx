@@ -8,21 +8,12 @@ import {
   Flex,
   Progress,
   SimpleGrid,
-  Icon,
   useDisclosure
 } from '@chakra-ui/react';
 import { LoadingTransition } from '../../common/LoadingTransition';
-import {
-  CheckIcon,
-  ViewIcon,
-  InfoIcon,
-  CopyIcon
-} from '@chakra-ui/icons';
 import { DashboardLayout } from '../../layout/DashboardLayout';
-import { ProgressBar } from '../../layout/ProgressBar';
 import { CopyableText } from '../components/CopyableText';
 import { SuccessModal } from '../components/SuccessModal';
-import { generateEtsyListing } from '../../../services/workflow/generateEtsyListing';
 import { useNavigate } from 'react-router-dom';
 
 export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep, completedSteps }) => {
@@ -38,24 +29,18 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
     setProgress(0);
 
     try {
-      // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => Math.min(prev + 20, 90));
       }, 1000);
 
-      // Call the backend Etsy listing generation endpoint
       const response = await fetch('http://localhost:3001/api/generate-etsy', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: optimizedContent })
       });
 
       const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to generate Etsy listing');
-      }
+      if (!response.ok) throw new Error(result.error || 'Failed to generate Etsy listing');
 
       clearInterval(progressInterval);
       setProgress(100);
@@ -63,8 +48,8 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
       if (result.success) {
         setListingData(result);
         toast({
-          title: 'Success',
-          description: 'Etsy listing generated successfully',
+          title: 'Etsy listing generated',
+          description: 'The content has been prepared successfully.',
           status: 'success',
           duration: 3000,
           isClosable: true,
@@ -75,7 +60,7 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to generate Etsy listing',
+        description: error.message,
         status: 'error',
         duration: 5000,
         isClosable: true,
@@ -86,7 +71,6 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
     }
   };
 
-  // Auto-start listing generation when component mounts
   useEffect(() => {
     handleGenerateListing();
   }, []);
@@ -97,121 +81,60 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
   };
 
   const handleDownloadPDF = () => {
-    if (pdfUrl) {
-      window.open(pdfUrl, '_blank');
-    }
+    if (pdfUrl) window.open(pdfUrl, '_blank');
   };
 
-  const ListingSection = ({ icon, title, content }) => (
-    <Box
-      bg="surface"
-      p={6}
-      borderRadius="xl"
-      boxShadow="sm"
-    >
-      <VStack spacing={4} align="stretch">
-        <Flex align="center" gap={3}>
-          <Icon as={icon} boxSize={5} color="primary" />
-          <Text fontWeight="medium">{title}</Text>
-        </Flex>
-        <CopyableText
-          text={content}
-          maxHeight="200px"
-        />
-      </VStack>
+  const ListingSection = ({ title, content }) => (
+    <Box bg="gray.50" p={6} borderRadius="xl" boxShadow="sm">
+      <Text fontWeight="semibold" mb={2}>{title}</Text>
+      <CopyableText text={content} maxHeight="200px" />
     </Box>
   );
 
   return (
-    <DashboardLayout
-      currentStep="etsy"
-      completedSteps={['optimize', 'pdf']}
-    >
+    <DashboardLayout currentStep="etsy" completedSteps={['optimize', 'pdf']}>
       <LoadingTransition isLoading={isGenerating}>
         <VStack spacing={8} align="stretch" maxW="4xl" mx="auto">
-        {/* Header */}
-        <Box>
-          <Text fontSize="2xl" fontWeight="bold" mb={2}>
-            Step 3: Etsy Listing
-          </Text>
-          <Text color="gray.500">
-            We've generated an optimized Etsy listing based on your content.
-          </Text>
-        </Box>
 
-        {/* Processing Status */}
-        {isGenerating && (
-          <Box
-            bg="surface"
-            p={6}
-            borderRadius="xl"
-            boxShadow="sm"
-          >
-            <VStack spacing={4} align="stretch">
-              <Flex align="center" gap={3}>
-                <ShoppingBagIcon boxSize={5} color="primary" />
-                <Text fontWeight="medium">Generating Etsy Listing...</Text>
-              </Flex>
-              <Progress
-                value={progress}
-                size="sm"
-                colorScheme="primary"
-                borderRadius="full"
-                hasStripe
-                isAnimated
-              />
-              <Text fontSize="sm" color="gray.500">
-                We're creating an SEO-optimized listing for your Etsy shop.
-              </Text>
-            </VStack>
+          {/* Header */}
+          <Box>
+            <Text fontSize="2xl" fontWeight="bold">Step 3: Etsy Listing</Text>
+            <Text color="gray.500">The content below has been generated based on your pattern.</Text>
           </Box>
-        )}
 
-        {/* Listing Content */}
-        {listingData && (
-          <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
-            <ListingSection
-              icon={DocumentTextIcon}
-              title="Product Description"
-              content={listingData.description}
-            />
-            <ListingSection
-              icon={TagIcon}
-              title="Tags & Keywords"
-              content={listingData.tags.join('\n')}
-            />
-          </SimpleGrid>
-        )}
-
-        {/* Action Buttons */}
-        <Flex gap={4} justify="flex-end">
-          {!listingData && !isGenerating && (
-            <Button
-              leftIcon={<ShoppingBagIcon />}
-              colorScheme="primary"
-              size="lg"
-              onClick={handleGenerateListing}
-              isLoading={isGenerating}
-              loadingText="Generating..."
-            >
-              Retry Generation
-            </Button>
+          {/* Loading */}
+          {isGenerating && (
+            <Box bg="gray.50" p={6} borderRadius="xl" boxShadow="sm">
+              <Text fontWeight="medium" mb={2}>Generating listing...</Text>
+              <Progress value={progress} size="sm" colorScheme="blue" borderRadius="full" hasStripe isAnimated />
+              <Text fontSize="sm" color="gray.500" mt={2}>Please wait while we prepare your content...</Text>
+            </Box>
           )}
+
+          {/* Result */}
           {listingData && (
-            <Button
-              leftIcon={<CheckCircleIcon />}
-              colorScheme="primary"
-              size="lg"
-              onClick={handleFinish}
-            >
-              Finish
-            </Button>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={6}>
+              <ListingSection title="Product Description" content={listingData.description} />
+              <ListingSection title="Tags & Keywords" content={listingData.tags.join(', ')} />
+            </SimpleGrid>
           )}
-        </Flex>
-      </VStack>
+
+          {/* Buttons */}
+          <Flex justify="flex-end" gap={4}>
+            {!listingData && !isGenerating && (
+              <Button size="lg" onClick={handleGenerateListing} isLoading={isGenerating}>
+                Retry
+              </Button>
+            )}
+            {listingData && (
+              <Button size="lg" colorScheme="blue" onClick={handleFinish}>
+                Finish
+              </Button>
+            )}
+          </Flex>
+        </VStack>
       </LoadingTransition>
 
-      {/* Success Modal */}
       <SuccessModal
         isOpen={isOpen}
         onClose={onClose}
@@ -221,3 +144,6 @@ export const EtsyListing = ({ optimizedContent, pdfUrl, onComplete, currentStep,
     </DashboardLayout>
   );
 };
+
+// Optional default export if needed
+export default EtsyListing;

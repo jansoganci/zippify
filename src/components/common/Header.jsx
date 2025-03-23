@@ -4,7 +4,7 @@ import { Navigation } from './Navigation';
 import { ThemeToggle } from './ThemeToggle';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-export const Header = ({ isDark, onThemeToggle, language, onLanguageChange }) => {
+export const Header = ({ language, onLanguageChange }) => {
   return (
     <Box
       as="header"
@@ -38,7 +38,7 @@ export const Header = ({ isDark, onThemeToggle, language, onLanguageChange }) =>
               currentLanguage={language}
               onLanguageChange={onLanguageChange}
             />
-            <ThemeToggle isDark={isDark} onToggle={onThemeToggle} />
+            <ThemeToggle />
           </Flex>
         </Flex>
       </Flex>

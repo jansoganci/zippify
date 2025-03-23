@@ -9,10 +9,9 @@ import {
   useColorModeValue
 } from '@chakra-ui/react';
 import {
-  CopyIcon,
+  AddIcon as ZoomInIcon,
+  MinusIcon as ZoomOutIcon,
   DownloadIcon,
-  AddIcon,
-  MinusIcon,
   AttachmentIcon as DocumentIcon
 } from '@chakra-ui/icons';
 
