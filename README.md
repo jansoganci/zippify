@@ -1,130 +1,155 @@
-Zippify
+# Zippify
 
-Project Description
+## Project Description
 
 Zippify is an application designed for e-commerce sellers to automate their product listing process. Users simply upload raw product information, and Zippify generates optimized product descriptions, enhanced product images, and downloadable ZIP files ready for immediate use.
 
-Technology Stack
-	•	Frontend: Windsurf (Low-code platform)
-	•	Database: SQLite
-	•	Text Generation API: DeepSeek API
-	•	PDF Generation API: Eachlabs.ai API
-	•	Image Processing API: Google Image-to-Image API
-	•	Payment Processing: Stripe (Monthly subscription)
+## Technology Stack
+- **Frontend**: React with TypeScript, Vite as build tool
+- **UI Framework**: TailwindCSS
+- **Backend**: Node.js with Express
+- **Database**: SQLite
+- **Text Generation API**: DeepSeek API
+- **Image Processing API**: Google Image-to-Image API
+- **Authentication**: JWT-based authentication
 
-Project Structure
+## Project Structure
 
+```
 /zippify
 ├── /src
 │   ├── /components          # UI components
-│   │   ├── /auth
-│   │   ├── /dashboard
-│   │   └── /profile
+│   │   └── /ui              # Reusable UI components
+│   ├── /pages               # Application pages/routes
 │   ├── /services            # API services
-│   │   ├── /deepseek
-│   │   ├── /eachlabs
-│   │   └── /google-image
-│   ├── /styles              # CSS files (modular)
-│   ├── /utils               # Helper functions
-│   ├── /hooks               # Custom hooks
-│   └── /context             # Context providers
+│   │   ├── /api             # API client configuration
+│   │   ├── /auth            # Authentication services
+│   │   ├── /deepseek        # DeepSeek API integration
+│   │   ├── /google-image    # Google Image API integration
+│   │   └── /workflow        # Workflow services
+│   ├── /hooks               # Custom React hooks
+│   └── /lib                 # Utility libraries
+├── /backend                 # Server-side implementation
+│   └── server.js            # Express server
 ├── /db                      # SQLite database files
-│   ├── schema.sql
-│   └── zippify.db
+│   ├── schema.sql           # Database schema
+│   └── zippify.db           # SQLite database
+├── /public                  # Static assets
 ├── .windsurfrules           # Project guidelines
 └── README.md                # Documentation
+```
 
-SQLite Database Schema
+## SQLite Database Schema
 
-users
-	•	user_id (PK)
-	•	email
-	•	username
-	•	password (hashed)
-	•	created_at
+### users
+- id (PK)
+- email (UNIQUE)
+- username (UNIQUE)
+- password (hashed)
+- created_at
 
-profiles
-	•	profile_id (PK)
-	•	user_id (FK)
-	•	first_name
-	•	last_name
-	•	store_name
-	•	profile_image_url (optional)
+### profiles
+- id (PK)
+- user_id (FK)
+- first_name
+- last_name
+- store_name
 
-listings
-	•	listing_id (PK)
-	•	user_id (FK)
-	•	product_title
-	•	product_description
-	•	keywords
-	•	created_at
+### listings
+- id (PK)
+- user_id (FK)
+- title
+- description
+- keywords
+- created_at
 
-files
-	•	file_id (PK)
-	•	user_id (FK)
-	•	listing_id (FK)
-	•	zip_file_url
-	•	created_at
-	•	delete_at (Timestamp, auto-delete after 24h)
+### files
+- id (PK)
+- listing_id (FK)
+- file_url
+- delete_at (Timestamp, auto-delete after 24h)
 
-logs
-	•	log_id (PK)
-	•	user_id (FK)
-	•	action TEXT
-	•	status TEXT
-	•	error_message TEXT
-	•	created_at TIMESTAMP
+## Features
 
-Admin Dashboard
-	•	User Management
-	•	Listing Management
-	•	Log Monitoring
-	•	System Statistics
+### User Features
+- User registration and authentication
+- Profile management
+- Product listing creation and optimization
+- Image enhancement
+- Downloadable ZIP files with optimized content
+- Listing management
 
-UI/UX Specifications
+### Admin Features
+- User management
+- Listing management
+- System statistics monitoring
 
-Layout Structure:
-	•	Sidebar Navigation: Collapsible sidebar (Dashboard, Create Listing, My Listings, Profile)
-	•	Header: Fixed top bar (logo left, user profile avatar right)
-	•	Footer: Fixed bottom bar (©2025 Zippify, Privacy Policy, Terms)
-	•	Main Content: Centered, clean layout
-	•	Landing Page: Minimalistic landing page with title, call-to-action button, and brief description
-	•	Status Bar: Visual representation of the current step in the workflow
+## UI/UX Specifications
 
-Color Palette:
-	•	Primary: #4F46E5 (Buttons, Highlights)
-	•	Secondary: #F9FAFB (Background)
-	•	Text: #111827 (Main text)
-	•	Accent: #10B981 (Success notifications)
-	•	Error: #EF4444 (Error messages)
-	•	Dark Mode: Implemented with a toggle between light and dark themes
+### Layout Structure
+- **Sidebar Navigation**: Collapsible sidebar (Dashboard, Create Listing, My Listings, Profile)
+- **Header**: Fixed top bar (logo left, user profile avatar right)
+- **Main Content**: Centered, clean layout
+- **Landing Page**: Minimalistic landing page with title, call-to-action button, and brief description
+- **Status Bar**: Visual representation of the current step in the workflow
 
-Typography:
-	•	Primary Font: Inter (Headings semi-bold, Body regular)
-	•	Secondary Font: Roboto (alternative)
-	•	Sizes: Headings (18-24px), Body (14-16px), Small (12px)
+### Design System
+- **Color Palette**:
+  - Primary: #4F46E5 (Buttons, Highlights)
+  - Secondary: #F9FAFB (Background)
+  - Text: #111827 (Main text)
+  - Accent: #10B981 (Success notifications)
+  - Error: #EF4444 (Error messages)
+  - Dark Mode: Toggle between light and dark themes
 
-Multilingual Support:
-	•	Default language: English
-	•	Additional supported language: Turkish
-	•	Language switcher in the UI
+- **Typography**:
+  - Primary Font: Inter (Headings semi-bold, Body regular)
+  - Sizes: Headings (18-24px), Body (14-16px), Small (12px)
 
-Animations & Feedback:
-	•	Smooth transitions between steps
-	•	Progress indicator when a step is in progress
-	•	Fade-in/Fade-out effects for input fields and action buttons
-	•	Animated success and error messages
+- **Animations & Feedback**:
+  - Smooth transitions between steps
+  - Progress indicator for processing
+  - Animated success and error messages
 
-Data Storage & Privacy
-	•	User data (images, descriptions) stored temporarily for 24 hours.
-	•	Automatically deleted after 24 hours.
-	•	Inform users explicitly on upload and download pages.
+## Security & Privacy
 
-Success Metrics (MVP)
-	•	Complete process (submission → download) < 5 minutes.
-	•	≥ 80% positive user feedback.
-	•	Critical issues resolved within 24 hours.
+- JWT-based authentication with secure token management
+- User data (images, descriptions) stored temporarily for 24 hours
+- Files automatically deleted after 24 hours
+- Users notified explicitly about temporary storage
 
-Project Timeline
-	•	MVP Completion: Within next 3 hours
-	•	Beta Testing: 3-5 users immediately after MVP
+## Development Guidelines
+
+- Modular component structure
+- Clean code principles (DRY, KISS, Single Responsibility)
+- Strict separation of concerns
+- Comprehensive error handling
+- Responsive design for all device sizes
+
+## Performance Goals
+
+- Complete process (submission → download) < 5 minutes
+- Support for up to 50 concurrent users
+- Daily limit of 20 listing generations per user
+
+## Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
+
+### Installation
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment variables (see `.env.example`)
+4. Start the development server: `npm run dev`
+
+### Environment Variables
+The application uses a dual environment setup:
+- Backend: Uses `process.env`
+- Frontend: Uses `import.meta.env` with `VITE_` prefix
+
+Key variables include:
+- `DEEPSEEK_API_KEY`: For text generation
+- `GOOGLE_API_KEY`: For image processing
+- `JWT_SECRET`: For authentication

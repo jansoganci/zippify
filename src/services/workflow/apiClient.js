@@ -1,6 +1,15 @@
 import axios from 'axios';
 import { createApiError, ErrorCodes } from './utils/errors.js';
 
+// Backend API için axios instance'ı
+const backendApi = axios.create({
+  baseURL: 'http://localhost:3001', // Backend sunucusunun adresi
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
 // Determine environment (Node.js or browser)
 const isBrowser = typeof window !== 'undefined';
 const isNode = !isBrowser && typeof process !== 'undefined';
@@ -64,7 +73,7 @@ const checkRateLimit = async () => {
 };
 
 // Mock responses for testing
-const USE_MOCK = getEnv('NODE_ENV', '') === 'test';
+const USE_MOCK = getEnv('ENABLE_MOCK_MODE', 'false') === 'true';
 const mockResponses = {
   optimizePattern: `Improved Beanie Pattern
 
@@ -136,7 +145,9 @@ const apiClient = axios.create({
   validateStatus: (status) => status >= 200 && status < 500, // Don't reject if status < 500
   // Daha fazla hata ayıklama bilgisi için
   headers: {
-    'User-Agent': 'Zippify/1.0',
+    // Tarayıcıda User-Agent header'ları güvenlik nedeniyle manuel olarak ayarlanamaz
+    // Bu yüzden sadece Node.js ortamında User-Agent ayarlıyoruz
+    ...(isNode ? { 'User-Agent': 'Zippify/1.0' } : {}),
     'Accept': 'application/json',
   },
   // Bağlantı sorunlarını azaltmak için
@@ -232,10 +243,14 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
         'Authorization': `Bearer ${currentApiKey}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Accept-Encoding': 'gzip,deflate,compress',
-        'User-Agent': 'Zippify/1.0',
         'X-Request-ID': `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
       };
+      
+      // Sadece Node.js ortamında yasaklı header'ları ekle
+      if (isNode) {
+        headers['Accept-Encoding'] = 'gzip,deflate,compress';
+        headers['User-Agent'] = 'Zippify/1.0';
+      }
       
       // Daha uzun timeout için özel yapılandırma
       const requestConfig = { 
@@ -406,7 +421,9 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
   };
 
   try {
-    const response = await makeRequest('/chat/completions', data);
+    // API_URL zaten '/chat/completions' içeriyorsa, tekrar ekleme
+    const endpoint = API_URL.includes('/chat/completions') ? '' : '/chat/completions';
+    const response = await makeRequest(endpoint, data);
     if (!response.data?.choices?.[0]?.message?.content) {
       throw createApiError('Invalid API response format', {
         code: ErrorCodes.INVALID_API_RESPONSE
@@ -429,5 +446,5 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
   }
 };
 
-export { apiClient, API_URL, MODEL, MAX_TOKENS };
+export { apiClient, API_URL, MODEL, MAX_TOKENS, makeRequest, backendApi, getEnv };
 
