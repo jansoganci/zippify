@@ -69,8 +69,8 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
         <SidebarItem 
           icon={FilePlus} 
           label="Create Listing" 
-          href="/create" 
-          isActive={activeRoute === '/create'} 
+          href="/optimize" 
+          isActive={activeRoute === '/optimize'} 
           isCollapsed={isCollapsed}
         />
         <SidebarItem 

@@ -1,5 +1,7 @@
 
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { generatePDF } from '@/services/workflow/generatePDF.js';
+import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,9 +19,17 @@ import { Badge } from '@/components/ui/badge';
 
 const ReviewDraft = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formattedContent, setFormattedContent] = useState('');
+  const [error, setError] = useState('');
   
-  // This would typically come from a store or context in a real application
-  const draftContent = `# Handcrafted Wooden Serving Board
+  // Get the optimized pattern from the previous page
+  const optimizedPattern = location.state?.optimizedPattern || '';
+  const originalPattern = location.state?.originalPattern || '';
+  
+  // If no optimized pattern is provided, use a default pattern
+  const draftContent = optimizedPattern || `# Handcrafted Wooden Serving Board
 
 Beautiful, handcrafted wooden serving board made from sustainably harvested maple wood. Each piece is carefully sanded to a smooth finish and treated with food-safe mineral oil.
 
@@ -38,8 +48,38 @@ Care instructions: Hand wash only with mild soap. Periodically treat with food-s
     navigate('/optimize');
   };
 
+  useEffect(() => {
+    // If there's no optimized pattern, don't try to format it
+    if (!optimizedPattern) return;
+    
+    const formatContent = async () => {
+      setIsLoading(true);
+      try {
+        const result = await generatePDF({ optimizedPattern });
+        if (result.success) {
+          setFormattedContent(result.pdfContent);
+        } else {
+          setError(result.error || 'Failed to format content');
+        }
+      } catch (error) {
+        console.error('PDF generation error:', error);
+        setError(error.message || 'An unexpected error occurred');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    formatContent();
+  }, [optimizedPattern]);
+
   const handleNext = () => {
-    navigate('/listing-generation');
+    navigate('/listing-generation', {
+      state: {
+        optimizedPattern,
+        originalPattern,
+        formattedContent: formattedContent || draftContent
+      }
+    });
   };
 
   return (
@@ -81,13 +121,13 @@ Care instructions: Hand wash only with mild soap. Periodically treat with food-s
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-medium">Your Draft</h2>
               <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20">
-                DRAFT READY
+                {isLoading ? 'FORMATTING...' : error ? 'FORMAT ERROR' : 'DRAFT READY'}
               </Badge>
             </div>
             
             <ScrollArea className="h-[400px] w-full rounded-md border">
               <div className="p-4 font-mono text-sm whitespace-pre-wrap">
-                {draftContent}
+                {isLoading ? 'Formatting content...' : error ? `Error: ${error}` : (formattedContent || draftContent)}
               </div>
             </ScrollArea>
           </CardContent>

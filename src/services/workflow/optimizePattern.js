@@ -1,17 +1,37 @@
-import { makeCompletion } from './apiClient.js';
+import { makeCompletion, backendApi, getEnv } from './apiClient.js';
 
-const SYSTEM_PROMPT = `You are an expert in knitting and crochet patterns. Your task is to optimize and enhance the given pattern while:
-1. Maintaining all technical instructions exactly as provided
-2. Improving clarity and readability
-3. Adding helpful notes for beginners where appropriate
-4. Ensuring all abbreviations are properly explained
-5. Organizing content into clear sections (Materials, Size Guide, Instructions, etc.)
-6. Keeping the original measurements and stitch counts intact
-7. Using standard knitting/crochet terminology
-8. Adding any missing essential information (gauge, difficulty level, etc.)
+const SYSTEM_PROMPT = `
+You are a knitting pattern editor and optimization expert.
 
-Format the output as a clean, well-structured pattern that's easy to follow.`;
+Your job is to rewrite the provided pattern into a **clear, professional, and beginner-friendly format**, without altering the core stitch counts or measurements.
 
+Output Format Guidelines:
+- Use clear section headings like: 
+  1. Title and Pattern Summary
+  2. Materials and Tools
+  3. Skill Level & Gauge
+  4. Abbreviations
+  5. Pattern Instructions
+  6. Notes & Tips (Optional)
+- Use numbered steps for instructions. Example:
+  Row 1: K2, P2  
+  Row 2: Repeat Row 1
+
+Rules:
+- Keep original stitch counts and measurements intact.
+- Do not invent design changes or remove sections.
+- Rewrite unclear or messy sentences to be more readable.
+- If abbreviations are used, include a bullet list explaining them.
+- If important info like gauge or difficulty is missing, add a note like:  
+  "_Note: Designer did not specify gauge. We recommend swatching before starting._"
+
+Tone:
+Use a helpful, calm, and encouraging tone. Assume the reader may be a beginner.
+
+Goal:
+Make the pattern easier to read, follow, and complete — especially for beginners.
+Return ONLY the cleaned and optimized pattern as plain text with clear formatting.
+`;
 /**
  * Step 1: Optimizes a knitting pattern for clarity and technical accuracy
  * 
@@ -39,17 +59,54 @@ export const optimizePattern = async (pattern) => {
     
     // Prepare API request
     const userPrompt = `Please optimize this knitting pattern for clarity and technical accuracy:\n\n${pattern}`;
-    console.log(`[${requestId}] Calling DeepSeek API with prompt length: ${userPrompt.length}`);
+    console.log(`[${requestId}] Calling backend API with prompt length: ${userPrompt.length}`);
     
     // Make API call with timeout handling
     let optimizedPattern;
     try {
-      optimizedPattern = await Promise.race([
-        makeCompletion(SYSTEM_PROMPT, userPrompt),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('API request timed out after 90 seconds')), 180000)
-        )
-      ]);
+      // Backend API'ye istek yap
+      try {
+        // DeepSeek API isteği için gerekli verileri hazırla
+        const data = {
+          model: getEnv('DEEPSEEK_MODEL', 'deepseek-chat'),
+          messages: [
+            {
+              role: 'system',
+              content: SYSTEM_PROMPT
+            },
+            {
+              role: 'user',
+              content: userPrompt
+            }
+          ],
+          max_tokens: parseInt(getEnv('DEEPSEEK_MAX_TOKENS', '4096'), 10)
+        };
+        
+        // Backend proxy'ye istek yap
+        const backendResponse = await backendApi.post('/api/deepseek', data, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Request-ID': requestId
+          },
+          timeout: 180000 // 3 dakika timeout
+        });
+        
+        if (backendResponse.data?.choices?.[0]?.message?.content) {
+          optimizedPattern = backendResponse.data.choices[0].message.content;
+          console.log(`[${requestId}] Successfully received response from backend API`);
+        } else {
+          throw new Error('Invalid response from backend API');
+        }
+      } catch (backendError) {
+        // Backend hata verirse, doğrudan API'yi kullanmayı dene (fallback)
+        console.warn(`[${requestId}] Backend API error, falling back to direct API call:`, backendError.message);
+        optimizedPattern = await Promise.race([
+          makeCompletion(SYSTEM_PROMPT, userPrompt),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('API request timed out after 90 seconds')), 180000)
+          )
+        ]);
+      }
     } catch (apiError) {
       console.error(`[${requestId}] API error:`, apiError);
       throw new Error(`DeepSeek API error: ${apiError.message}`);

@@ -58,6 +58,49 @@ import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
 import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
 
+// DeepSeek API'ye istek yapacak proxy fonksiyonu
+async function proxyToDeepSeekAPI(req, res, requestId) {
+  try {
+    const apiUrl = process.env.DEEPSEEK_API_URL;
+    const apiKey = process.env.DEEPSEEK_API_KEY;
+    
+    if (!apiUrl || !apiKey) {
+      throw new Error('DeepSeek API configuration is missing');
+    }
+    
+    // Gelen isteği olduğu gibi DeepSeek API'ye ilet
+    const axios = (await import('axios')).default;
+    
+    // API URL'sini hazırla
+    const endpoint = apiUrl.includes('/chat/completions') ? apiUrl : `${apiUrl}/chat/completions`;
+    console.log(`[${requestId}] Proxying request to DeepSeek API: ${endpoint}`);
+    
+    // Frontend'den gelen verileri kullan
+    const data = req.body;
+    
+    // API isteği için gerekli header'ları hazırla
+    const headers = {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Accept-Encoding': 'gzip,deflate,compress',
+      'User-Agent': 'Zippify-Backend/1.0',
+    };
+    
+    // API isteğini yap
+    const response = await axios.post(endpoint, data, { headers });
+    
+    // Yanıtı frontend'e ilet
+    return res.json(response.data);
+  } catch (error) {
+    console.error(`[${requestId}] DeepSeek API Error:`, error.message);
+    return res.status(500).json({
+      error: `Failed to proxy request to DeepSeek API: ${error.message}`,
+      requestId
+    });
+  }
+}
+
 app.post('/api/optimize', async (req, res) => {
   const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
   console.log(`[${requestId}] Received optimize request`);
@@ -191,6 +234,22 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // **Server Start**
+// DeepSeek API Proxy Route
+app.post('/api/deepseek', async (req, res) => {
+  const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
+  console.log(`[${requestId}] Received DeepSeek API proxy request`);
+  
+  try {
+    await proxyToDeepSeekAPI(req, res, requestId);
+  } catch (error) {
+    console.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
+    res.status(500).json({
+      error: `Failed to proxy request to DeepSeek API: ${error.message}`,
+      requestId
+    });
+  }
+});
+
 app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
 });

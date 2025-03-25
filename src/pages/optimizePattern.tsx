@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { optimizePattern } from '@/services/workflow/optimizePattern.js';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,24 +23,37 @@ const OptimizePattern = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [isOptimized, setIsOptimized] = useState(false);
 
-  const handleOptimize = () => {
+  const handleOptimize = async () => {
     if (!originalContent.trim()) return;
     
     setIsOptimizing(true);
     
-    // Simulate optimization process
-    setTimeout(() => {
-      setOptimizedContent(
-        `${originalContent.trim()}\n\nOptimized with better keywords and SEO-friendly terms to improve visibility on Etsy's marketplace. This description now includes relevant search terms and follows best practices for product listings.`
-      );
+    try {
+      const result = await optimizePattern(originalContent);
+      
+      if (result.success) {
+        setOptimizedContent(result.optimizedPattern);
+        setIsOptimized(true);
+      } else {
+        // Handle error case
+        setOptimizedContent(`Error: ${result.error || 'Failed to optimize content'}`);
+      }
+    } catch (error) {
+      console.error('Optimization error:', error);
+      setOptimizedContent(`Error: ${error.message || 'An unexpected error occurred'}`);
+    } finally {
       setIsOptimizing(false);
-      setIsOptimized(true);
-    }, 1500);
+    }
   };
 
   const handleNext = () => {
-    // Navigate to the next step
-    navigate('/create');
+    // Navigate to the next step with the optimized content
+    navigate('/review', { 
+      state: { 
+        optimizedPattern: optimizedContent,
+        originalPattern: originalContent
+      } 
+    });
   };
 
   return (

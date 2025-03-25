@@ -1,17 +1,42 @@
-import { makeCompletion } from './apiClient.js';
+import { makeCompletion, backendApi, getEnv } from './apiClient.js';
 import { jsPDF } from 'jspdf';
 import { marked } from 'marked';
 
-const SYSTEM_PROMPT = `You are a document formatting expert. Format the knitting pattern into a well-structured, PDF-ready format with proper sections, headings, and layout instructions.
+const SYSTEM_PROMPT = `
+You are a document formatting expert specialized in knitting instructions.
 
-Required Sections:
-1. Title and Pattern Information
-2. Materials and Tools Needed
-3. Skill Level and Time Required
-4. Abbreviations Used
-5. Pattern Instructions (clearly numbered)
-6. Notes and Tips
-7. Copyright Information`;
+Your task is to format the given knitting pattern into a clean, well-structured, and PDF-compatible markdown layout that will later be converted into a downloadable knitting guide.
+
+Tone: Friendly, instructional, and suitable for beginners and intermediate users.
+
+Output Format: Use **markdown syntax** only. Use \`##\` for section headings, bullet points for lists, and bold formatting where appropriate. Do NOT include HTML or plain text.
+
+Required Sections (in order):
+
+1. ## Title and Pattern Overview
+   - Introduce the pattern name and a brief summary of what the knitter will make.
+
+2. ## Materials and Tools Needed
+   - List all required yarns, needles, hooks, stitch markers, etc.
+
+3. ## Skill Level and Time Estimate
+   - Specify difficulty (e.g., Beginner, Intermediate) and estimated time to complete.
+
+4. ## Abbreviations Used
+   - Provide a bullet list of all abbreviations used in the instructions.
+
+5. ## Pattern Instructions
+   - Present clear, numbered steps for the knitting process. Break down into rows or sections.
+
+6. ## Notes and Tips
+   - Add any helpful suggestions for success or common mistakes to avoid.
+
+7. ## Copyright & Usage
+   - Include a default copyright note:  
+     "This pattern is for personal use only. Redistribution or resale is not permitted."
+
+Return the entire result as **markdown** only. Ensure formatting is clean and well spaced.
+`;
 
 /**
  * Step 2: Converts optimized pattern into PDF-compatible format
@@ -28,7 +53,46 @@ export const generatePDF = async (input) => {
     }
 
     const userPrompt = `Please format this knitting pattern for PDF generation, ensuring all required sections are included:\n\n${pattern}`;
-    const markdownContent = await makeCompletion(SYSTEM_PROMPT, userPrompt);
+    
+    let markdownContent;
+    try {
+      // DeepSeek API isteği için gerekli verileri hazırla
+      const requestId = `pdf-${Date.now()}`;
+      const data = {
+        model: getEnv('DEEPSEEK_MODEL', 'deepseek-chat'),
+        messages: [
+          {
+            role: 'system',
+            content: SYSTEM_PROMPT
+          },
+          {
+            role: 'user',
+            content: userPrompt
+          }
+        ],
+        max_tokens: parseInt(getEnv('DEEPSEEK_MAX_TOKENS', '4096'), 10)
+      };
+      
+      // Backend proxy'ye istek yap
+      const backendResponse = await backendApi.post('/api/deepseek', data, {
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Request-ID': requestId
+        },
+        timeout: 180000 // 3 dakika timeout
+      });
+      
+      if (backendResponse.data?.choices?.[0]?.message?.content) {
+        markdownContent = backendResponse.data.choices[0].message.content;
+        console.log(`Successfully received PDF content from backend API`);
+      } else {
+        throw new Error('Invalid response from backend API');
+      }
+    } catch (backendError) {
+      // Backend hata verirse, doğrudan API'yi kullanmayı dene (fallback)
+      console.warn(`Backend API error, falling back to direct API call:`, backendError.message);
+      markdownContent = await makeCompletion(SYSTEM_PROMPT, userPrompt);
+    }
 
     // Convert markdown to HTML
     const htmlContent = marked(markdownContent);
