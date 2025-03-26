@@ -43,8 +43,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
@@ -57,6 +57,7 @@ app.get('/api/health', (req, res) => {
 import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
 import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
+import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
 
 // DeepSeek API'ye istek yapacak proxy fonksiyonu
 async function proxyToDeepSeekAPI(req, res, requestId) {
@@ -293,5 +294,92 @@ app.post('/api/generate-pdf', async (req, res) => {
     } catch (error) {
       console.error(`[${requestId}] Etsy Listing Generation Error:`, error);
       res.status(500).json({ error: `Failed to generate Etsy listing: ${error.message}`, requestId });
+    }
+  });
+
+  // Image Editing Route - Gemini API implementation
+  app.post('/api/edit-image', async (req, res) => {
+    const requestId = req.headers['x-request-id'] || `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const startTime = Date.now();
+    
+    // Log initial request details
+    const imageSize = req.body.image ? Math.round(req.body.image.length / 1024) : 0;
+    console.log(`[${requestId}] Received image edit request - Size: ${imageSize}KB, Time: ${new Date().toISOString()}`);
+    
+    try {
+      const { image, prompt } = req.body;
+      
+      // Validate request fields
+      if (!image) {
+        console.log(`[${requestId}] Validation failed: Image is missing from request`);
+        return res.status(400).json({
+          success: false,
+          message: 'Image is required',
+          requestId
+        });
+      }
+      
+      if (!prompt) {
+        console.log(`[${requestId}] Validation failed: Prompt is missing from request`);
+        return res.status(400).json({
+          success: false,
+          message: 'Prompt is required',
+          requestId
+        });
+      }
+      
+      console.log(`[${requestId}] Validation successful - Prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`);
+      
+      // Extract image metadata for logging
+      let mimeType = 'unknown';
+      if (image.startsWith('data:')) {
+        const matches = image.match(/^data:([^;]+);base64,/);
+        if (matches && matches.length > 1) {
+          mimeType = matches[1];
+        }
+      }
+      console.log(`[${requestId}] Processing image - Type: ${mimeType}, Size: ${imageSize}KB`);
+      
+      // Call the Gemini API with the image and prompt
+      console.log(`[${requestId}] Calling Gemini API with prompt: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
+      const apiCallStartTime = Date.now();
+      
+      try {
+        const geminiResponse = await callGeminiApi(image, prompt);
+        const apiCallDuration = Date.now() - apiCallStartTime;
+        
+        console.log(`[${requestId}] Gemini API call successful - Duration: ${apiCallDuration}ms`);
+        console.log(`[${requestId}] Response contains image: ${!!geminiResponse.image}, text: ${!!geminiResponse.text}`);
+        
+        const totalDuration = Date.now() - startTime;
+        console.log(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
+        
+        return res.json({
+          success: true,
+          message: "Image edit successful using Gemini API.",
+          originalPrompt: prompt,
+          result: geminiResponse,
+          requestId,
+          processingTime: totalDuration
+        });
+      } catch (apiError) {
+        // Specific logging for Gemini API errors
+        const apiErrorStatus = apiError.message.includes('status') ? apiError.message.match(/status (\d+)/)?.[1] || 'unknown' : 'unknown';
+        console.error(`[${requestId}] Gemini API Error - Status: ${apiErrorStatus}`);
+        console.error(`[${requestId}] Gemini API Error Details:`, apiError.message);
+        
+        throw apiError; // Re-throw to be caught by the outer catch block
+      }
+    } catch (error) {
+      const totalDuration = Date.now() - startTime;
+      console.error(`[${requestId}] Image Edit Error - Duration: ${totalDuration}ms`);
+      console.error(`[${requestId}] Error Type: ${error.name}, Message: ${error.message}`);
+      
+      res.status(500).json({
+        success: false,
+        message: `Failed to edit image: ${error.message}`,
+        requestId,
+        processingTime: totalDuration
+      });
     }
   });

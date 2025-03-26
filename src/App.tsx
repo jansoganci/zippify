@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import OptimizePattern from "./pages/optimizePattern";
 import ReviewDraft from "./pages/ReviewDraft";
 import ListingGeneration from "./pages/ListingGeneration";
+import EditProductImage from "./features/imageEditing/EditImagePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/optimize" element={<OptimizePattern />} />
           <Route path="/review" element={<ReviewDraft />} />
           <Route path="/listing-generation" element={<ListingGeneration />} />
+          <Route path="/edit-image" element={<EditProductImage />} />
           <Route path="/listings" element={<Listings />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="*" element={<NotFound />} />
