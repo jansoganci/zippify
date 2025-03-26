@@ -7,7 +7,8 @@ import {
   ListChecks, 
   User, 
   ChevronLeft, 
-  ChevronRight 
+  ChevronRight,
+  Image
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -71,6 +72,13 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           label="Create Listing" 
           href="/optimize" 
           isActive={activeRoute === '/optimize'} 
+          isCollapsed={isCollapsed}
+        />
+        <SidebarItem 
+          icon={Image} 
+          label="Image Editor" 
+          href="/edit-image" 
+          isActive={activeRoute === '/edit-image'} 
           isCollapsed={isCollapsed}
         />
         <SidebarItem 
