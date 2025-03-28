@@ -349,7 +349,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         const apiCallDuration = Date.now() - apiCallStartTime;
         
         console.log(`[${requestId}] Gemini API call successful - Duration: ${apiCallDuration}ms`);
-        console.log(`[${requestId}] Response contains image: ${!!geminiResponse.image}, text: ${!!geminiResponse.text}`);
+        console.log(`[${requestId}] Response contains image: ${!!geminiResponse.image}, text: ${!!geminiResponse.responseText}`);
         
         const totalDuration = Date.now() - startTime;
         console.log(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
