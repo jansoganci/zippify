@@ -32,3 +32,12 @@ CREATE TABLE files (
   delete_at TIMESTAMP,
   FOREIGN KEY(listing_id) REFERENCES listings(id)
 );
+
+CREATE TABLE keyword_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  date TEXT NOT NULL,
+  request_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY(user_id) REFERENCES users(id)
+);

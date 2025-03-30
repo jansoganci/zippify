@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -49,17 +49,19 @@ export function useProfile() {
   const { isLoading, error, data } = useQuery({
     queryKey: ['profile'],
     queryFn: fetchProfile,
-    // When we successfully fetch data, update the form
-    onSuccess: (data) => {
-      setFormData(data);
-    },
-    // For demo purposes, simulate API with mock data if API is not available
     initialData: {
       firstName: 'John',
       lastName: 'Smith',
       storeName: 'Handcrafted Treasures',
     },
   });
+
+  // Update form data when query data changes
+  useEffect(() => {
+    if (data) {
+      setFormData(data);
+    }
+  }, [data]);
 
   // Update profile mutation
   const mutation = useMutation({

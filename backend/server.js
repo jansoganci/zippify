@@ -6,6 +6,8 @@ import { open } from 'sqlite';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
+import fs from 'fs';
+import path from 'path';
 
 // Önce varsayılan .env dosyasını yükle
 dotenv.config();
@@ -51,6 +53,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Backend is running properly!' });
 });
 
+// Keyword Analysis Route
+app.use('/api/keywords', keywordRoutes);
+
 // Content Optimization Route
 
 // Import workflow services
@@ -58,6 +63,9 @@ import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
 import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
 import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
+
+// Import keyword analysis routes
+import { keywordRoutes } from './src/features/keywordAnalysis/index.js';
 
 // DeepSeek API'ye istek yapacak proxy fonksiyonu
 async function proxyToDeepSeekAPI(req, res, requestId) {
@@ -161,9 +169,12 @@ app.post('/api/optimize', async (req, res) => {
 });
 
 // **DATABASE CONNECTION**
+const DB_PATH = './db/zippify.db';
+const SCHEMA_PATH = './db/schema.sql';
+
 const initializeDb = async () => {
     return open({
-        filename: '../db/zippify.db',
+        filename: DB_PATH,
         driver: sqlite3.Database
     });
 };
@@ -251,9 +262,62 @@ app.post('/api/deepseek', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+// Initialize the SQLite database with schema before starting the server
+async function initializeDatabaseWithSchema() {
+    try {
+        console.log('Initializing SQLite database...');
+        
+        // Create the database directory if it doesn't exist
+        const dbDir = path.dirname(DB_PATH);
+        if (!fs.existsSync(dbDir)) {
+            console.log(`Creating database directory: ${dbDir}`);
+            fs.mkdirSync(dbDir, { recursive: true });
+        }
+        
+        // Connect to the database (creates it if it doesn't exist)
+        const db = await open({
+            filename: DB_PATH,
+            driver: sqlite3.Database
+        });
+        console.log(`Connected to SQLite database at: ${DB_PATH}`);
+        
+        // Read the schema SQL file
+        if (fs.existsSync(SCHEMA_PATH)) {
+            const schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf8');
+            console.log('Read schema.sql file successfully');
+            
+            // Execute the schema SQL
+            await db.exec(schemaSql);
+            console.log('Database schema initialized successfully');
+        } else {
+            console.error(`Schema file not found at: ${SCHEMA_PATH}`);
+        }
+        
+        // Close the database connection
+        await db.close();
+        return true;
+    } catch (error) {
+        console.error('Failed to initialize database:', error);
+        return false;
+    }
+}
+
+// Initialize database and then start the server
+initializeDatabaseWithSchema()
+    .then(success => {
+        if (success) {
+            app.listen(PORT, () => {
+                console.log(`✅ Server running on http://localhost:${PORT}`);
+            });
+        } else {
+            console.error('Server not started due to database initialization failure');
+            process.exit(1);
+        }
+    })
+    .catch(error => {
+        console.error('Unexpected error during startup:', error);
+        process.exit(1);
+    });
 
 app.post('/api/generate-pdf', async (req, res) => {
     const { content } = req.body;
