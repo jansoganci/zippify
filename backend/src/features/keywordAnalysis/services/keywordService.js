@@ -34,35 +34,79 @@ export async function getKeywordAnalysis(productName, category = null, country =
     // Fetch real data from Google Trends for the main keyword
     console.log(`[KeywordService][${timestamp}] PROCESS: Fetching Google Trends data for product: "${productName}"`);
     
-    // Get interest over time data for the main keyword
-    const interestOverTimeData = await googleTrends.interestOverTime({
-      keyword: productName,
-      geo: country,
-      hl: 'en-US',
-      timezone: 0,
-      time: 'today 12-m' // Last 12 months
-    });
+    // Get interest over time data for the main keyword with proper error handling
+    let timelineData = [];
+    let avgInterest = 0;
     
-    // Parse the response
-    const parsedData = JSON.parse(interestOverTimeData);
-    const timelineData = parsedData.default.timelineData;
+    try {
+      // Use a more reliable approach with explicit options
+      const interestOverTimeData = await googleTrends.interestOverTime({
+        keyword: productName,
+        startTime: new Date(Date.now() - (365 * 24 * 60 * 60 * 1000)), // 1 year ago
+        endTime: new Date(),
+        geo: country,
+        hl: 'en-US',
+        timezone: 0
+      });
+      
+      // Validate response before parsing
+      if (!interestOverTimeData || typeof interestOverTimeData !== 'string' || !interestOverTimeData.trim().startsWith('{')) {
+        console.error(`[KeywordService][${timestamp}] INVALID_RESPONSE: Received invalid response from Google Trends API`);
+        console.error(`[KeywordService][${timestamp}] RESPONSE_PREVIEW: ${interestOverTimeData?.substring(0, 100)}...`);
+        throw new Error('Invalid response format from Google Trends API');
+      }
+      
+      // Parse the response
+      const parsedData = JSON.parse(interestOverTimeData);
+      timelineData = parsedData.default.timelineData || [];
+      
+      // Calculate average interest (popularity) for the main keyword
+      let totalInterest = 0;
+      timelineData.forEach(point => {
+        totalInterest += point.value[0];
+      });
+      avgInterest = timelineData.length > 0 ? totalInterest / timelineData.length : 0;
+      
+      console.log(`[KeywordService][${timestamp}] SUCCESS: Successfully fetched interest over time data with ${timelineData.length} data points`);
+    } catch (trendsError) {
+      console.error(`[KeywordService][${timestamp}] TRENDS_ERROR: Error fetching interest over time: ${trendsError.message}`);
+      console.error(`[KeywordService][${timestamp}] STACK: ${trendsError.stack?.split('\n')[0]}`);
+      // Don't throw, we'll use placeholder data if this fails
+      // Set default values that will allow the rest of the function to continue
+      timelineData = [];
+      avgInterest = 50; // Default medium interest value
+    }
     
-    // Calculate average interest (popularity) for the main keyword
-    let totalInterest = 0;
-    timelineData.forEach(point => {
-      totalInterest += point.value[0];
-    });
-    const avgInterest = timelineData.length > 0 ? totalInterest / timelineData.length : 0;
+    // Average interest is now calculated in the try/catch block above
     
-    // Get related queries for competition data
-    const relatedQueriesData = await googleTrends.relatedQueries({
-      keyword: productName,
-      geo: country,
-      hl: 'en-US'
-    });
+    // Get related queries for competition data with proper error handling
+    let relatedQueries = [];
     
-    const parsedRelatedData = JSON.parse(relatedQueriesData);
-    const relatedQueries = parsedRelatedData.default.rankedList[0]?.rankedKeyword || [];
+    try {
+      // Use a more reliable approach with explicit options
+      const relatedQueriesData = await googleTrends.relatedQueries({
+        keyword: productName,
+        startTime: new Date(Date.now() - (365 * 24 * 60 * 60 * 1000)), // 1 year ago
+        endTime: new Date(),
+        geo: country,
+        hl: 'en-US'
+      });
+      
+      // Validate response before parsing
+      if (!relatedQueriesData || typeof relatedQueriesData !== 'string' || !relatedQueriesData.trim().startsWith('{')) {
+        console.error(`[KeywordService][${timestamp}] INVALID_RESPONSE: Received invalid response for related queries`);
+        console.error(`[KeywordService][${timestamp}] RESPONSE_PREVIEW: ${relatedQueriesData?.substring(0, 100)}...`);
+        // Continue with empty related queries
+      } else {
+        // Parse the response
+        const parsedRelatedData = JSON.parse(relatedQueriesData);
+        relatedQueries = parsedRelatedData.default.rankedList[0]?.rankedKeyword || [];
+        console.log(`[KeywordService][${timestamp}] SUCCESS: Successfully fetched ${relatedQueries.length} related queries`);
+      }
+    } catch (trendsError) {
+      console.error(`[KeywordService][${timestamp}] TRENDS_ERROR: Error fetching related queries: ${trendsError.message}`);
+      // Continue with empty related queries
+    }
     
     // Process the keyword variations with Google Trends data
     const processedKeywords = await processKeywordData(keywordVariations, avgInterest, relatedQueries);

@@ -237,7 +237,7 @@ const SeoKeywordAnalysis = () => {
                 </TableHeader>
                 <TableBody>
                   {keywordResults.map((keyword, index) => (
-                    <TableRow key={index}>
+                    <TableRow key={`${keyword.keyword}-${index}`}>
                       <TableCell className="font-medium">{keyword.keyword}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -304,7 +304,7 @@ const SeoKeywordAnalysis = () => {
             <CardContent>
               <div className="space-y-2">
                 {selectedKeywords.map((keyword, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
+                  <div key={`${keyword.keyword}-${index}`} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{keyword.keyword}</span>
                       <div className="flex items-center text-xs text-muted-foreground">
