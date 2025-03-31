@@ -6,6 +6,8 @@
 CREATE TABLE IF NOT EXISTS keyword_requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
+  keyword TEXT NOT NULL,
+  timestamp DATETIME NOT NULL DEFAULT (datetime('now')),
   date TEXT NOT NULL,  -- Stored in YYYY-MM-DD format
   request_count INTEGER NOT NULL DEFAULT 0,
   
