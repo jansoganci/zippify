@@ -7,10 +7,14 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-ssr
 *.local
+build
 
 # Environment files
 .env
@@ -23,6 +27,19 @@ dist-ssr
 .env.production
 .env.production.local
 .env.example
+
+# Database files
+db/*.db
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.zip
+*.bak
+*.backup
+zippify_backup_*
 
 # Editor directories and files
 .vscode/*
