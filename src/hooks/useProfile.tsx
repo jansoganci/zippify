@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileData {
   firstName: string;
@@ -9,23 +10,50 @@ interface ProfileData {
   storeName: string;
 }
 
-// Simulated API functions (replace with actual API calls)
+// API functions with authentication
 const fetchProfile = async (): Promise<ProfileData> => {
-  const response = await fetch('/api/profile');
+  const token = localStorage.getItem('zippify_token');
+  
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  
+  const response = await fetch('/api/profile', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Unauthorized: Please login again');
+  }
+  
   if (!response.ok) {
     throw new Error('Failed to fetch profile data');
   }
+  
   return response.json();
 };
 
 const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
+  const token = localStorage.getItem('zippify_token');
+  
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  
   const response = await fetch('/api/profile', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     },
     body: JSON.stringify(data),
   });
+  
+  if (response.status === 401 || response.status === 403) {
+    throw new Error('Unauthorized: Please login again');
+  }
   
   if (!response.ok) {
     throw new Error('Failed to update profile');
@@ -37,6 +65,16 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
 export function useProfile() {
   // Get QueryClient from the context
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  
+  // Check for token on component mount
+  useEffect(() => {
+    const token = localStorage.getItem('zippify_token');
+    if (!token) {
+      console.warn('No authentication token found, redirecting to login');
+      navigate('/login');
+    }
+  }, [navigate]);
   
   // Default values while loading
   const [formData, setFormData] = useState<ProfileData>({
@@ -55,6 +93,18 @@ export function useProfile() {
       storeName: 'Handcrafted Treasures',
     },
   });
+  
+  // Handle query errors
+  useEffect(() => {
+    if (error) {
+      console.error('Profile fetch error:', error);
+      if (error instanceof Error && 
+          (error.message.includes('Unauthorized') || 
+           error.message.includes('No authentication token'))) {
+        navigate('/login');
+      }
+    }
+  }, [error, navigate]);
 
   // Update form data when query data changes
   useEffect(() => {

@@ -10,6 +10,28 @@ const backendApi = axios.create({
   }
 });
 
+// Add request interceptor to automatically include JWT token for backend requests
+backendApi.interceptors.request.use(config => {
+  // Only run in browser environment where localStorage is available
+  if (typeof window !== 'undefined' && window.localStorage) {
+    // Get token from localStorage
+    const token = localStorage.getItem('zippify_token');
+    
+    if (token) {
+      // Add Authorization header with Bearer token
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('✅ JWT token attached to request');
+    } else {
+      console.log('❌ No JWT token found in localStorage');
+    }
+  }
+  
+  return config;
+}, error => {
+  // Handle request error
+  return Promise.reject(error);
+});
+
 // Determine environment (Node.js or browser)
 const isBrowser = typeof window !== 'undefined';
 const isNode = !isBrowser && typeof process !== 'undefined';
