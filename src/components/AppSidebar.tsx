@@ -69,6 +69,13 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isCollapsed={isCollapsed}
         />
         <SidebarItem 
+          icon={Search} 
+          label="SEO & Keywords" 
+          href="/seo-keywords" 
+          isActive={activeRoute === '/seo-keywords'} 
+          isCollapsed={isCollapsed}
+        />
+        <SidebarItem 
           icon={FilePlus} 
           label="Create Listing" 
           href="/create" 
@@ -87,13 +94,6 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           label="My Listings" 
           href="/listings" 
           isActive={activeRoute === '/listings'} 
-          isCollapsed={isCollapsed}
-        />
-        <SidebarItem 
-          icon={Search} 
-          label="SEO & Keywords" 
-          href="/seo-keywords" 
-          isActive={activeRoute === '/seo-keywords'} 
           isCollapsed={isCollapsed}
         />
         <SidebarItem 
