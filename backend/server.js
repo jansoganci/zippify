@@ -1,31 +1,64 @@
+// Import dotenv first to load environment variables before other imports
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+
+// Get the current file path and directory (ES Module compatible way)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Calculate the absolute path to the .env file
+const envPath = path.resolve(__dirname, '.env');
+console.log(`Attempting to load .env from: ${envPath}`);
+
+// Load environment variables from the backend directory
+try {
+  const result = dotenv.config({ path: envPath });
+  
+  if (result.error) {
+    console.error(`Error loading .env file: ${result.error.message}`);
+  } else {
+    console.log(`Successfully loaded environment variables from ${envPath}`);
+  }
+} catch (error) {
+  console.error(`Exception loading .env file: ${error.message}`);
+}
+
+// If JWT_SECRET is not defined, try to load from parent directory as fallback
+if (!process.env.JWT_SECRET) {
+  console.log('JWT_SECRET not found in backend/.env, trying parent directory...');
+  const parentEnvPath = path.resolve(__dirname, '..', '.env');
+  try {
+    const result = dotenv.config({ path: parentEnvPath, override: true });
+    console.log(`Attempted to load from parent directory: ${parentEnvPath}`);
+  } catch (error) {
+    console.error(`Failed to load from parent directory: ${error.message}`);
+  }
+}
+
+// Log environment variables for debugging
+console.log('JWT_SECRET status:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
+console.log('JWT_EXPIRY status:', process.env.JWT_EXPIRY ? 'Defined ✅' : 'Not defined ❌');
+
+// If JWT_SECRET is still not defined, set a default for development only
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'development') {
+  console.warn('⚠️ WARNING: Setting default JWT_SECRET for development. DO NOT USE IN PRODUCTION!');
+  process.env.JWT_SECRET = 'zippify-super-secret-key';
+  process.env.JWT_EXPIRY = '24h';
+  console.log('JWT_SECRET status after default:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
+}
+
+// Now import other dependencies after environment variables are loaded
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
-import fs from 'fs';
-import path from 'path';
 
-// Önce varsayılan .env dosyasını yükle
-dotenv.config();
 
-// Ardından özel dosyaları kontrol et
-const envFiles = [
-  '.env.local',
-  '.env'
-];
-
-for (const file of envFiles) {
-  try {
-    dotenv.config({ path: file, override: true });
-    console.log(`Loaded environment variables from ${file}`);
-  } catch (error) {
-    console.warn(`Failed to load ${file}:`, error.message);
-  }
-}
 
 // Disable SSL certificate validation for development
 // NOT: Bu ayar sadece geliştirme ortamında kullanılmalıdır, production'da kaldırılmalıdır
@@ -53,6 +86,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Backend is running properly!' });
 });
 
+// Authentication Routes
+app.use('/api/auth', authRoutes);
+
+// Profile Route
+app.use('/api/profile', profileRoutes);
+
 // Keyword Analysis Route
 app.use('/api/keywords', keywordRoutes);
 
@@ -64,8 +103,10 @@ import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
 import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
 
-// Import keyword analysis routes
+// Import routes
 import { keywordRoutes } from './src/features/keywordAnalysis/index.js';
+import authRoutes from './routes/authRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
 
 // DeepSeek API'ye istek yapacak proxy fonksiyonu
 async function proxyToDeepSeekAPI(req, res, requestId) {
