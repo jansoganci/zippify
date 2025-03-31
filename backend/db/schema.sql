@@ -15,3 +15,16 @@ CREATE TABLE IF NOT EXISTS keyword_requests (
 
 -- Create index for faster lookups by user_id and date
 CREATE INDEX IF NOT EXISTS idx_keyword_requests_user_date ON keyword_requests(user_id, date);
+
+-- Table for user accounts
+-- Stores user authentication and profile information
+CREATE TABLE IF NOT EXISTS users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  password TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Create index for faster email lookups
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);

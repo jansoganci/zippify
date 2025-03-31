@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Moon, Sun, Globe, LogOut } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -14,10 +15,20 @@ import { Button } from '@/components/ui/button';
 const Header = () => {
   // This would come from a theme context in a real app
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const navigate = useNavigate();
   
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
     // In a real app, you'd update the theme here
+  };
+  
+  const handleLogout = () => {
+    // Remove auth tokens from localStorage
+    localStorage.removeItem('zippify_token');
+    localStorage.removeItem('zippify_user');
+    
+    // Redirect to login page
+    navigate('/login');
   };
   
   return (
@@ -70,7 +81,10 @@ const Header = () => {
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive">
+            <DropdownMenuItem 
+              onClick={handleLogout}
+              className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
+            >
               <LogOut size={16} />
               <span>Log Out</span>
             </DropdownMenuItem>

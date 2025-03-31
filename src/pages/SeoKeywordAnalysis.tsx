@@ -1,7 +1,8 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import DashboardLayout from "@/components/DashboardLayout";
+import { backendApi } from "@/services/workflow/apiClient";
 import { 
   Search, 
   TrendingUp, 
@@ -9,7 +10,8 @@ import {
   Minus, 
   ArrowUpDown, 
   Check, 
-  ChevronDown 
+  ChevronDown,
+  AlertCircle
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -26,6 +28,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger 
 } from "@/components/ui/collapsible";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface FormValues {
   productName: string;
@@ -49,6 +52,18 @@ const SeoKeywordAnalysis = () => {
   const [selectedKeywords, setSelectedKeywords] = useState<Keyword[]>([]);
   const [sortBy, setSortBy] = useState<string>("popularity");
   const [showSelected, setShowSelected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [noKeywordsFound, setNoKeywordsFound] = useState(false);
+
+  // Check for auth token on component mount (for debugging purposes)
+  useEffect(() => {
+    const token = localStorage.getItem('zippify_token');
+    if (!token) {
+      console.warn('⚠️ Authentication Warning: No zippify_token found in localStorage. API requests may fail with 401 Unauthorized.');
+    } else {
+      console.log('✅ Auth token found in localStorage');
+    }
+  }, []);
 
 
   const form = useForm<FormValues>({
@@ -62,48 +77,65 @@ const SeoKeywordAnalysis = () => {
 
   const onSubmit = async (data: FormValues) => {
     setLoading(true);
+    setError(null);
+    setNoKeywordsFound(false);
     
     try {
       // Construct query parameters
       const queryParams = new URLSearchParams({
         product_name: data.productName,
-        category: data.category || ''
+        category: data.category || '',
+        country: data.country || 'US',
+        platform: data.platform || 'Etsy'
       });
       
-      // Get token from localStorage
-      const token = localStorage.getItem('auth_token');
+      // Make API request using backendApi (JWT token will be added by interceptor)
+      const response = await backendApi.get(`/api/keywords?${queryParams.toString()}`);
       
-      // Make API request with Authorization header
-      const response = await fetch(`/api/keywords?${queryParams.toString()}`, {
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
+      // Axios wraps the response differently than fetch
+      if (response.status !== 200) {
         // Handle unauthorized responses specifically
         if (response.status === 401) {
-          console.warn("Unauthorized: Redirecting to homepage.");
-          // Redirect to homepage instead
-          window.location.href = '/';
+          console.warn("Unauthorized: Displaying login error message.");
+          setError("Your session has expired or you're not logged in. Please log in again.");
           return;
         }
         throw new Error(`API request failed with status ${response.status}`);
       }
       
-      const responseData = await response.json();
+      // With axios, response.data is already parsed JSON
+      const responseData = response.data;
+      console.log('API Response:', responseData); // Log full response for debugging
       
       // Extract keywords from the response
-      if (responseData && responseData.data && responseData.data.keywords) {
+      if (responseData && responseData.data && responseData.data.keywords && responseData.data.keywords.length > 0) {
         setKeywords(responseData.data.keywords);
+        setNoKeywordsFound(false);
       } else {
-        console.error('Invalid API response format:', responseData);
-        throw new Error('Invalid API response format');
+        // Log detailed error for debugging
+        console.error('Invalid API response format or no keywords returned:', {
+          responseReceived: responseData,
+          hasData: Boolean(responseData?.data),
+          hasKeywords: Boolean(responseData?.data?.keywords),
+          keywordsLength: responseData?.data?.keywords?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Set state to show no keywords found message
+        setNoKeywordsFound(true);
+        setKeywords([]);
       }
-    } catch (error) {
-      console.error('Error fetching keyword data:', error);
-      // You could set an error state here if needed
+    } catch (error: any) {
+      // Log detailed error with stack trace
+      console.error('Error fetching keyword data:', {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Set error state for UI display
+      setError("Something went wrong while fetching keywords.");
+      setKeywords([]);
     } finally {
       setLoading(false);
     }
@@ -163,6 +195,24 @@ const SeoKeywordAnalysis = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {noKeywordsFound && !error && (
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Keywords Found</AlertTitle>
+                <AlertDescription>
+                  No keywords found for this input. Try changing your filters or using more general terms.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <div className="grid gap-6 md:grid-cols-2">

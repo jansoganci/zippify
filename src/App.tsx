@@ -2,7 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+
+// Auth components
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthRedirect from "./components/AuthRedirect";
+
+// Auth pages
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ForgetPassword from "./pages/ForgetPassword";
+
+// App pages
 import Index from "./pages/Index";
 import CreateListing from "./pages/CreateListing";
 import Listings from "./pages/Listings";
@@ -23,15 +34,74 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/create" element={<CreateListing />} />
-          <Route path="/optimize" element={<OptimizePattern />} />
-          <Route path="/review" element={<ReviewDraft />} />
-          <Route path="/listing-generation" element={<ListingGeneration />} />
-          <Route path="/edit-image" element={<EditProductImage />} />
-          <Route path="/seo-keywords" element={<SeoKeywordAnalysis />} />
-          <Route path="/listings" element={<Listings />} />
-          <Route path="/profile" element={<Profile />} />
+          {/* Authentication Routes */}
+          <Route path="/login" element={
+            <AuthRedirect>
+              <Login />
+            </AuthRedirect>
+          } />
+          <Route path="/register" element={
+            <AuthRedirect>
+              <Register />
+            </AuthRedirect>
+          } />
+          <Route path="/forgot-password" element={
+            <AuthRedirect>
+              <ForgetPassword />
+            </AuthRedirect>
+          } />
+
+          {/* Dashboard Route */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
+
+          {/* Protected Application Routes */}
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/create" element={
+            <ProtectedRoute>
+              <CreateListing />
+            </ProtectedRoute>
+          } />
+          <Route path="/optimize" element={
+            <ProtectedRoute>
+              <OptimizePattern />
+            </ProtectedRoute>
+          } />
+          <Route path="/review" element={
+            <ProtectedRoute>
+              <ReviewDraft />
+            </ProtectedRoute>
+          } />
+          <Route path="/listing-generation" element={
+            <ProtectedRoute>
+              <ListingGeneration />
+            </ProtectedRoute>
+          } />
+          <Route path="/edit-image" element={
+            <ProtectedRoute>
+              <EditProductImage />
+            </ProtectedRoute>
+          } />
+          <Route path="/seo-keywords" element={
+            <ProtectedRoute>
+              <SeoKeywordAnalysis />
+            </ProtectedRoute>
+          } />
+          <Route path="/listings" element={
+            <ProtectedRoute>
+              <Listings />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } />
+
+          {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

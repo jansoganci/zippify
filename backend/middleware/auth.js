@@ -1,4 +1,42 @@
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the current file path and directory (ES Module compatible way)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables directly in the middleware
+const envPath = path.resolve(__dirname, '..', '.env');
+console.log(`[auth.js] Attempting to load .env from: ${envPath}`);
+
+try {
+  const result = dotenv.config({ path: envPath });
+  if (result.error) {
+    console.error(`[auth.js] Error loading .env file: ${result.error.message}`);
+  } else {
+    console.log(`[auth.js] Successfully loaded environment variables from ${envPath}`);
+  }
+} catch (error) {
+  console.error(`[auth.js] Exception loading .env file: ${error.message}`);
+}
+
+// If JWT_SECRET is not defined, try to load from parent directory
+if (!process.env.JWT_SECRET) {
+  const parentEnvPath = path.resolve(__dirname, '..', '..', '.env');
+  console.log(`[auth.js] Trying parent directory .env: ${parentEnvPath}`);
+  try {
+    dotenv.config({ path: parentEnvPath, override: true });
+  } catch (error) {
+    console.error(`[auth.js] Failed to load from parent directory: ${error.message}`);
+  }
+}
+
+// Check if JWT_SECRET is defined after loading attempts
+if (!process.env.JWT_SECRET) {
+  throw new Error('.env yok: JWT_SECRET environment variable is not defined');
+}
 
 /**
  * Middleware to verify JWT token and protect routes
@@ -24,6 +62,7 @@ const verifyToken = (req, res, next) => {
   
   try {
     // Verify the token using the JWT_SECRET environment variable
+    // No fallback - will throw an error if JWT_SECRET is not defined
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Set the user information in the request object
