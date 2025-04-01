@@ -30,3 +30,19 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- Create index for faster email lookups
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+-- Table for user profiles
+-- Stores additional user information separate from authentication
+CREATE TABLE IF NOT EXISTS profiles (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  first_name TEXT NOT NULL DEFAULT '',
+  last_name TEXT NOT NULL DEFAULT '',
+  store_name TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Create index for faster user_id lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
