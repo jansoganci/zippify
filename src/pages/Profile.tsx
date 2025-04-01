@@ -63,7 +63,7 @@ const Profile = () => {
                         id="firstName"
                         name="firstName"
                         placeholder="Your first name"
-                        value={formData.firstName}
+                        value={formData.firstName ?? ""}
                         onChange={handleChange}
                       />
                     </div>
@@ -77,7 +77,7 @@ const Profile = () => {
                         id="lastName"
                         name="lastName"
                         placeholder="Your last name"
-                        value={formData.lastName}
+                        value={formData.lastName ?? ""}
                         onChange={handleChange}
                       />
                     </div>
@@ -92,7 +92,7 @@ const Profile = () => {
                       id="storeName"
                       name="storeName"
                       placeholder="Your Etsy store name"
-                      value={formData.storeName}
+                      value={formData.storeName ?? ""}
                       onChange={handleChange}
                     />
                   </div>

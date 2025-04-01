@@ -15,7 +15,7 @@ import ForgetPassword from "./pages/ForgetPassword";
 
 // App pages
 import Index from "./pages/Index";
-import CreateListing from "./pages/CreateListing";
+import CreateListing from "./features/etsyListing/pages/CreateListing";
 import Listings from "./pages/Listings";
 import Profile from "./pages/Profile";
 import OptimizePattern from "./pages/optimizePattern";
