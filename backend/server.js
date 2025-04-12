@@ -93,7 +93,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 
 // Keyword Analysis Route
-app.use('/api/keywords', keywordRoutes);
+app.use('/api/keywords', keywordAnalysisRoutes);
 
 // Content Optimization Route
 
@@ -104,31 +104,73 @@ import { generateEtsyListing } from '../src/services/workflow/generateEtsyListin
 import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
 
 // Import routes
-import { keywordRoutes } from './src/features/keywordAnalysis/index.js';
+import { keywordRoutes as keywordAnalysisRoutes } from './src/features/keywordAnalysis/index.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 
-// DeepSeek API'ye istek yapacak proxy fonksiyonu
+// DeepSeek API proxy function with improved error handling and logging
 async function proxyToDeepSeekAPI(req, res, requestId) {
   try {
+    // 1. Validate environment variables
     const apiUrl = process.env.DEEPSEEK_API_URL;
     const apiKey = process.env.DEEPSEEK_API_KEY;
     
     if (!apiUrl || !apiKey) {
+      console.error(`[${requestId}] DeepSeek API configuration missing:`, {
+        apiUrl: !!apiUrl,
+        apiKey: !!apiKey
+      });
       throw new Error('DeepSeek API configuration is missing');
     }
     
-    // Gelen isteği olduğu gibi DeepSeek API'ye ilet
+    // 2. Validate request payload
+    const { system, prompt } = req.body;
+    
+    if (!system || !prompt) {
+      console.error(`[${requestId}] Invalid request payload:`, {
+        hasSystem: !!system,
+        hasPrompt: !!prompt,
+        bodyKeys: Object.keys(req.body)
+      });
+      return res.status(400).json({
+        error: 'Invalid request payload. Both system and prompt are required.',
+        requestId
+      });
+    }
+    
+    // 3. Log request details (sanitized)
+    console.log(`[${requestId}] DeepSeek API request:`, {
+      endpoint: apiUrl,
+      systemPromptLength: system?.length || 0,
+      userPromptLength: prompt?.length || 0,
+      apiKeyPresent: !!apiKey
+    });
+    
+    // 4. Import axios dynamically
     const axios = (await import('axios')).default;
     
-    // API URL'sini hazırla
+    // 5. Prepare API endpoint
     const endpoint = apiUrl.includes('/chat/completions') ? apiUrl : `${apiUrl}/chat/completions`;
-    console.log(`[${requestId}] Proxying request to DeepSeek API: ${endpoint}`);
     
-    // Frontend'den gelen verileri kullan
-    const data = req.body;
+    // 6. Format request payload for DeepSeek API
+    const requestPayload = {
+      model: 'deepseek-chat',
+      messages: [
+        {
+          role: 'system',
+          content: system
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+      stream: false
+    };
     
-    // API isteği için gerekli header'ları hazırla
+    // 7. Prepare headers
     const headers = {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
@@ -137,16 +179,43 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
       'User-Agent': 'Zippify-Backend/1.0',
     };
     
-    // API isteğini yap
-    const response = await axios.post(endpoint, data, { headers });
+    // 8. Make API request with timeout
+    console.log(`[${requestId}] Sending request to DeepSeek API: ${endpoint}`);
+    const response = await axios.post(endpoint, requestPayload, { 
+      headers,
+      timeout: 30000 // 30 second timeout
+    });
     
-    // Yanıtı frontend'e ilet
-    return res.json(response.data);
+    // 9. Log successful response
+    console.log(`[${requestId}] DeepSeek API response received:`, {
+      status: response.status,
+      contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
+    });
+    
+    // 10. Format response for frontend
+    const content = response.data?.choices?.[0]?.message?.content || '';
+    
+    return res.json({
+      content,
+      raw: response.data
+    });
   } catch (error) {
-    console.error(`[${requestId}] DeepSeek API Error:`, error.message);
-    return res.status(500).json({
-      error: `Failed to proxy request to DeepSeek API: ${error.message}`,
-      requestId
+    // 11. Enhanced error logging
+    console.error(`[${requestId}] DeepSeek API Error:`, {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      stack: error.stack
+    });
+    
+    // 12. Return appropriate error response
+    const statusCode = error.response?.status || 500;
+    const errorMessage = error.response?.data?.error?.message || error.message;
+    
+    return res.status(statusCode).json({
+      error: `Failed to proxy request to DeepSeek API: ${errorMessage}`,
+      requestId,
+      details: error.response?.data
     });
   }
 }
