@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 interface GeneratedListingOutputProps {
   title: string;
@@ -23,7 +24,9 @@ const GeneratedListingOutput: React.FC<GeneratedListingOutputProps> = ({
 
       {description && (
         <div className="description-section">
-          <p className="text-gray-700 whitespace-pre-wrap">{description}</p>
+          <ReactMarkdown components={{
+            p: ({node, ...props}) => <p className="text-gray-700" {...props} />
+          }}>{description}</ReactMarkdown>
         </div>
       )}
 
@@ -46,7 +49,9 @@ const GeneratedListingOutput: React.FC<GeneratedListingOutputProps> = ({
       {altText && (
         <div className="alt-text-section">
           <h3 className="text-sm font-medium text-gray-700 mb-1">Alt Text:</h3>
-          <p className="text-sm text-gray-600">{altText}</p>
+          <ReactMarkdown components={{
+            p: ({node, ...props}) => <p className="text-sm text-gray-600" {...props} />
+          }}>{altText}</ReactMarkdown>
         </div>
       )}
     </div>

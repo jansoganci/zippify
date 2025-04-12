@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useSeoKeywords } from "@/features/etsyListing/context/KeywordContext";
 import { useForm } from "react-hook-form";
 import DashboardLayout from "@/components/DashboardLayout";
 import { backendApi } from "@/services/workflow/apiClient";
@@ -54,6 +55,9 @@ const SeoKeywordAnalysis = () => {
   const [showSelected, setShowSelected] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [noKeywordsFound, setNoKeywordsFound] = useState(false);
+  
+  // Access the keyword context for transferring selected keywords to the CreateListing page
+  const { setKeywords: setContextKeywords } = useSeoKeywords();
 
   // Check for auth token on component mount (for debugging purposes)
   useEffect(() => {
@@ -141,16 +145,27 @@ const SeoKeywordAnalysis = () => {
     }
   };
 
-  const handleToggleKeyword = (keywordId: string) => {
-    setKeywords(keywords.map(keyword => 
-      keyword.id === keywordId 
-        ? { ...keyword, selected: !keyword.selected } 
-        : keyword
-    ));
+  const handleToggleKeyword = (keywordId: string, isSelected?: boolean) => {
+    // Find the keyword being toggled
+    const keywordToToggle = keywords.find(k => k.id === keywordId);
+    if (!keywordToToggle) return;
     
-    // Update selected keywords list
-    const updatedKeywords = keywords.map(k => k.id === keywordId ? {...k, selected: !k.selected} : k);
+    // Determine the new selected state
+    const newSelectedState = isSelected !== undefined ? isSelected : !keywordToToggle.selected;
+    
+    // Create a single updated keywords array
+    const updatedKeywords = keywords.map(keyword => 
+      keyword.id === keywordId 
+        ? { ...keyword, selected: newSelectedState } 
+        : keyword
+    );
+    
+    // Update both states with the same data
+    setKeywords(updatedKeywords);
     setSelectedKeywords(updatedKeywords.filter(k => k.selected));
+    
+    // Log for debugging
+    console.log(`Keyword "${keywordToToggle.keyword}" ${newSelectedState ? 'selected' : 'unselected'}`);
   };
 
   const getTrendIcon = (trend: string) => {
@@ -381,7 +396,7 @@ const SeoKeywordAnalysis = () => {
                         <TableCell>
                           <Checkbox
                             checked={keyword.selected}
-                            onCheckedChange={() => handleToggleKeyword(keyword.id)}
+                            onCheckedChange={(checked) => handleToggleKeyword(keyword.id, checked as boolean)}
                           />
                         </TableCell>
                         <TableCell className="font-medium">{keyword.keyword}</TableCell>
@@ -440,10 +455,15 @@ const SeoKeywordAnalysis = () => {
               </p>
               <Button 
                 variant="secondary"
-                onClick={() => console.log("Export selected keywords")}
+                onClick={() => {
+                  setContextKeywords(selectedKeywords.map(k => k.keyword));
+                  setTimeout(() => {
+                    window.location.href = '/create';
+                  }, 100);
+                }}
                 disabled={!selectedKeywords.length}
               >
-                Export Selected ({selectedKeywords.length})
+                Use for Listing ({selectedKeywords.length})
               </Button>
             </CardFooter>
           </Card>
