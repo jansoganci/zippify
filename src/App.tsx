@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
 
 // Auth components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -24,15 +25,17 @@ import ListingGeneration from "./pages/ListingGeneration";
 import EditProductImage from "./features/imageEditing/EditImagePage";
 import SeoKeywordAnalysis from "./pages/SeoKeywordAnalysis";
 import NotFound from "./pages/NotFound";
+import LandingPage from "./pages/LandingPage";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <Routes>
           {/* Authentication Routes */}
           <Route path="/login" element={
@@ -57,6 +60,9 @@ const App = () => (
               <Index />
             </ProtectedRoute>
           } />
+
+          {/* Landing Page Route */}
+          <Route path="/landing" element={<LandingPage />} />
 
           {/* Protected Application Routes */}
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -107,6 +113,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

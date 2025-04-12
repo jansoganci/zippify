@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useNavigate } from 'react-router-dom';
 import { User, Moon, Sun, Globe, LogOut } from 'lucide-react';
 import { 
@@ -13,13 +13,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
-  // This would come from a theme context in a real app
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // In a real app, you'd update the theme here
+    setTheme(theme === "dark" ? "light" : "dark");
   };
   
   const handleLogout = () => {
@@ -34,7 +32,7 @@ const Header = () => {
   return (
     <header className="h-16 bg-background/80 backdrop-blur-sm border-b border-[hsl(var(--border))] fixed top-0 right-0 left-0 z-50 header-shadow flex items-center justify-between px-6">
       <div className="flex items-center">
-        <div className="text-2xl font-semibold tracking-tight text-primary">EtsyElevate</div>
+        <div className="text-2xl font-semibold tracking-tight text-primary">Zippify</div>
       </div>
       
       <div className="flex items-center gap-4">
@@ -70,8 +68,8 @@ const Header = () => {
               onClick={toggleTheme} 
               className="cursor-pointer flex items-center gap-2"
             >
-              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-              <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{theme === "dark" ? 'Light Mode' : 'Dark Mode'}</span>
             </DropdownMenuItem>
             
             <DropdownMenuItem className="cursor-pointer flex items-center gap-2">

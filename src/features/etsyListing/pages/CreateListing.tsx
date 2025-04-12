@@ -4,7 +4,12 @@ import { useSeoKeywords } from "../context/KeywordContext";
 import PromptInput from "../components/PromptInput";
 import KeywordSelector from "../components/KeywordSelector";
 import GeneratedListingOutput from "../components/GeneratedListingOutput";
-import { generateEtsyListing } from "@/services/workflow/generateEtsyListing";
+import SamplePromptList from "../components/SamplePromptList";
+
+import { generateTitle } from "../services/generateTitle";
+import { generateDescription } from "../services/generateDescription";
+import { generateTags } from "../services/generateTags";
+import { generateAltText } from "../services/generateAltText";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -29,6 +34,7 @@ const CreateListing: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError("Please enter a product description");
@@ -39,17 +45,19 @@ const CreateListing: React.FC = () => {
     setError(null);
     
     try {
-      const response = await generateEtsyListing({ 
-        optimizedPattern: prompt 
-      }, { 
-        tags: keywords 
-      });
+      // Generate all listing components in parallel
+      const [titleResponse, descriptionResponse, tagsResponse, altTextResponse] = await Promise.all([
+        generateTitle({ productDescription: prompt, targetKeywords: keywords }),
+        generateDescription(prompt),
+        generateTags(prompt),
+        generateAltText(prompt)
+      ]);
       
       setResult({
-        title: response.title || "",
-        description: response.description || "",
-        keywords: response.tags || [],
-        altText: response.altTexts?.[0] || ""
+        title: titleResponse?.content || "",
+        description: descriptionResponse?.content || "",
+        keywords: tagsResponse?.content?.split(",") || [],
+        altText: altTextResponse?.content || ""
       });
     } catch (err) {
       console.error("Error generating listing:", err);
@@ -90,7 +98,13 @@ const CreateListing: React.FC = () => {
 
               <div className="space-y-6">
                 <div>
-                  <PromptInput prompt={prompt} setPrompt={setPrompt} />
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-medium text-gray-700">Product Description</h3>
+                      <SamplePromptList onPromptSelect={setPrompt} />
+                    </div>
+                    <PromptInput prompt={prompt} setPrompt={setPrompt} />
+                  </div>
                 </div>
 
                 <div>
@@ -98,13 +112,15 @@ const CreateListing: React.FC = () => {
                   <KeywordSelector />
                 </div>
 
-                <Button 
-                  onClick={handleGenerate} 
-                  className="w-full md:w-auto"
-                  disabled={loading}
-                >
-                  {loading ? "Generating..." : "Generate Listing"}
-                </Button>
+                <div className="flex flex-col md:flex-row gap-4">
+                  <Button 
+                    onClick={handleGenerate} 
+                    className="w-full md:w-auto"
+                    disabled={loading}
+                  >
+                    {loading ? "Generating..." : "Generate Listing"}
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>

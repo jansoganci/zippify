@@ -2,6 +2,7 @@
 import { useState, ReactNode } from 'react';
 import AppSidebar from './AppSidebar';
 import Header from './Header';
+import Footer from '@/components/layout/Footer';
 
 type DashboardLayoutProps = {
   children: ReactNode;
@@ -28,8 +29,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             width: '100%'
           }}
         >
-          <div className="max-w-7xl mx-auto w-full page-transition">
-            {children}
+          <div className="max-w-7xl mx-auto w-full page-transition flex flex-col min-h-[calc(100%-2rem)]">
+            <div className="flex-1">
+              {children}
+            </div>
+            
+            <footer className="w-full mt-auto h-8 bg-background border-t py-1">
+              <Footer variant="compact" />
+            </footer>
           </div>
         </main>
       </div>
