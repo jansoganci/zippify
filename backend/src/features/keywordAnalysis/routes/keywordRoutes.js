@@ -1,6 +1,6 @@
 import express from 'express';
 import { getKeywordAnalysis } from '../services/keywordService.js';
-import { checkUserQuota, updateUserQuota } from '../utils/quotaManager.js';
+import { checkQuota, updateQuota } from '../../../../middleware/quotaMiddleware.js';
 import verifyToken from '../../../../middleware/auth.js';
 
 const router = express.Router();
@@ -10,7 +10,7 @@ const router = express.Router();
  * @desc    Get keyword analysis for a product
  * @access  Private
  */
-router.get('/', verifyToken, async (req, res) => {
+router.get('/', verifyToken, checkQuota("seo"), async (req, res) => {
   const requestId = `kw-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   console.log(`[${requestId}] Received keyword analysis request`);
   
@@ -26,27 +26,18 @@ router.get('/', verifyToken, async (req, res) => {
       });
     }
     
-    // Get user ID from JWT token (provided by verifyToken middleware)
-    const userId = req.user.id;
-    
-    // Check if user has exceeded their quota
-    const quotaCheck = await checkUserQuota(userId);
-    if (!quotaCheck.allowed) {
-      console.log(`[${requestId}] User ${userId} has exceeded their quota: ${quotaCheck.message}`);
-      return res.status(429).json({
-        error: quotaCheck.message,
-        requestId
-      });
-    }
+    // User ID is available from JWT token (provided by verifyToken middleware)
+    // Quota check is now handled by the checkQuota middleware
     
     // For MVP, return placeholder data
     // In the future, this will call the actual keyword analysis service
     const keywordData = await getKeywordAnalysis(product_name, category);
     
-    // Update user quota after successful request
-    await updateUserQuota(userId);
-    
     console.log(`[${requestId}] Successfully processed keyword analysis for: ${product_name}`);
+    
+    // Update quota after successful request
+    await updateQuota("seo")(req, res, () => {});
+    
     return res.json({
       data: keywordData,
       requestId
