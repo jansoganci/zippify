@@ -450,7 +450,11 @@ app.post('/api/generate-pdf', async (req, res) => {
     }
   });
 
-  app.post('/api/generate-etsy', async (req, res) => {
+  // Import quota middleware and auth middleware
+  import { checkQuota, updateQuota } from './middleware/quotaMiddleware.js';
+  import verifyToken from './middleware/auth.js';
+
+  app.post('/api/generate-etsy', verifyToken, checkQuota("listing"), async (req, res) => {
     const { content } = req.body;
     const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
   
@@ -460,7 +464,10 @@ app.post('/api/generate-pdf', async (req, res) => {
       }
   
       const result = await generateEtsyListing({ pdfContent: content });
+      
       if (result.success) {
+        // Update quota after successful listing generation
+        await updateQuota("listing")(req, res, () => {});
         return res.json({ ...result, requestId });
       } else {
         return res.status(400).json({ error: result.error || 'Failed to generate Etsy listing', requestId });
@@ -472,7 +479,7 @@ app.post('/api/generate-pdf', async (req, res) => {
   });
 
   // Image Editing Route - Gemini API implementation
-  app.post('/api/edit-image', async (req, res) => {
+  app.post('/api/edit-image', verifyToken, checkQuota("image"), async (req, res) => {
     const requestId = req.headers['x-request-id'] || `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const startTime = Date.now();
     
@@ -527,6 +534,9 @@ app.post('/api/generate-pdf', async (req, res) => {
         
         const totalDuration = Date.now() - startTime;
         console.log(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
+        
+        // Update quota after successful image editing
+        await updateQuota("image")(req, res, () => {});
         
         return res.json({
           success: true,
