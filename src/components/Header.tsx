@@ -72,7 +72,10 @@ const Header = () => {
               <span>{theme === "dark" ? 'Light Mode' : 'Dark Mode'}</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+            <DropdownMenuItem 
+              onClick={() => navigate('/profile')}
+              className="cursor-pointer flex items-center gap-2"
+            >
               <User size={16} />
               <span>Profile</span>
             </DropdownMenuItem>
