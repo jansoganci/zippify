@@ -29,6 +29,7 @@ export async function generateTags(promptInput: string): Promise<any> {
     body: JSON.stringify({
       system: systemPrompt,
       prompt: finalPrompt,
+      featureKey: "create-listing"
     }),
   });
 

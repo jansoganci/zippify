@@ -47,6 +47,7 @@ export async function generateDescription({
     body: JSON.stringify({
       system: systemPrompt,
       prompt: finalPrompt,
+      featureKey: "create-listing"
     }),
   });
 

@@ -181,16 +181,31 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     
     // 8. Make API request with timeout
     console.log(`[${requestId}] Sending request to DeepSeek API: ${endpoint}`);
-    const response = await axios.post(endpoint, requestPayload, { 
-      headers,
-      timeout: 30000 // 30 second timeout
-    });
-    
-    // 9. Log successful response
-    console.log(`[${requestId}] DeepSeek API response received:`, {
-      status: response.status,
-      contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
-    });
+    let response;
+    try {
+      response = await axios.post(endpoint, requestPayload, { 
+        headers,
+        timeout: 30000 // 30 second timeout
+      });
+      
+      // 9. Log successful response
+      console.log(`[${requestId}] DeepSeek API response received:`, {
+        status: response.status,
+        contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
+      });
+    } catch (err) {
+      console.error(`[${requestId}] DeepSeek API request failed:`, {
+        message: err.message,
+        code: err.code,
+        stack: err.stack?.split('\n')[0]
+      });
+      
+      return res.status(500).json({
+        message: "DeepSeek API request failed", 
+        error: err.message,
+        requestId
+      });
+    }
     
     // 10. Format response for frontend
     const content = response.data?.choices?.[0]?.message?.content || '';
@@ -357,22 +372,49 @@ app.post('/api/auth/login', async (req, res) => {
 
 // **Server Start**
 // DeepSeek API Proxy Route
-app.post('/api/deepseek', verifyToken, checkQuota("deepseek"), async (req, res) => {
+app.post('/api/deepseek', verifyToken, async (req, res, next) => {
   const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
-  console.log(`[${requestId}] Received DeepSeek API proxy request`);
+  const { featureKey } = req.body;
+  
+  if (!featureKey || typeof featureKey !== "string") {
+    return res.status(400).json({ error: "Missing or invalid featureKey" });
+  }
+  
+  console.log(`[${requestId}] Received DeepSeek API proxy request for feature: ${featureKey}`);
+  
+  const quotaMiddleware = checkQuota(featureKey);
+  quotaMiddleware(req, res, async () => {
+    try {
+      await proxyToDeepSeekAPI(req, res, requestId);
+      
+      // Quota increment removed - will be handled by frontend after successful completion
+      // await incrementQuota(req.user.id, featureKey);
+      // console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
+    } catch (error) {
+      console.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
+      res.status(500).json({
+        error: `Failed to proxy request to DeepSeek API: ${error.message}`,
+        requestId
+      });
+    }
+  });
+});
+
+// Manual Quota Increment Endpoint
+app.post('/api/increment-quota', verifyToken, async (req, res) => {
+  const { featureKey } = req.body;
+  
+  if (!featureKey || typeof featureKey !== "string") {
+    return res.status(400).json({ error: "Missing or invalid featureKey" });
+  }
   
   try {
-    await proxyToDeepSeekAPI(req, res, requestId);
-    
-    // Increment quota after successful DeepSeek API call
-    await incrementQuota(req.user.id, "deepseek");
-    console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: deepseek`);
-  } catch (error) {
-    console.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
-    res.status(500).json({
-      error: `Failed to proxy request to DeepSeek API: ${error.message}`,
-      requestId
-    });
+    await incrementQuota(req.user.id, featureKey);
+    console.log(`[quota] Manually incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(`[quota] Error incrementing quota:`, err);
+    return res.status(500).json({ error: err.message });
   }
 });
 

@@ -30,6 +30,7 @@ export async function generateAltText(promptInput: string): Promise<any> {
     body: JSON.stringify({
       system: systemPrompt,
       prompt: finalPrompt,
+      featureKey: "create-listing"
     }),
   });
 
