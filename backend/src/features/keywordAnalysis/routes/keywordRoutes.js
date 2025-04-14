@@ -1,6 +1,7 @@
 import express from 'express';
 import { getKeywordAnalysis } from '../services/keywordService.js';
-import { checkQuota, updateQuota } from '../../../../middleware/quotaMiddleware.js';
+import checkQuota from '../../../../middleware/checkQuota.js';
+import incrementQuota from '../../../../utils/incrementQuota.js';
 import verifyToken from '../../../../middleware/auth.js';
 
 const router = express.Router();
@@ -10,7 +11,7 @@ const router = express.Router();
  * @desc    Get keyword analysis for a product
  * @access  Private
  */
-router.get('/', verifyToken, checkQuota("seo"), async (req, res) => {
+router.get('/', verifyToken, checkQuota("seo-analysis"), async (req, res) => {
   const requestId = `kw-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   console.log(`[${requestId}] Received keyword analysis request`);
   
@@ -35,8 +36,9 @@ router.get('/', verifyToken, checkQuota("seo"), async (req, res) => {
     
     console.log(`[${requestId}] Successfully processed keyword analysis for: ${product_name}`);
     
-    // Update quota after successful request
-    await updateQuota("seo")(req, res, () => {});
+    // Increment quota after successful analysis
+    await incrementQuota(req.user.id, "seo-analysis");
+    console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: seo-analysis`);
     
     return res.json({
       data: keywordData,

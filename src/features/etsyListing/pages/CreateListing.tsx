@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 interface ListingResult {
   title: string;
@@ -48,7 +49,7 @@ const CreateListing: React.FC = () => {
       // Generate all listing components in parallel
       const [titleResponse, descriptionResponse, tagsResponse, altTextResponse] = await Promise.all([
         generateTitle({ productDescription: prompt, targetKeywords: keywords }),
-        generateDescription(prompt),
+        generateDescription({ promptInput: prompt }),
         generateTags(prompt),
         generateAltText(prompt)
       ]);
@@ -61,7 +62,17 @@ const CreateListing: React.FC = () => {
       });
     } catch (err) {
       console.error("Error generating listing:", err);
-      setError("Failed to generate listing. Please try again.");
+      
+      // Check for 403 Quota Exceeded error
+      if (err.response && err.response.status === 403) {
+        toast({
+          title: "Quota Exceeded",
+          description: "You've reached your daily limit of 5 listings.",
+          variant: "destructive"
+        });
+      } else {
+        setError("Failed to generate listing. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

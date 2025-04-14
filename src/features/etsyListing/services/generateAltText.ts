@@ -17,10 +17,16 @@ export async function generateAltText(promptInput: string): Promise<any> {
     .replace("[image2]", "Product image 2")
     .replace("[image3]", "Product image 3");
 
+  // JWT token'ı localStorage'dan al
+  const token = localStorage.getItem('zippify_token');
+
   // Return AI call structure (adjust model/provider if needed)
   const response = await fetch("/api/deepseek", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { 
+      "Content-Type": "application/json",
+      "Authorization": token ? `Bearer ${token}` : ''
+    },
     body: JSON.stringify({
       system: systemPrompt,
       prompt: finalPrompt,

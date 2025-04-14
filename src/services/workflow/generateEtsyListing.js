@@ -268,10 +268,14 @@ Additional Tags: ${options.tags?.join(', ') || ''}`;
       console.log(`🧶 [generateEtsyListing] [${requestId}] Backend API'ye istek gönderiliyor...`);
       console.log(`🧶 [generateEtsyListing] [${requestId}] Endpoint: /api/deepseek`);
       
+      // JWT token'ı localStorage'dan al
+      const token = localStorage.getItem('zippify_token');
+      
       const backendResponse = await backendApi.post('/api/deepseek', data, {
         headers: {
           'Content-Type': 'application/json',
-          'X-Request-ID': requestId
+          'X-Request-ID': requestId,
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         timeout: 180000 // 3 minutes
       });

@@ -38,8 +38,8 @@ export async function createUser(email, hashedPassword) {
     
     // Insert the new user
     const result = await db.run(
-      'INSERT INTO users (email, password) VALUES (?, ?)',
-      [email, hashedPassword]
+      'INSERT INTO users (email, password, plan) VALUES (?, ?, ?)',
+      [email, hashedPassword, 'free']
     );
     
     if (!result || !result.lastID) {
@@ -50,6 +50,7 @@ export async function createUser(email, hashedPassword) {
     return {
       id: result.lastID,
       email,
+      plan: 'free',
       created_at: new Date().toISOString()
     };
   } catch (error) {

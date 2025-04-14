@@ -23,7 +23,7 @@ import OptimizePattern from "./pages/optimizePattern";
 import ReviewDraft from "./pages/ReviewDraft";
 import ListingGeneration from "./pages/ListingGeneration";
 import EditProductImage from "./features/imageEditing/EditImagePage";
-import SeoKeywordAnalysis from "./pages/SeoKeywordAnalysis";
+import SeoKeywordAnalysis from "./features/seoAnalysis/SeoKeywordAnalysis";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 

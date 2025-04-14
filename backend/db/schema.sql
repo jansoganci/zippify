@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
+  plan TEXT NOT NULL DEFAULT 'free',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -46,3 +47,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 -- Create index for faster user_id lookups
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles(user_id);
+
+CREATE TABLE IF NOT EXISTS user_quota (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  feature TEXT NOT NULL,
+  date TEXT NOT NULL,
+  request_count INTEGER DEFAULT 0,
+  UNIQUE(user_id, feature, date)
+);
