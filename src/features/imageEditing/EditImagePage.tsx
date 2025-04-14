@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
 import { InfoIcon, Download, AlertTriangle, Lightbulb, Plus } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -65,10 +66,14 @@ const EditProductImage = () => {
       console.log("Sending request to backend API...");
       const requestStartTime = Date.now();
       
+      // Retrieve JWT token from localStorage
+      const token = localStorage.getItem("zippify_token");
+      
       const response = await fetch("http://localhost:3001/api/edit-image", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
         },
         body: JSON.stringify({
           image: selectedImage,
@@ -82,6 +87,18 @@ const EditProductImage = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`API error (${response.status}):`, errorText);
+        
+        // Check for 403 Quota Exceeded error
+        if (response.status === 403) {
+          toast({
+            title: "Quota Exceeded",
+            description: "You've reached your daily limit of 5 image edits.",
+            variant: "destructive"
+          });
+          setIsLoading(false);
+          return;
+        }
+        
         throw new Error(`Server responded with status ${response.status}: ${errorText}`);
       }
       

@@ -1,11 +1,36 @@
-import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+
+import { useState, useEffect } from "react";
+import { useSeoKeywords } from "@/features/etsyListing/context/KeywordContext";
+import { useForm } from "react-hook-form";
+import DashboardLayout from "@/components/DashboardLayout";
+import { backendApi } from "@/services/workflow/apiClient";
+import { 
+  Search, 
+  TrendingUp, 
+  TrendingDown, 
+  Minus, 
+  ArrowUpDown, 
+  Check, 
+  ChevronDown,
+  AlertCircle
+} from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TrendingUp, TrendingDown, Minus, Plus } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { 
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger 
+} from "@/components/ui/collapsible";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { toast } from "@/components/ui/use-toast";
 
 interface FormValues {
   productName: string;
@@ -14,324 +39,490 @@ interface FormValues {
   platform: string;
 }
 
-interface KeywordResult {
+interface Keyword {
+  id: string;
   keyword: string;
-  competition: number;
   popularity: number;
-  trend: 'increasing' | 'stable' | 'decreasing';
+  competition: number;
+  trend: "increasing" | "stable" | "declining";
+  selected: boolean;
 }
 
 const SeoKeywordAnalysis = () => {
-  // Form state management
-  const [formData, setFormData] = useState<FormValues>({
-    productName: '',
-    category: '',
-    country: 'US',
-    platform: 'Etsy'
-  });
+  const [loading, setLoading] = useState(false);
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [selectedKeywords, setSelectedKeywords] = useState<Keyword[]>([]);
+  const [sortBy, setSortBy] = useState<string>("popularity");
+  const [showSelected, setShowSelected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [noKeywordsFound, setNoKeywordsFound] = useState(false);
   
-  // State for keyword results
-  const [keywordResults, setKeywordResults] = useState<KeywordResult[]>([]);
-  
-  // State for selected keywords
-  const [selectedKeywords, setSelectedKeywords] = useState<KeywordResult[]>([]);
-  
-  // Store selected keywords in localStorage whenever the list changes
+  // Access the keyword context for transferring selected keywords to the CreateListing page
+  const { setKeywords: setContextKeywords } = useSeoKeywords();
+
+  // Check for auth token on component mount (for debugging purposes)
   useEffect(() => {
-    if (selectedKeywords.length > 0) {
-      localStorage.setItem("zippify_selected_keywords", JSON.stringify(selectedKeywords));
-      console.log("Selected keywords stored in localStorage:", selectedKeywords);
+    const token = localStorage.getItem('zippify_token');
+    if (!token) {
+      console.warn('⚠️ Authentication Warning: No zippify_token found in localStorage. API requests may fail with 401 Unauthorized.');
+    } else {
+      console.log('✅ Auth token found in localStorage');
     }
-  }, [selectedKeywords]);
+  }, []);
 
-  // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { id, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [id]: value
-    }));
-  };
 
-  // Handle form submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<FormValues>({
+    defaultValues: {
+      productName: "",
+      category: "",
+      country: "US",
+      platform: "Etsy",
+    },
+  });
+
+  const onSubmit = async (data: FormValues) => {
+    setLoading(true);
+    setError(null);
+    setNoKeywordsFound(false);
     
-    // Validate required fields
-    if (!formData.productName) {
-      alert('Product Name is required');
-      return;
-    }
-    
-    if (!formData.country) {
-      alert('Target Country is required');
-      return;
-    }
-    
-    // Construct query parameters
-    const queryParams = new URLSearchParams({
-      product_name: formData.productName,
-      country: formData.country,
-      platform: formData.platform
-    });
-    
-    // Add optional category if provided
-    if (formData.category) {
-      queryParams.append('category', formData.category);
-    }
-    
-    // Make API request
     try {
-      const response = await fetch(`/api/keywords?${queryParams.toString()}`);
-      const data = await response.json();
+      // Construct query parameters
+      const queryParams = new URLSearchParams({
+        product_name: data.productName,
+        category: data.category || '',
+        country: data.country || 'US',
+        platform: data.platform || 'Etsy'
+      });
       
-      // Log response to console
-      console.log('Keyword analysis response:', data);
+      // Make API request using backendApi (JWT token will be added by interceptor)
+      const response = await backendApi.get(`/api/keywords?${queryParams.toString()}`);
       
-      // Update state with keyword results
-      if (data && data.keywords) {
-        setKeywordResults(data.keywords);
+      // Axios wraps the response differently than fetch
+      if (response.status !== 200) {
+        // Handle unauthorized responses specifically
+        if (response.status === 401) {
+          console.warn("Unauthorized: Displaying login error message.");
+          setError("Your session has expired or you're not logged in. Please log in again.");
+          return;
+        }
+        // Handle quota exceeded responses
+        if (response.status === 403) {
+          console.warn("Quota exceeded: Displaying limit message.");
+          toast({
+            title: "Quota Exceeded",
+            description: "You've reached your daily limit of 5 SEO keyword searches.",
+            variant: "destructive"
+          });
+          return;
+        }
+        throw new Error(`API request failed with status ${response.status}`);
       }
-    } catch (error) {
-      console.error('Error fetching keyword data:', error);
+      
+      // With axios, response.data is already parsed JSON
+      const responseData = response.data;
+      console.log('API Response:', responseData); // Log full response for debugging
+      
+      // Extract keywords from the response
+      if (responseData && responseData.data && responseData.data.keywords && responseData.data.keywords.length > 0) {
+        setKeywords(responseData.data.keywords);
+        setNoKeywordsFound(false);
+      } else {
+        // Log detailed error for debugging
+        console.error('Invalid API response format or no keywords returned:', {
+          responseReceived: responseData,
+          hasData: Boolean(responseData?.data),
+          hasKeywords: Boolean(responseData?.data?.keywords),
+          keywordsLength: responseData?.data?.keywords?.length || 0,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Set state to show no keywords found message
+        setNoKeywordsFound(true);
+        setKeywords([]);
+      }
+    } catch (error: any) {
+      // Log detailed error with stack trace
+      console.error('Error fetching keyword data:', {
+        message: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Set error state for UI display
+      setError("Something went wrong while fetching keywords.");
+      setKeywords([]);
+    } finally {
+      setLoading(false);
     }
   };
-  
-  // Helper function to render trend icon
-  const renderTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'increasing':
-        return <TrendingUp className="h-4 w-4 text-green-500" />;
-      case 'decreasing':
-        return <TrendingDown className="h-4 w-4 text-red-500" />;
-      case 'stable':
-      default:
-        return <Minus className="h-4 w-4 text-blue-500" />;
-    }
-  };
-  
-  // Function to add a keyword to selected list
-  const addKeyword = (keyword: KeywordResult) => {
-    // Check if keyword is already in the selected list
-    const isAlreadySelected = selectedKeywords.some(
-      selected => selected.keyword === keyword.keyword
+
+  const handleToggleKeyword = (keywordId: string, isSelected?: boolean) => {
+    // Find the keyword being toggled
+    const keywordToToggle = keywords.find(k => k.id === keywordId);
+    if (!keywordToToggle) return;
+    
+    // Determine the new selected state
+    const newSelectedState = isSelected !== undefined ? isSelected : !keywordToToggle.selected;
+    
+    // Create a single updated keywords array
+    const updatedKeywords = keywords.map(keyword => 
+      keyword.id === keywordId 
+        ? { ...keyword, selected: newSelectedState } 
+        : keyword
     );
     
-    // If not already selected, add it to the list
-    if (!isAlreadySelected) {
-      setSelectedKeywords([...selectedKeywords, keyword]);
+    // Update both states with the same data
+    setKeywords(updatedKeywords);
+    setSelectedKeywords(updatedKeywords.filter(k => k.selected));
+    
+    // Log for debugging
+    console.log(`Keyword "${keywordToToggle.keyword}" ${newSelectedState ? 'selected' : 'unselected'}`);
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case "increasing":
+        return <TrendingUp className="text-green-500" />;
+      case "declining":
+        return <TrendingDown className="text-red-500" />;
+      default:
+        return <Minus className="text-gray-500" />;
     }
   };
-  
-  // Function to remove a keyword from selected list
-  const removeKeyword = (keywordToRemove: KeywordResult) => {
-    setSelectedKeywords(
-      selectedKeywords.filter(keyword => keyword.keyword !== keywordToRemove.keyword)
-    );
+
+  const getCompetitionClass = (competition: number) => {
+    if (competition >= 0.6) {
+      return "bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs";
+    } else if (competition >= 0.3) {
+      return "bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs";
+    } else {
+      return "bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs";
+    }
   };
 
   return (
     <DashboardLayout>
-      <div className="py-10 px-4 max-w-3xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">SEO & Keyword Analysis</h1>
-          <p className="text-muted-foreground">Analyze keywords to optimize your product listings</p>
+      <div className="container mx-auto py-6 px-4 max-w-7xl">
+      <div className="flex flex-col space-y-8">
+        {/* Page Header */}
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">SEO & Keyword Analysis</h1>
+          <p className="text-muted-foreground">
+            Analyze keywords for your product listings and optimize for search engines.
+          </p>
         </div>
-        
-        <Card>
+
+        {/* Analysis Form */}
+        <Card className="w-full">
           <CardHeader>
-            <CardTitle>Keyword Research</CardTitle>
+            <CardTitle>Analysis Parameters</CardTitle>
             <CardDescription>
-              Enter your product details to discover relevant keywords and SEO opportunities
+              Enter your product details to get keyword suggestions.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-6" onSubmit={handleSubmit}>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="productName">Product Name</Label>
-                  <Input 
-                    id="productName" 
-                    placeholder="e.g. Wooden Cutting Board" 
-                    className="w-full" 
-                    value={formData.productName}
-                    onChange={handleInputChange}
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {noKeywordsFound && !error && (
+              <Alert className="mb-6">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>No Keywords Found</AlertTitle>
+                <AlertDescription>
+                  No keywords found for this input. Try changing your filters or using more general terms.
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name="productName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product Name*</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="E.g., Handmade Ceramic Mug" 
+                            {...field} 
+                            required
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter the main product name or type
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category (Optional)</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="E.g., Home & Living" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Specify a category to improve results
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="country"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Target Country</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="US, UK, CA, etc." 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter country code (default: US)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={form.control}
+                    name="platform"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Platform</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Etsy, Amazon, eBay, etc." 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Platform to optimize for (default: Etsy)
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
                   />
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="category">Category (Optional)</Label>
-                  <Input 
-                    id="category" 
-                    placeholder="e.g. Kitchen, Home Decor" 
-                    className="w-full" 
-                    value={formData.category}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="country">Target Country</Label>
-                  <select 
-                    id="country" 
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                  >
-                    <option value="US">United States</option>
-                    <option value="UK">United Kingdom</option>
-                    <option value="DE">Germany</option>
-                    <option value="TR">Turkey</option>
-                    <option value="CA">Canada</option>
-                    <option value="AU">Australia</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="platform">Sales Platform</Label>
-                  <select 
-                    id="platform" 
-                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm"
-                    value={formData.platform}
-                    onChange={handleInputChange}
-                  >
-                    <option value="Etsy">Etsy</option>
-                    <option value="Amazon">Amazon</option>
-                    <option value="Shopify">Shopify</option>
-                    <option value="eBay">eBay</option>
-                    <option value="WooCommerce">WooCommerce</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="flex justify-center pt-4">
                 <Button 
                   type="submit" 
-                  className="px-6"
+                  className="w-full md:w-auto"
+                  disabled={loading}
                 >
-                  Run Keyword Analysis
+                  {loading ? (
+                    <>Running Analysis...</>
+                  ) : (
+                    <>
+                      <Search className="mr-2 h-4 w-4" />
+                      Run Keyword Analysis
+                    </>
+                  )}
                 </Button>
-              </div>
-            </form>
+              </form>
+            </Form>
           </CardContent>
         </Card>
-        
-        {keywordResults.length > 0 && (
-          <Card className="mt-8">
+
+        {/* Results Section - Only show if we have results */}
+        {keywords.length > 0 && (
+          <Card className="w-full">
             <CardHeader>
-              <CardTitle>Keyword Analysis Results</CardTitle>
-              <CardDescription>
-                Based on your search for "{formData.productName}"
-              </CardDescription>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <CardTitle>Keyword Suggestions</CardTitle>
+                  <CardDescription>
+                    {keywords.length} keywords found based on your search.
+                  </CardDescription>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <ToggleGroup type="single" defaultValue="popularity">
+                    <ToggleGroupItem 
+                      value="popularity" 
+                      onClick={() => setSortBy("popularity")}
+                    >
+                      Popularity
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="competition" 
+                      onClick={() => setSortBy("competition")}
+                    >
+                      Competition
+                    </ToggleGroupItem>
+                    <ToggleGroupItem 
+                      value="trend" 
+                      onClick={() => setSortBy("trend")}
+                    >
+                      Trend
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowSelected(!showSelected)}
+                  >
+                    {showSelected ? "Show All" : "Show Selected"}
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Keyword</TableHead>
-                    <TableHead className="w-[120px]">Popularity</TableHead>
-                    <TableHead className="w-[120px]">Competition</TableHead>
-                    <TableHead className="w-[100px]">Trend</TableHead>
-                    <TableHead className="w-[80px]">Action</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {keywordResults.map((keyword, index) => (
-                    <TableRow key={`${keyword.keyword}-${index}`}>
-                      <TableCell className="font-medium">{keyword.keyword}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden">
-                            <div 
-                              className="bg-green-500 h-full rounded-full" 
-                              style={{ width: `${keyword.popularity}%` }}
-                            />
-                          </div>
-                          <span className="text-xs">{keyword.popularity}</span>
+              <div className="rounded-md border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-12"></TableHead>
+                      <TableHead>Keyword</TableHead>
+                      <TableHead className="text-center">
+                        <div className="flex items-center justify-center">
+                          Popularity
+                          <ArrowUpDown className="ml-2 h-4 w-4" />
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="bg-gray-200 dark:bg-gray-700 w-full h-2 rounded-full overflow-hidden">
-                            <div 
-                              className="bg-amber-500 h-full rounded-full" 
-                              style={{ width: `${keyword.competition * 100}%` }}
-                            />
-                          </div>
-                          <span className="text-xs">{(keyword.competition * 100).toFixed(0)}%</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          {renderTrendIcon(keyword.trend)}
-                          <span className="ml-1 text-sm">
-                            {keyword.trend.charAt(0).toUpperCase() + keyword.trend.slice(1)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="h-8 w-8 p-0"
-                          onClick={() => addKeyword(keyword)}
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                      </TableHead>
+                      <TableHead className="text-center">Competition</TableHead>
+                      <TableHead className="text-center">Trend</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {(showSelected ? keywords.filter(k => k.selected) : keywords).map((keyword) => (
+                      <TableRow key={keyword.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={keyword.selected}
+                            onCheckedChange={(checked) => handleToggleKeyword(keyword.id, checked as boolean)}
+                          />
+                        </TableCell>
+                        <TableCell className="font-medium">{keyword.keyword}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center">
+                            <div className="w-full max-w-[100px] bg-gray-200 rounded-full h-2.5">
+                              <div 
+                                className="bg-primary h-2.5 rounded-full" 
+                                style={{ width: `${keyword.popularity}%` }}
+                              ></div>
+                            </div>
+                            <span className="ml-2 text-xs">{keyword.popularity}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <span className={getCompetitionClass(keyword.competition)} title={`Competition score: ${keyword.competition.toFixed(2)}`}>
+                            {keyword.competition >= 0.6 ? "High" : keyword.competition >= 0.3 ? "Medium" : "Low"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center">
+                            {getTrendIcon(keyword.trend)}
+                            <span className="ml-2 text-xs capitalize">{keyword.trend}</span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              
+              {/* Pagination */}
+              <Pagination className="mt-4">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious href="#" />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#" isActive>1</PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#">2</PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink href="#">3</PaginationLink>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext href="#" />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </CardContent>
+            <CardFooter className="flex justify-between">
+              <p className="text-sm text-muted-foreground">
+                Data sourced from Google Trends and marketplace analytics.
+              </p>
+              <Button 
+                variant="secondary"
+                onClick={() => {
+                  setContextKeywords(selectedKeywords.map(k => k.keyword));
+                  setTimeout(() => {
+                    window.location.href = '/create';
+                  }, 100);
+                }}
+                disabled={!selectedKeywords.length}
+              >
+                Use for Listing ({selectedKeywords.length})
+              </Button>
+            </CardFooter>
           </Card>
         )}
-        
-        {/* Selected Keywords Section */}
+
+        {/* Selected Keywords Collapsible */}
         {selectedKeywords.length > 0 && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center">
-                  <span>📌 Selected Keywords</span>
-                  <span className="ml-2 text-sm text-muted-foreground">({selectedKeywords.length})</span>
-                </div>
-              </CardTitle>
-              <CardDescription>
-                Keywords you've selected for your listing
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {selectedKeywords.map((keyword, index) => (
-                  <div key={`${keyword.keyword}-${index}`} className="flex items-center justify-between p-2 bg-muted/50 rounded-md">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{keyword.keyword}</span>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        {renderTrendIcon(keyword.trend)}
-                        <span className="ml-1">{(keyword.competition * 100).toFixed(0)}% competition</span>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="h-8 text-xs text-muted-foreground hover:text-destructive"
-                      onClick={() => removeKeyword(keyword)}
+          <Collapsible className="w-full border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">Selected Keywords ({selectedKeywords.length})</h3>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <ChevronDown className="h-4 w-4" />
+                  <span className="sr-only">Toggle</span>
+                </Button>
+              </CollapsibleTrigger>
+            </div>
+            
+            <CollapsibleContent className="mt-4">
+              <div className="flex flex-wrap gap-2">
+                {selectedKeywords.map((keyword) => (
+                  <div 
+                    key={keyword.id}
+                    className="flex items-center gap-2 bg-secondary px-3 py-1 rounded-full text-sm"
+                  >
+                    <span>{keyword.keyword}</span>
+                    <button 
+                      onClick={() => handleToggleKeyword(keyword.id)}
+                      className="text-muted-foreground hover:text-foreground"
                     >
-                      Remove
-                    </Button>
+                      <Check className="h-3 w-3" />
+                    </button>
                   </div>
                 ))}
               </div>
-              
-              {/* JSON display of selected keywords */}
-              <pre className="mt-4 text-sm bg-muted p-4 rounded overflow-auto">
-                {JSON.stringify(selectedKeywords, null, 2)}
-              </pre>
-            </CardContent>
-          </Card>
+              <div className="mt-4 text-right">
+                <Button 
+                  size="sm"
+                  onClick={() => console.log("Copy to clipboard")}
+                >
+                  Copy All
+                </Button>
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         )}
       </div>
+    </div>
     </DashboardLayout>
   );
 };

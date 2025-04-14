@@ -357,12 +357,16 @@ app.post('/api/auth/login', async (req, res) => {
 
 // **Server Start**
 // DeepSeek API Proxy Route
-app.post('/api/deepseek', async (req, res) => {
+app.post('/api/deepseek', verifyToken, checkQuota("deepseek"), async (req, res) => {
   const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
   console.log(`[${requestId}] Received DeepSeek API proxy request`);
   
   try {
     await proxyToDeepSeekAPI(req, res, requestId);
+    
+    // Increment quota after successful DeepSeek API call
+    await incrementQuota(req.user.id, "deepseek");
+    console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: deepseek`);
   } catch (error) {
     console.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
     res.status(500).json({
@@ -390,6 +394,21 @@ async function initializeDatabaseWithSchema() {
             driver: sqlite3.Database
         });
         console.log(`Connected to SQLite database at: ${DB_PATH}`);
+        
+        // In development mode, reset the database by dropping all tables
+        if (process.env.NODE_ENV === 'development') {
+            console.log('Development mode detected - Resetting database...');
+            
+            // Get all tables in the database
+            const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
+            
+            // Drop each table
+            for (const table of tables) {
+                await db.run(`DROP TABLE IF EXISTS ${table.name}`);
+                console.log(`Dropped table: ${table.name}`);
+            }
+            console.log('Database reset complete');
+        }
         
         // Read the schema SQL file
         if (fs.existsSync(SCHEMA_PATH)) {
@@ -451,23 +470,24 @@ app.post('/api/generate-pdf', async (req, res) => {
   });
 
   // Import quota middleware and auth middleware
-  import { checkQuota, updateQuota } from './middleware/quotaMiddleware.js';
+  import checkQuota from './middleware/checkQuota.js';
   import verifyToken from './middleware/auth.js';
+  import incrementQuota from './utils/incrementQuota.js';
 
-  app.post('/api/generate-etsy', verifyToken, checkQuota("listing"), async (req, res) => {
+  app.post('/api/generate-etsy', verifyToken, checkQuota("create-listing"), async (req, res) => {
     const { content } = req.body;
     const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
-  
     try {
       if (!content) {
         return res.status(400).json({ error: 'Content is required', requestId });
       }
-  
+
       const result = await generateEtsyListing({ pdfContent: content });
-      
+
       if (result.success) {
-        // Update quota after successful listing generation
-        await updateQuota("listing")(req, res, () => {});
+        // Increment quota usage after successful listing
+        await incrementQuota(req.user.id, "create-listing");
+        console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: create-listing`);
         return res.json({ ...result, requestId });
       } else {
         return res.status(400).json({ error: result.error || 'Failed to generate Etsy listing', requestId });
@@ -479,7 +499,7 @@ app.post('/api/generate-pdf', async (req, res) => {
   });
 
   // Image Editing Route - Gemini API implementation
-  app.post('/api/edit-image', verifyToken, checkQuota("image"), async (req, res) => {
+  app.post('/api/edit-image', verifyToken, checkQuota("edit-image"), async (req, res) => {
     const requestId = req.headers['x-request-id'] || `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const startTime = Date.now();
     
@@ -535,8 +555,9 @@ app.post('/api/generate-pdf', async (req, res) => {
         const totalDuration = Date.now() - startTime;
         console.log(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
         
-        // Update quota after successful image editing
-        await updateQuota("image")(req, res, () => {});
+        // Increment quota after successful image editing
+        await incrementQuota(req.user.id, "edit-image");
+        console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: edit-image`);
         
         return res.json({
           success: true,
