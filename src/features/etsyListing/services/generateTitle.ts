@@ -32,6 +32,7 @@ export async function generateTitle({
     body: JSON.stringify({
       system: systemPrompt,
       prompt: finalPrompt,
+      featureKey: "create-listing"
     }),
   });
 

@@ -77,7 +77,8 @@ const EditProductImage = () => {
         },
         body: JSON.stringify({
           image: selectedImage,
-          prompt: prompt
+          prompt: prompt,
+          featureKey: "edit-image"
         }),
       });
       

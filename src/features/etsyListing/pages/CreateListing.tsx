@@ -10,6 +10,7 @@ import { generateTitle } from "../services/generateTitle";
 import { generateDescription } from "../services/generateDescription";
 import { generateTags } from "../services/generateTags";
 import { generateAltText } from "../services/generateAltText";
+import { backendApi } from "@/services/workflow/apiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -34,6 +35,7 @@ const CreateListing: React.FC = () => {
   });
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
 
 
   const handleGenerate = async () => {
@@ -44,6 +46,7 @@ const CreateListing: React.FC = () => {
 
     setLoading(true);
     setError(null);
+    setQuotaExceeded(false);
     
     try {
       // Generate all listing components in parallel
@@ -53,6 +56,20 @@ const CreateListing: React.FC = () => {
         generateTags(prompt),
         generateAltText(prompt)
       ]);
+      
+      // Check if all responses have valid content
+      if (titleResponse?.content && descriptionResponse?.content && 
+          tagsResponse?.content && altTextResponse?.content) {
+        
+        // All API calls were successful, increment quota manually
+        try {
+          await backendApi.post('/api/increment-quota', { featureKey: 'create-listing' });
+          console.log('Successfully incremented quota for create-listing');
+        } catch (quotaError) {
+          // Log error but don't show to user
+          console.error('Failed to increment quota:', quotaError);
+        }
+      }
       
       setResult({
         title: titleResponse?.content || "",
@@ -65,6 +82,7 @@ const CreateListing: React.FC = () => {
       
       // Check for 403 Quota Exceeded error
       if (err.response && err.response.status === 403) {
+        setQuotaExceeded(true);
         toast({
           title: "Quota Exceeded",
           description: "You've reached your daily limit of 5 listings.",
@@ -99,6 +117,14 @@ const CreateListing: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {quotaExceeded && (
+                <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
+                  <div className="flex items-center">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    <span className="font-medium">Your daily listing quota has been used (5/5). Please upgrade to continue.</span>
+                  </div>
+                </div>
+              )}
               {error && (
                 <Alert variant="destructive" className="mb-6">
                   <AlertCircle className="h-4 w-4" />

@@ -149,7 +149,11 @@ const SeoKeywordAnalysis = () => {
       });
       
       // Set error state for UI display
-      setError("Something went wrong while fetching keywords.");
+      if (error.response?.status === 403) {
+        setError("Your daily quota of 5 SEO analyses has been used.");
+      } else {
+        setError("Something went wrong while fetching keywords.");
+      }
       setKeywords([]);
     } finally {
       setLoading(false);

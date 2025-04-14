@@ -271,7 +271,7 @@ Additional Tags: ${options.tags?.join(', ') || ''}`;
       // JWT token'ı localStorage'dan al
       const token = localStorage.getItem('zippify_token');
       
-      const backendResponse = await backendApi.post('/api/deepseek', data, {
+      const backendResponse = await backendApi.post('/api/deepseek', { ...data, featureKey: "create-listing" }, {
         headers: {
           'Content-Type': 'application/json',
           'X-Request-ID': requestId,

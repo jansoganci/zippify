@@ -46,8 +46,16 @@ export default function checkQuota(featureName) {
         [userId, featureName, today]
       );
       
-      // Define daily limit based on user's plan
-      const DAILY_LIMIT = req.user.plan === 'premium' ? 200 : 20;
+      // Define daily limit based on user's plan and feature
+      const LIMITS = {
+        "create-listing": { free: 5, premium: 50 },
+        "edit-image": { free: 5, premium: 50 },
+        "seo-analysis": { free: 5, premium: 50 }
+      };
+
+      const userPlan = req.user.plan === "premium" ? "premium" : "free";
+      const featureLimits = LIMITS[featureName] || { free: 20, premium: 200 };
+      const DAILY_LIMIT = featureLimits[userPlan];
       
       // Calculate current usage and remaining quota
       const currentUsage = userQuota?.request_count || 0;
