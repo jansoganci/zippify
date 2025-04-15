@@ -1,11 +1,21 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
+// Define the Keyword interface
+interface Keyword {
+  id: string;
+  keyword: string;
+  popularity: number;
+  competition: number;
+  trend: "increasing" | "stable" | "declining";
+  selected: boolean;
+}
+
 // Define the context type
 type KeywordContextType = {
-  keywords: string[];
-  setKeywords: React.Dispatch<React.SetStateAction<string[]>>;
-  addKeyword: (keyword: string) => void;
-  removeKeyword: (keyword: string) => void;
+  keywords: Keyword[];
+  setKeywords: React.Dispatch<React.SetStateAction<Keyword[]>>;
+  addKeyword: (keyword: Keyword) => void;
+  removeKeyword: (keywordId: string) => void;
   clearKeywords: () => void;
 };
 
@@ -29,7 +39,7 @@ interface KeywordProviderProps {
 // Create a provider component
 export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) => {
   // Initialize state from localStorage if available
-  const [keywords, setKeywords] = useState<string[]>(() => {
+  const [keywords, setKeywordsState] = useState<Keyword[]>(() => {
     try {
       const storedKeywords = localStorage.getItem(STORAGE_KEY);
       return storedKeywords ? JSON.parse(storedKeywords) : [];
@@ -38,16 +48,26 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       return [];
     }
   });
-
-  // Persist to localStorage whenever keywords change
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(keywords));
-      console.log(`Saved ${keywords.length} keywords to localStorage`);
-    } catch (error) {
-      console.error('Error saving keywords to localStorage:', error);
-    }
-  }, [keywords]);
+  
+  // Create a wrapper function that updates state and localStorage simultaneously
+  const setKeywordsWithStorage = (newKeywords: Keyword[] | ((prev: Keyword[]) => Keyword[])) => {
+    setKeywordsState(prevKeywords => {
+      // Handle both direct value and function updates
+      const updatedKeywords = typeof newKeywords === 'function' 
+        ? newKeywords(prevKeywords) 
+        : newKeywords;
+      
+      // Immediately save to localStorage
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedKeywords));
+        console.log(`Saved ${updatedKeywords.length} keywords to localStorage`);
+      } catch (error) {
+        console.error('Error saving keywords to localStorage:', error);
+      }
+      
+      return updatedKeywords;
+    });
+  };
   
   // Load keywords from localStorage when the component mounts
   useEffect(() => {
@@ -56,7 +76,7 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       if (storedKeywords) {
         const parsedKeywords = JSON.parse(storedKeywords);
         if (Array.isArray(parsedKeywords) && parsedKeywords.length > 0) {
-          setKeywords(parsedKeywords);
+          setKeywordsWithStorage(parsedKeywords);
           console.log(`Loaded ${parsedKeywords.length} keywords from localStorage on mount`);
         }
       }
@@ -66,26 +86,27 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
   }, []);
 
   // Helper function to add a keyword if it doesn't already exist
-  const addKeyword = (keyword: string) => {
-    if (keyword && !keywords.includes(keyword)) {
-      setKeywords(prev => [...prev, keyword]);
+  const addKeyword = (keyword: Keyword) => {
+    // Check if keyword with same id already exists
+    if (keyword && !keywords.some(k => k.id === keyword.id)) {
+      setKeywordsWithStorage(prev => [...prev, keyword]);
     }
   };
 
-  // Helper function to remove a keyword
-  const removeKeyword = (keyword: string) => {
-    setKeywords(prev => prev.filter(k => k !== keyword));
+  // Helper function to remove a keyword by id
+  const removeKeyword = (keywordId: string) => {
+    setKeywordsWithStorage(prev => prev.filter(k => k.id !== keywordId));
   };
 
   // Helper function to clear all keywords
   const clearKeywords = () => {
-    setKeywords([]);
+    setKeywordsWithStorage([]);
   };
 
   return (
     <KeywordContext.Provider value={{ 
       keywords, 
-      setKeywords, 
+      setKeywords: setKeywordsWithStorage, 
       addKeyword, 
       removeKeyword, 
       clearKeywords 

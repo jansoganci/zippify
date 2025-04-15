@@ -13,9 +13,10 @@ import { generateAltText } from "../services/generateAltText";
 import { createListing } from "../services/backendApi";
 import { backendApi } from "@/services/workflow/apiClient";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Plus } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 interface ListingResult {
@@ -26,8 +27,15 @@ interface ListingResult {
 }
 
 const CreateListing: React.FC = () => {
-  const { keywords } = useSeoKeywords();
+  // Get keywords and functions from context
+  const { keywords, addKeyword } = useSeoKeywords();
   const [prompt, setPrompt] = useState<string>("");
+  
+  // Debug log to verify keywords are loaded correctly
+  React.useEffect(() => {
+    console.log('[DEBUG] Keywords in CreateListing:', keywords);
+  }, [keywords]);
+  const [newKeyword, setNewKeyword] = useState<string>("");
   const [result, setResult] = useState<ListingResult>({
     title: "",
     description: "",
@@ -37,6 +45,30 @@ const CreateListing: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
+  
+  // Debug log to verify full Keyword objects
+  console.log("[DEBUG] Keywords in CreateListing:", keywords);
+  
+  // Handle adding a new keyword manually
+  const handleAddKeyword = () => {
+    if (newKeyword.trim()) {
+      // Create a new keyword object with default values
+      const keyword = {
+        id: `manual-${Date.now()}`,
+        keyword: newKeyword.trim(),
+        popularity: 0,
+        competition: 0,
+        trend: "stable" as const,
+        selected: true
+      };
+      
+      // Add to context
+      addKeyword(keyword);
+      
+      // Clear input field
+      setNewKeyword("");
+    }
+  };
 
 
   const handleGenerate = async () => {
@@ -52,7 +84,10 @@ const CreateListing: React.FC = () => {
     try {
       // Generate all listing components sequentially instead of in parallel
       // 1. Generate title
-      const titleResponse = await generateTitle({ productDescription: prompt, targetKeywords: keywords });
+      const titleResponse = await generateTitle({ 
+        productDescription: prompt, 
+        targetKeywords: keywords.map(k => k.keyword) 
+      });
       await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
 
       // 2. Generate description
@@ -213,6 +248,31 @@ const CreateListing: React.FC = () => {
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Keywords:</h3>
                   <KeywordSelector />
+                  
+                  {/* Manual keyword input */}
+                  <div className="flex items-center space-x-2 mt-4">
+                    <Input
+                      placeholder="Add a keyword manually"
+                      value={newKeyword}
+                      onChange={(e) => setNewKeyword(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddKeyword();
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleAddKeyword} 
+                      type="button" 
+                      size="sm"
+                      variant="outline"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4">
