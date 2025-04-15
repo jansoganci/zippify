@@ -531,14 +531,18 @@ const SeoKeywordAnalysis = () => {
                   console.log("[DEBUG] selectedKeywords before setContextKeywords:", selectedKeywords);
                   console.log("[DEBUG] sending to context:", JSON.stringify(selectedKeywords));
                   
-                  // Pass the full keyword objects to preserve all metadata
-                  setContextKeywords(selectedKeywords);
-                  
-                  // Try to verify context was updated
-                  console.log("[DEBUG] Context update triggered with", selectedKeywords.length, "keywords");
-                  
-                  // Navigate to create page
-                  navigate("/create");
+                  // First clear any existing keywords, then set the selected keywords
+                  setContextKeywords([]);
+                  setTimeout(() => {
+                    // Pass the full keyword objects to preserve all metadata
+                    setContextKeywords(selectedKeywords);
+                    
+                    // Try to verify context was updated
+                    console.log("[DEBUG] Context update triggered with", selectedKeywords.length, "keywords");
+                    
+                    // Navigate to create page
+                    navigate("/create");
+                  }, 0);
                 }}
                 disabled={!selectedKeywords.length}
               >
@@ -563,15 +567,18 @@ const SeoKeywordAnalysis = () => {
                         // Log for debugging
                         console.log('Transferring keywords to Create Listing page:', selectedKeywords);
                         
-                        // Set the selected keywords in the context
-                        // This will automatically update localStorage via the context's setKeywordsWithStorage
-                        setContextKeywords(selectedKeywords);
+                        // First clear any existing keywords to prevent state conflicts
+                        setContextKeywords([]);
                         
-                        // Small delay to ensure state updates before navigation
+                        // Small delay to ensure clearing completes
                         setTimeout(() => {
-                          // Navigate to create listing page
+                          // Set the selected keywords in the context
+                          // This will automatically update localStorage via the context's setKeywordsWithStorage
+                          setContextKeywords(selectedKeywords);
+                          
+                          // Navigate to create listing page after keywords are set
                           navigate("/create");
-                        }, 100);
+                        }, 50);
                       } catch (error) {
                         console.error('Error transferring keywords:', error);
                         // Navigate anyway

@@ -28,8 +28,14 @@ interface ListingResult {
 
 const CreateListing: React.FC = () => {
   // Get keywords and functions from context
-  const { keywords, addKeyword } = useSeoKeywords();
+  const { keywords, addKeyword, clearKeywords } = useSeoKeywords();
   const [prompt, setPrompt] = useState<string>("");
+  
+  // Clear keywords when component first mounts
+  React.useEffect(() => {
+    // Clear any existing keywords to ensure a fresh start
+    clearKeywords();
+  }, []); // Empty dependency array means this runs once on mount
   
   // Debug log to verify keywords are loaded correctly
   React.useEffect(() => {
@@ -45,9 +51,6 @@ const CreateListing: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
-  
-  // Debug log to verify full Keyword objects
-  console.log("[DEBUG] Keywords in CreateListing:", keywords);
   
   // Handle adding a new keyword manually
   const handleAddKeyword = () => {
@@ -91,15 +94,24 @@ const CreateListing: React.FC = () => {
       await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
 
       // 2. Generate description
-      const descriptionResponse = await generateDescription({ promptInput: prompt });
+      const descriptionResponse = await generateDescription({ 
+        promptInput: prompt, 
+        selectedKeywords: keywords.map(k => k.keyword) 
+      });
       await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
 
       // 3. Generate tags
-      const tagsResponse = await generateTags(prompt);
+      const tagsResponse = await generateTags(
+        prompt,
+        keywords.map(k => k.keyword)
+      );
       await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
 
       // 4. Generate alt text
-      const altTextResponse = await generateAltText(prompt);
+      const altTextResponse = await generateAltText(
+        prompt,
+        keywords.map(k => k.keyword)
+      );
 
       console.log("🟡 Tags result:", tagsResponse?.content);
       console.log("🟠 Alt Texts result:", altTextResponse?.content);
@@ -247,10 +259,9 @@ const CreateListing: React.FC = () => {
 
                 <div>
                   <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Keywords:</h3>
-                  <KeywordSelector />
                   
-                  {/* Manual keyword input */}
-                  <div className="flex items-center space-x-2 mt-4">
+                  {/* Keyword input */}
+                  <div className="flex items-center space-x-2 mb-4">
                     <Input
                       placeholder="Add a keyword manually"
                       value={newKeyword}
@@ -267,12 +278,14 @@ const CreateListing: React.FC = () => {
                       onClick={handleAddKeyword} 
                       type="button" 
                       size="sm"
-                      variant="outline"
+                      variant="default"
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Add
                     </Button>
                   </div>
+                  
+                  <KeywordSelector />
                 </div>
 
                 <div className="flex flex-col md:flex-row gap-4">
