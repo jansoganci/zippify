@@ -4,16 +4,19 @@ import { etsyRules } from "@/platformRules/etsyRules";
  * Generates an optimized Etsy description based on user input and platform rules.
  * @param options - Object containing input parameters
  * @param options.promptInput - The input prompt containing product information
+ * @param options.selectedKeywords - Array of keywords to incorporate in the description
  * @param options.productType - The type of product (digital or physical)
  * @param options.productDimensions - The dimensions of the product
  * @returns Generated description response
  */
 export async function generateDescription({
   promptInput,
+  selectedKeywords = [],
   productType = "physical",
   productDimensions = ""
 }: {
   promptInput: string;
+  selectedKeywords?: string[];
   productType?: "digital" | "physical";
   productDimensions?: string;
 }): Promise<any> {
@@ -21,11 +24,16 @@ export async function generateDescription({
 
   const digitalDisclaimer = productType === "digital" ? "yes" : "no";
 
+  // Format keywords as a comma-separated string if present
+  const keywordsText = selectedKeywords.length > 0 
+    ? selectedKeywords.join(", ") 
+    : "";
+
   const finalPrompt = systemPrompt
     .replace("[productName]", promptInput)
     .replace("[productDetails]", promptInput)
     .replace("[targetAudience]", "Etsy shoppers")
-    .replace("[keywords]", "")
+    .replace("[keywords]", keywordsText)
     .replace("[tone]", "warm and conversational")
     .replace("[length]", "medium")
     .replace("[format]", "paragraphs with bullet points")
