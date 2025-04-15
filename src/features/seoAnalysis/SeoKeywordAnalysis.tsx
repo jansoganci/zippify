@@ -1,5 +1,6 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSeoKeywords } from "@/features/etsyListing/context/KeywordContext";
 import { useForm } from "react-hook-form";
 import DashboardLayout from "@/components/DashboardLayout";
@@ -49,11 +50,13 @@ interface Keyword {
 }
 
 const SeoKeywordAnalysis = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [keywords, setKeywords] = useState<Keyword[]>([]);
   const [selectedKeywords, setSelectedKeywords] = useState<Keyword[]>([]);
   const [sortBy, setSortBy] = useState<string>("popularity");
   const [showSelected, setShowSelected] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [noKeywordsFound, setNoKeywordsFound] = useState(false);
   
@@ -124,7 +127,21 @@ const SeoKeywordAnalysis = () => {
       
       // Extract keywords from the response
       if (responseData && responseData.data && responseData.data.keywords && responseData.data.keywords.length > 0) {
-        setKeywords(responseData.data.keywords);
+        // Add unique IDs to each keyword if they don't have one
+        const keywordsWithIds = responseData.data.keywords.map((keyword, index) => {
+          // If keyword already has an id, use it; otherwise generate one
+          if (!keyword.id) {
+            return {
+              ...keyword,
+              id: `kw-${Date.now()}-${index}`,
+              selected: false
+            };
+          }
+          return keyword;
+        });
+        
+        console.log('Keywords with IDs:', keywordsWithIds);
+        setKeywords(keywordsWithIds);
         setNoKeywordsFound(false);
       } else {
         // Log detailed error for debugging
@@ -160,28 +177,46 @@ const SeoKeywordAnalysis = () => {
     }
   };
 
-  const handleToggleKeyword = (keywordId: string, isSelected?: boolean) => {
-    // Find the keyword being toggled
-    const keywordToToggle = keywords.find(k => k.id === keywordId);
-    if (!keywordToToggle) return;
-    
-    // Determine the new selected state
-    const newSelectedState = isSelected !== undefined ? isSelected : !keywordToToggle.selected;
-    
-    // Create a single updated keywords array
-    const updatedKeywords = keywords.map(keyword => 
-      keyword.id === keywordId 
-        ? { ...keyword, selected: newSelectedState } 
-        : keyword
-    );
-    
-    // Update both states with the same data
-    setKeywords(updatedKeywords);
-    setSelectedKeywords(updatedKeywords.filter(k => k.selected));
+  const handleToggleKeyword = useCallback((keywordId: string, isSelected?: boolean) => {
+    // Validate keywordId
+    if (!keywordId) {
+      console.error('Invalid keywordId: undefined or empty');
+      return;
+    }
     
     // Log for debugging
-    console.log(`Keyword "${keywordToToggle.keyword}" ${newSelectedState ? 'selected' : 'unselected'}`);
-  };
+    console.log(`Toggle request for keyword ID: ${keywordId}, set to: ${isSelected}`);
+    
+    // Find the target keyword by ID
+    const targetKeyword = keywords.find(k => k.id === keywordId);
+    if (!targetKeyword) {
+      console.warn(`Keyword with ID ${keywordId} not found`);
+      return;
+    }
+
+    // Determine the new state - use the provided value or toggle the current one
+    const newSelectedState = isSelected !== undefined ? isSelected : !targetKeyword.selected;
+    
+    // Skip if no change
+    if (targetKeyword.selected === newSelectedState) {
+      console.log(`No change needed for ${targetKeyword.keyword}, already ${newSelectedState ? 'selected' : 'unselected'}`);
+      return;
+    }
+
+    console.log(`Setting keyword "${targetKeyword.keyword}" (${keywordId}) to ${newSelectedState ? 'selected' : 'unselected'}`);
+    
+    // Create a new keywords array with the updated selection state
+    const updatedKeywords = keywords.map(k => {
+      if (k.id === keywordId) {
+        return { ...k, selected: newSelectedState };
+      }
+      return k;
+    });
+
+    // Update both state variables
+    setKeywords(updatedKeywords);
+    setSelectedKeywords(updatedKeywords.filter(k => k.selected));
+  }, [keywords]);
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
@@ -406,12 +441,27 @@ const SeoKeywordAnalysis = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(showSelected ? keywords.filter(k => k.selected) : keywords).map((keyword) => (
-                      <TableRow key={keyword.id}>
+                    {(showSelected ? keywords.filter(k => k.selected) : keywords).map((keyword, index) => (
+                      <TableRow key={`keyword-row-${keyword.id || index}`}>
                         <TableCell>
-                          <Checkbox
-                            checked={keyword.selected}
-                            onCheckedChange={(checked) => handleToggleKeyword(keyword.id, checked as boolean)}
+                          <input
+                            type="checkbox"
+                            id={`checkbox-${keyword.id}`}
+                            checked={keyword.selected || false}
+                            onChange={(e) => {
+                              // Stop event propagation
+                              e.stopPropagation();
+                              // Get the checked state directly from the event
+                              const isChecked = e.target.checked;
+                              // Ensure we have a valid ID
+                              if (!keyword.id) {
+                                console.error('Missing keyword ID in checkbox change handler');
+                                return;
+                              }
+                              // Call the toggle handler with the keyword ID and new state
+                              handleToggleKeyword(keyword.id, isChecked);
+                            }}
+                            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-2 focus:ring-primary"
                           />
                         </TableCell>
                         <TableCell className="font-medium">{keyword.keyword}</TableCell>
@@ -471,10 +521,24 @@ const SeoKeywordAnalysis = () => {
               <Button 
                 variant="secondary"
                 onClick={() => {
-                  setContextKeywords(selectedKeywords.map(k => k.keyword));
-                  setTimeout(() => {
-                    window.location.href = '/create';
-                  }, 100);
+                  // Check if selectedKeywords is empty
+                  if (selectedKeywords.length === 0) {
+                    console.warn("[WARNING] No keywords selected for transfer to CreateListing");
+                    return;
+                  }
+                  
+                  // Log selectedKeywords before context update
+                  console.log("[DEBUG] selectedKeywords before setContextKeywords:", selectedKeywords);
+                  console.log("[DEBUG] sending to context:", JSON.stringify(selectedKeywords));
+                  
+                  // Pass the full keyword objects to preserve all metadata
+                  setContextKeywords(selectedKeywords);
+                  
+                  // Try to verify context was updated
+                  console.log("[DEBUG] Context update triggered with", selectedKeywords.length, "keywords");
+                  
+                  // Navigate to create page
+                  navigate("/create");
                 }}
                 disabled={!selectedKeywords.length}
               >
@@ -484,24 +548,47 @@ const SeoKeywordAnalysis = () => {
           </Card>
         )}
 
-        {/* Selected Keywords Collapsible */}
+        {/* Selected Keywords Section - Static Display */}
         {selectedKeywords.length > 0 && (
-          <Collapsible className="w-full border rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Selected Keywords ({selectedKeywords.length})</h3>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  <ChevronDown className="h-4 w-4" />
-                  <span className="sr-only">Toggle</span>
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-            
-            <CollapsibleContent className="mt-4">
+          <Card className="w-full">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Selected Keywords ({selectedKeywords.length})</CardTitle>
+                {selectedKeywords.length > 0 && (
+                  <Button 
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      try {
+                        // Log for debugging
+                        console.log('Transferring keywords to Create Listing page:', selectedKeywords);
+                        
+                        // Set the selected keywords in the context
+                        // This will automatically update localStorage via the context's setKeywordsWithStorage
+                        setContextKeywords(selectedKeywords);
+                        
+                        // Small delay to ensure state updates before navigation
+                        setTimeout(() => {
+                          // Navigate to create listing page
+                          navigate("/create");
+                        }, 100);
+                      } catch (error) {
+                        console.error('Error transferring keywords:', error);
+                        // Navigate anyway
+                        navigate("/create");
+                      }
+                    }}
+                  >
+                    Use Selected Keywords
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
               <div className="flex flex-wrap gap-2">
-                {selectedKeywords.map((keyword) => (
+                {selectedKeywords.map((keyword, index) => (
                   <div 
-                    key={keyword.id}
+                    key={`selected-keyword-${keyword.id || index}`}
                     className="flex items-center gap-2 bg-secondary px-3 py-1 rounded-full text-sm"
                   >
                     <span>{keyword.keyword}</span>
@@ -514,16 +601,8 @@ const SeoKeywordAnalysis = () => {
                   </div>
                 ))}
               </div>
-              <div className="mt-4 text-right">
-                <Button 
-                  size="sm"
-                  onClick={() => console.log("Copy to clipboard")}
-                >
-                  Copy All
-                </Button>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+            </CardContent>
+          </Card>
         )}
       </div>
     </div>
