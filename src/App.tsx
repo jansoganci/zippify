@@ -18,6 +18,7 @@ import ForgetPassword from "./pages/ForgetPassword";
 import Index from "./pages/Index";
 import CreateListing from "./features/etsyListing/pages/CreateListing";
 import Listings from "./pages/Listings";
+import ListingDetailPage from "./pages/ListingDetailPage"; // ✅ Ekledik
 import Profile from "./pages/Profile";
 import OptimizePattern from "./pages/optimizePattern";
 import ReviewDraft from "./pages/ReviewDraft";
@@ -99,6 +100,12 @@ const App = () => (
           <Route path="/listings" element={
             <ProtectedRoute>
               <Listings />
+            </ProtectedRoute>
+          } />
+          {/* ✅ Detay sayfası için yeni route */}
+          <Route path="/listings/:id" element={
+            <ProtectedRoute>
+              <ListingDetailPage />
             </ProtectedRoute>
           } />
           <Route path="/profile" element={

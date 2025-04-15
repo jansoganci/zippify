@@ -56,3 +56,20 @@ CREATE TABLE IF NOT EXISTS user_quota (
   request_count INTEGER DEFAULT 0,
   UNIQUE(user_id, feature, date)
 );
+
+-- Listings table for storing generated Etsy listing results
+CREATE TABLE IF NOT EXISTS listings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  tags TEXT NOT NULL,         -- JSON string of tag array
+  alt_texts TEXT NOT NULL,    -- JSON string of alt texts
+  original_prompt TEXT NOT NULL,
+  platform TEXT NOT NULL DEFAULT 'etsy',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Index to optimize user-based listing queries
+CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);

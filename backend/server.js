@@ -1,4 +1,5 @@
 // Import dotenv first to load environment variables before other imports
+import log from './utils/logger.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,43 +11,43 @@ const __dirname = path.dirname(__filename);
 
 // Calculate the absolute path to the .env file
 const envPath = path.resolve(__dirname, '.env');
-console.log(`Attempting to load .env from: ${envPath}`);
+log.info(`Attempting to load .env from: ${envPath}`);
 
 // Load environment variables from the backend directory
 try {
   const result = dotenv.config({ path: envPath });
   
   if (result.error) {
-    console.error(`Error loading .env file: ${result.error.message}`);
+    log.error(`Error loading .env file: ${result.error.message}`);
   } else {
-    console.log(`Successfully loaded environment variables from ${envPath}`);
+    log.info(`Successfully loaded environment variables from ${envPath}`);
   }
 } catch (error) {
-  console.error(`Exception loading .env file: ${error.message}`);
+  log.error(`Exception loading .env file: ${error.message}`);
 }
 
 // If JWT_SECRET is not defined, try to load from parent directory as fallback
 if (!process.env.JWT_SECRET) {
-  console.log('JWT_SECRET not found in backend/.env, trying parent directory...');
+  log.info('JWT_SECRET not found in backend/.env, trying parent directory...');
   const parentEnvPath = path.resolve(__dirname, '..', '.env');
   try {
     const result = dotenv.config({ path: parentEnvPath, override: true });
-    console.log(`Attempted to load from parent directory: ${parentEnvPath}`);
+    log.info(`Attempted to load from parent directory: ${parentEnvPath}`);
   } catch (error) {
-    console.error(`Failed to load from parent directory: ${error.message}`);
+    log.error(`Failed to load from parent directory: ${error.message}`);
   }
 }
 
 // Log environment variables for debugging
-console.log('JWT_SECRET status:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
-console.log('JWT_EXPIRY status:', process.env.JWT_EXPIRY ? 'Defined ✅' : 'Not defined ❌');
+log.info('JWT_SECRET status:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
+log.info('JWT_EXPIRY status:', process.env.JWT_EXPIRY ? 'Defined ✅' : 'Not defined ❌');
 
 // If JWT_SECRET is still not defined, set a default for development only
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'development') {
-  console.warn('⚠️ WARNING: Setting default JWT_SECRET for development. DO NOT USE IN PRODUCTION!');
+  log.warn('⚠️ WARNING: Setting default JWT_SECRET for development. DO NOT USE IN PRODUCTION!');
   process.env.JWT_SECRET = 'zippify-super-secret-key';
   process.env.JWT_EXPIRY = '24h';
-  console.log('JWT_SECRET status after default:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
+  log.info('JWT_SECRET status after default:', process.env.JWT_SECRET ? 'Defined ' : 'Not defined ');
 }
 
 // Now import other dependencies after environment variables are loaded
@@ -64,11 +65,11 @@ import bodyParser from 'body-parser';
 // NOT: Bu ayar sadece geliştirme ortamında kullanılmalıdır, production'da kaldırılmalıdır
 if (process.env.NODE_ENV === 'development') {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  console.warn('WARNING: SSL certificate validation is disabled for development');
+  log.warn('WARNING: SSL certificate validation is disabled for development');
 }
 
 // Debug: Log API key presence and format
-console.log('DeepSeek API Key Status:', {
+log.info('DeepSeek API Key Status:', {
   present: !!process.env.DEEPSEEK_API_KEY,
   length: process.env.DEEPSEEK_API_KEY?.length,
   prefix: process.env.DEEPSEEK_API_KEY?.substring(0, 5) + '...',
@@ -95,6 +96,9 @@ app.use('/api/profile', profileRoutes);
 // Keyword Analysis Route
 app.use('/api/keywords', keywordAnalysisRoutes);
 
+// Listings Route
+app.use('/api/listings', listingRoutes);
+
 // Content Optimization Route
 
 // Import workflow services
@@ -102,9 +106,11 @@ import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
 import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
 import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
+import { saveListing } from './src/features/listings/services/listingService.js';
 
 // Import routes
 import { keywordRoutes as keywordAnalysisRoutes } from './src/features/keywordAnalysis/index.js';
+import { listingRoutes } from './src/features/listings/index.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 
@@ -116,7 +122,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     const apiKey = process.env.DEEPSEEK_API_KEY;
     
     if (!apiUrl || !apiKey) {
-      console.error(`[${requestId}] DeepSeek API configuration missing:`, {
+      log.error(`[${requestId}] DeepSeek API configuration missing:`, {
         apiUrl: !!apiUrl,
         apiKey: !!apiKey
       });
@@ -127,7 +133,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     const { system, prompt } = req.body;
     
     if (!system || !prompt) {
-      console.error(`[${requestId}] Invalid request payload:`, {
+      log.error(`[${requestId}] Invalid request payload:`, {
         hasSystem: !!system,
         hasPrompt: !!prompt,
         bodyKeys: Object.keys(req.body)
@@ -139,7 +145,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     }
     
     // 3. Log request details (sanitized)
-    console.log(`[${requestId}] DeepSeek API request:`, {
+    log.info(`[${requestId}] DeepSeek API request:`, {
       endpoint: apiUrl,
       systemPromptLength: system?.length || 0,
       userPromptLength: prompt?.length || 0,
@@ -180,7 +186,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     };
     
     // 8. Make API request with timeout
-    console.log(`[${requestId}] Sending request to DeepSeek API: ${endpoint}`);
+    log.info(`[${requestId}] Sending request to DeepSeek API: ${endpoint}`);
     let response;
     try {
       response = await axios.post(endpoint, requestPayload, { 
@@ -189,12 +195,12 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
       });
       
       // 9. Log successful response
-      console.log(`[${requestId}] DeepSeek API response received:`, {
+      log.info(`[${requestId}] DeepSeek API response received:`, {
         status: response.status,
         contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
       });
     } catch (err) {
-      console.error(`[${requestId}] DeepSeek API request failed:`, {
+      log.error(`[${requestId}] DeepSeek API request failed:`, {
         message: err.message,
         code: err.code,
         stack: err.stack?.split('\n')[0]
@@ -216,7 +222,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     });
   } catch (error) {
     // 11. Enhanced error logging
-    console.error(`[${requestId}] DeepSeek API Error:`, {
+    log.error(`[${requestId}] DeepSeek API Error:`, {
       message: error.message,
       status: error.response?.status,
       data: error.response?.data,
@@ -237,14 +243,14 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
 
 app.post('/api/optimize', async (req, res) => {
   const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
-  console.log(`[${requestId}] Received optimize request`);
+  log.info(`[${requestId}] Received optimize request`);
   
   try {
-    console.log(`[${requestId}] Request body:`, req.body);
+    log.info(`[${requestId}] Request body:`, req.body);
     const { content } = req.body;
     
     if (!content) {
-      console.log(`[${requestId}] Content is missing from request`);
+      log.info(`[${requestId}] Content is missing from request`);
       return res.status(400).json({ 
         error: 'Content is required',
         requestId
@@ -253,20 +259,20 @@ app.post('/api/optimize', async (req, res) => {
 
     // Validate content length
     if (content.length < 10) {
-      console.log(`[${requestId}] Content too short: ${content.length} chars`);
+      log.info(`[${requestId}] Content too short: ${content.length} chars`);
       return res.status(400).json({
         error: 'Content is too short. Please provide a complete pattern.',
         requestId
       });
     }
 
-    console.log(`[${requestId}] Calling optimizePattern with content length: ${content.length} chars`);
+    log.info(`[${requestId}] Calling optimizePattern with content length: ${content.length} chars`);
     const result = await optimizePattern(content).catch(err => {
-      console.error(`[${requestId}] Error in optimizePattern:`, err);
+      log.error(`[${requestId}] Error in optimizePattern:`, err);
       return { success: false, error: err.message };
     });
     
-    console.log(`[${requestId}] optimizePattern result:`, {
+    log.info(`[${requestId}] optimizePattern result:`, {
       success: result.success,
       hasOptimizedPattern: !!result.optimizedPattern,
       optimizedPatternLength: result.optimizedPattern?.length,
@@ -285,7 +291,7 @@ app.post('/api/optimize', async (req, res) => {
       });
     }
   } catch (error) {
-    console.error(`[${requestId}] Pattern Optimization Error:`, error);
+    log.error(`[${requestId}] Pattern Optimization Error:`, error);
     res.status(500).json({
       error: `Failed to optimize pattern: ${error.message}`,
       requestId
@@ -365,7 +371,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         res.json({ token, id: user.id, email: user.email, username: user.username });
     } catch (error) {
-        console.error('Login error:', error);
+        log.error('Login error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
@@ -380,7 +386,7 @@ app.post('/api/deepseek', verifyToken, async (req, res, next) => {
     return res.status(400).json({ error: "Missing or invalid featureKey" });
   }
   
-  console.log(`[${requestId}] Received DeepSeek API proxy request for feature: ${featureKey}`);
+  log.info(`[${requestId}] Received DeepSeek API proxy request for feature: ${featureKey}`);
   
   const quotaMiddleware = checkQuota(featureKey);
   quotaMiddleware(req, res, async () => {
@@ -389,9 +395,9 @@ app.post('/api/deepseek', verifyToken, async (req, res, next) => {
       
       // Quota increment removed - will be handled by frontend after successful completion
       // await incrementQuota(req.user.id, featureKey);
-      // console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
+      // log.info(`[quota] Incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
     } catch (error) {
-      console.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
+      log.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
       res.status(500).json({
         error: `Failed to proxy request to DeepSeek API: ${error.message}`,
         requestId
@@ -410,10 +416,10 @@ app.post('/api/increment-quota', verifyToken, async (req, res) => {
   
   try {
     await incrementQuota(req.user.id, featureKey);
-    console.log(`[quota] Manually incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
+    log.info(`[quota] Manually incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
     return res.json({ success: true });
   } catch (err) {
-    console.error(`[quota] Error incrementing quota:`, err);
+    log.error(`[quota] Error incrementing quota:`, err);
     return res.status(500).json({ error: err.message });
   }
 });
@@ -421,12 +427,12 @@ app.post('/api/increment-quota', verifyToken, async (req, res) => {
 // Initialize the SQLite database with schema before starting the server
 async function initializeDatabaseWithSchema() {
     try {
-        console.log('Initializing SQLite database...');
+        log.info('Initializing SQLite database...');
         
         // Create the database directory if it doesn't exist
         const dbDir = path.dirname(DB_PATH);
         if (!fs.existsSync(dbDir)) {
-            console.log(`Creating database directory: ${dbDir}`);
+            log.info(`Creating database directory: ${dbDir}`);
             fs.mkdirSync(dbDir, { recursive: true });
         }
         
@@ -435,11 +441,13 @@ async function initializeDatabaseWithSchema() {
             filename: DB_PATH,
             driver: sqlite3.Database
         });
-        console.log(`Connected to SQLite database at: ${DB_PATH}`);
+        log.info(`Connected to SQLite database at: ${DB_PATH}`);
         
         // In development mode, reset the database by dropping all tables
+        // --- Database reset logic disabled in development mode ---
+        /*
         if (process.env.NODE_ENV === 'development') {
-            console.log('Development mode detected - Resetting database...');
+            log.info('Development mode detected - Resetting database...');
             
             // Get all tables in the database
             const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';");
@@ -447,28 +455,30 @@ async function initializeDatabaseWithSchema() {
             // Drop each table
             for (const table of tables) {
                 await db.run(`DROP TABLE IF EXISTS ${table.name}`);
-                console.log(`Dropped table: ${table.name}`);
+                log.info(`Dropped table: ${table.name}`);
             }
-            console.log('Database reset complete');
+            log.info('Database reset complete');
         }
+        */
+        // --------------------------------------------------------
         
         // Read the schema SQL file
         if (fs.existsSync(SCHEMA_PATH)) {
             const schemaSql = fs.readFileSync(SCHEMA_PATH, 'utf8');
-            console.log('Read schema.sql file successfully');
+            log.info('Read schema.sql file successfully');
             
             // Execute the schema SQL
             await db.exec(schemaSql);
-            console.log('Database schema initialized successfully');
+            log.info('Database schema initialized successfully');
         } else {
-            console.error(`Schema file not found at: ${SCHEMA_PATH}`);
+            log.error(`Schema file not found at: ${SCHEMA_PATH}`);
         }
         
         // Close the database connection
         await db.close();
         return true;
     } catch (error) {
-        console.error('Failed to initialize database:', error);
+        log.error('Failed to initialize database:', error);
         return false;
     }
 }
@@ -478,15 +488,15 @@ initializeDatabaseWithSchema()
     .then(success => {
         if (success) {
             app.listen(PORT, () => {
-                console.log(`✅ Server running on http://localhost:${PORT}`);
+                log.info(`✅ Server running on http://localhost:${PORT}`);
             });
         } else {
-            console.error('Server not started due to database initialization failure');
+            log.error('Server not started due to database initialization failure');
             process.exit(1);
         }
     })
     .catch(error => {
-        console.error('Unexpected error during startup:', error);
+        log.error('Unexpected error during startup:', error);
         process.exit(1);
     });
 
@@ -506,7 +516,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         return res.status(400).json({ error: result.error || 'Failed to generate PDF', requestId });
       }
     } catch (error) {
-      console.error(`[${requestId}] PDF Generation Error:`, error);
+      log.error(`[${requestId}] PDF Generation Error:`, error);
       res.status(500).json({ error: `Failed to generate PDF: ${error.message}`, requestId });
     }
   });
@@ -517,6 +527,7 @@ app.post('/api/generate-pdf', async (req, res) => {
   import incrementQuota from './utils/incrementQuota.js';
 
   app.post('/api/generate-etsy', verifyToken, checkQuota("create-listing"), async (req, res) => {
+    log.info("📥 [generate-etsy] Received data:", req.body);
     const { content } = req.body;
     const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
     try {
@@ -529,14 +540,74 @@ app.post('/api/generate-pdf', async (req, res) => {
       if (result.success) {
         // Increment quota usage after successful listing
         await incrementQuota(req.user.id, "create-listing");
-        console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: create-listing`);
+        log.info(`[quota] Incremented usage for user ${req.user.id} — Feature: create-listing`);
+        
+        // Save the listing to the database
+        try {
+          await saveListing(req.user.id, {
+            title: result.title,
+            description: result.description,
+            tags: result.tags,
+            alt_texts: result.altTexts,
+            original_prompt: content,
+            platform: 'etsy'
+          });
+          log.info(`[${requestId}] Successfully saved listing to database`);
+        } catch (saveError) {
+          log.error(`[${requestId}] Error saving listing:`, saveError);
+          // Continue with response even if saving fails
+        }
+        
         return res.json({ ...result, requestId });
       } else {
         return res.status(400).json({ error: result.error || 'Failed to generate Etsy listing', requestId });
       }
     } catch (error) {
-      console.error(`[${requestId}] Etsy Listing Generation Error:`, error);
+      log.error(`[${requestId}] Etsy Listing Generation Error:`, error);
       res.status(500).json({ error: `Failed to generate Etsy listing: ${error.message}`, requestId });
+    }
+  });
+
+  // Save a generated listing to the database
+  app.post('/api/save-listing', verifyToken, checkQuota("create-listing"), async (req, res) => {
+    const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
+    log.info("📥 [save-listing] Received listing payload:", req.body);
+    
+    try {
+      const { title, description, tags, altTexts, originalPrompt } = req.body;
+      
+      // Validate required fields
+      if (!title || !description || !Array.isArray(tags) || !Array.isArray(altTexts) || !originalPrompt) {
+        return res.status(400).json({ 
+          error: 'Missing required fields. Title, description, tags (array), altTexts (array), and originalPrompt are required.',
+          requestId 
+        });
+      }
+      
+      // Save listing to database
+      const listingId = await saveListing(req.user.id, {
+        title,
+        description,
+        tags,
+        alt_texts: altTexts,
+        original_prompt: originalPrompt,
+        platform: 'etsy'
+      });
+      
+      log.info("✅ [save-listing] Listing saved with title:", title);
+      
+      // Return success response
+      return res.status(201).json({ 
+        success: true,
+        listingId,
+        requestId
+      });
+    } catch (error) {
+      log.error("❌ [save-listing] Failed to save listing. Reason:", error.message);
+      res.status(500).json({ 
+        error: `Failed to save listing: ${error.message}`, 
+        requestId 
+      });
     }
   });
 
@@ -547,14 +618,14 @@ app.post('/api/generate-pdf', async (req, res) => {
     
     // Log initial request details
     const imageSize = req.body.image ? Math.round(req.body.image.length / 1024) : 0;
-    console.log(`[${requestId}] Received image edit request - Size: ${imageSize}KB, Time: ${new Date().toISOString()}`);
+    log.info(`[${requestId}] Received image edit request - Size: ${imageSize}KB, Time: ${new Date().toISOString()}`);
     
     try {
       const { image, prompt } = req.body;
       
       // Validate request fields
       if (!image) {
-        console.log(`[${requestId}] Validation failed: Image is missing from request`);
+        log.info(`[${requestId}] Validation failed: Image is missing from request`);
         return res.status(400).json({
           success: false,
           message: 'Image is required',
@@ -563,7 +634,7 @@ app.post('/api/generate-pdf', async (req, res) => {
       }
       
       if (!prompt) {
-        console.log(`[${requestId}] Validation failed: Prompt is missing from request`);
+        log.info(`[${requestId}] Validation failed: Prompt is missing from request`);
         return res.status(400).json({
           success: false,
           message: 'Prompt is required',
@@ -571,7 +642,7 @@ app.post('/api/generate-pdf', async (req, res) => {
         });
       }
       
-      console.log(`[${requestId}] Validation successful - Prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`);
+      log.info(`[${requestId}] Validation successful - Prompt: "${prompt.substring(0, 50)}${prompt.length > 50 ? '...' : ''}"`);
       
       // Extract image metadata for logging
       let mimeType = 'unknown';
@@ -581,25 +652,25 @@ app.post('/api/generate-pdf', async (req, res) => {
           mimeType = matches[1];
         }
       }
-      console.log(`[${requestId}] Processing image - Type: ${mimeType}, Size: ${imageSize}KB`);
+      log.info(`[${requestId}] Processing image - Type: ${mimeType}, Size: ${imageSize}KB`);
       
       // Call the Gemini API with the image and prompt
-      console.log(`[${requestId}] Calling Gemini API with prompt: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
+      log.info(`[${requestId}] Calling Gemini API with prompt: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);
       const apiCallStartTime = Date.now();
       
       try {
         const geminiResponse = await callGeminiApi(image, prompt);
         const apiCallDuration = Date.now() - apiCallStartTime;
         
-        console.log(`[${requestId}] Gemini API call successful - Duration: ${apiCallDuration}ms`);
-        console.log(`[${requestId}] Response contains image: ${!!geminiResponse.image}, text: ${!!geminiResponse.responseText}`);
+        log.info(`[${requestId}] Gemini API call successful - Duration: ${apiCallDuration}ms`);
+        log.info(`[${requestId}] Response contains image: ${!!geminiResponse.image}, text: ${!!geminiResponse.responseText}`);
         
         const totalDuration = Date.now() - startTime;
-        console.log(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
+        log.info(`[${requestId}] Sending successful response to client - Total processing time: ${totalDuration}ms`);
         
         // Increment quota after successful image editing
         await incrementQuota(req.user.id, "edit-image");
-        console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: edit-image`);
+        log.info(`[quota] Incremented usage for user ${req.user.id} — Feature: edit-image`);
         
         return res.json({
           success: true,
@@ -612,15 +683,15 @@ app.post('/api/generate-pdf', async (req, res) => {
       } catch (apiError) {
         // Specific logging for Gemini API errors
         const apiErrorStatus = apiError.message.includes('status') ? apiError.message.match(/status (\d+)/)?.[1] || 'unknown' : 'unknown';
-        console.error(`[${requestId}] Gemini API Error - Status: ${apiErrorStatus}`);
-        console.error(`[${requestId}] Gemini API Error Details:`, apiError.message);
+        log.error(`[${requestId}] Gemini API Error - Status: ${apiErrorStatus}`);
+        log.error(`[${requestId}] Gemini API Error Details:`, apiError.message);
         
         throw apiError; // Re-throw to be caught by the outer catch block
       }
     } catch (error) {
       const totalDuration = Date.now() - startTime;
-      console.error(`[${requestId}] Image Edit Error - Duration: ${totalDuration}ms`);
-      console.error(`[${requestId}] Error Type: ${error.name}, Message: ${error.message}`);
+      log.error(`[${requestId}] Image Edit Error - Duration: ${totalDuration}ms`);
+      log.error(`[${requestId}] Error Type: ${error.name}, Message: ${error.message}`);
       
       res.status(500).json({
         success: false,
