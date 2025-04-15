@@ -10,6 +10,7 @@ import { generateTitle } from "../services/generateTitle";
 import { generateDescription } from "../services/generateDescription";
 import { generateTags } from "../services/generateTags";
 import { generateAltText } from "../services/generateAltText";
+import { createListing } from "../services/backendApi";
 import { backendApi } from "@/services/workflow/apiClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,21 +48,32 @@ const CreateListing: React.FC = () => {
     setLoading(true);
     setError(null);
     setQuotaExceeded(false);
-    
+
     try {
-      // Generate all listing components in parallel
-      const [titleResponse, descriptionResponse, tagsResponse, altTextResponse] = await Promise.all([
-        generateTitle({ productDescription: prompt, targetKeywords: keywords }),
-        generateDescription({ promptInput: prompt }),
-        generateTags(prompt),
-        generateAltText(prompt)
-      ]);
-      
+      // Generate all listing components sequentially instead of in parallel
+      // 1. Generate title
+      const titleResponse = await generateTitle({ productDescription: prompt, targetKeywords: keywords });
+      await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
+
+      // 2. Generate description
+      const descriptionResponse = await generateDescription({ promptInput: prompt });
+      await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
+
+      // 3. Generate tags
+      const tagsResponse = await generateTags(prompt);
+      await new Promise(r => setTimeout(r, 500)); // Wait 500ms between API calls
+
+      // 4. Generate alt text
+      const altTextResponse = await generateAltText(prompt);
+
+      console.log("🟡 Tags result:", tagsResponse?.content);
+      console.log("🟠 Alt Texts result:", altTextResponse?.content);
+
       // Check if all responses have valid content
       if (titleResponse?.content && descriptionResponse?.content && 
           tagsResponse?.content && altTextResponse?.content) {
         
-        // All API calls were successful, increment quota manually
+        // If all API calls were successful, increment quota
         try {
           await backendApi.post('/api/increment-quota', { featureKey: 'create-listing' });
           console.log('Successfully incremented quota for create-listing');
@@ -71,12 +83,66 @@ const CreateListing: React.FC = () => {
         }
       }
       
+      let tags = [];
+      try {
+        tags = JSON.parse(tagsResponse?.content || "[]");
+        console.log("✅ Tags parsed successfully:", tags);
+      } catch (e) {
+        console.error("❌ Failed to parse tags JSON:", tagsResponse?.content);
+        tags = [];
+      }
+      const altTexts = altTextResponse?.content || "";
+      
+      console.log("🟡 Tags array after processing:", tags);
+      console.log("🟠 Alt Texts after processing:", altTexts);
+      
       setResult({
         title: titleResponse?.content || "",
         description: descriptionResponse?.content || "",
-        keywords: tagsResponse?.content?.split(",") || [],
-        altText: altTextResponse?.content || ""
+        keywords: tags,
+        altText: altTexts
       });
+      
+      // Save the generated listing to the database
+      try {
+        // Process altTexts from string to array based on multiple patterns
+        let altTextsArray = [];
+        
+        // First try to split by Image headers pattern
+        if (altTexts.includes('**Image')) {
+          altTextsArray = altTexts
+            .split(/\*\*Image \d+:\*\*/)
+            .filter(text => text.trim().length > 0)
+            .map(text => text.trim());
+        }
+        
+        // If that didn't work, try splitting by double line breaks
+        if (altTextsArray.length === 0) {
+          altTextsArray = altTexts
+            .split('\n\n')
+            .filter(text => text.trim().length > 0)
+            .map(text => text.trim());
+        }
+        
+        // If still empty, just use the whole text as a single item
+        const finalAltTextsArray = altTextsArray.length > 0 
+          ? altTextsArray 
+          : [altTexts.trim()];
+        
+        console.log("🟢 Processed altTexts array:", finalAltTextsArray);
+        console.log("🟢 Final altTexts array:", finalAltTextsArray);
+        
+        await createListing({
+          title: titleResponse?.content || "",
+          description: descriptionResponse?.content || "",
+          tags,
+          altTexts: finalAltTextsArray,
+          originalPrompt: prompt
+        });
+        console.log("✅ [CreateListing] Listing saved successfully to DB");
+      } catch (err) {
+        console.error("❌ [CreateListing] Failed to save listing to DB:", err.message);
+      }
     } catch (err) {
       console.error("Error generating listing:", err);
       

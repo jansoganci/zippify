@@ -2,6 +2,21 @@ import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
+// Development-only logging function - only logs essential information
+const devLog = (message, ...args) => {
+  if (import.meta.env.DEV) {
+    // Only log important API events, not detailed data
+    console.log(`[API] ${message}`);
+  }
+};
+
+// Development-only error logging function
+const devError = (message, ...args) => {
+  if (import.meta.env.DEV) {
+    console.error(`[API] ${message}`, ...args);
+  }
+};
+
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -10,11 +25,14 @@ const apiClient = axios.create({
 });
 
 // Add auth token to requests if available
+// Add request logging interceptor
 apiClient.interceptors.request.use((config) => {
+  devLog(`${config.method?.toUpperCase()} ${config.url}`);
   const token = localStorage.getItem('zippify_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  // Removed verbose config logging
   return config;
 });
 
@@ -69,6 +87,11 @@ export const api = {
   // Listings endpoints
   async getListings(userId) {
     const response = await apiClient.get(`/listings?userId=${userId}`);
+    return response.data;
+  },
+  
+  async getListing(listingId) {
+    const response = await apiClient.get(`/listings/${listingId}`);
     return response.data;
   },
 
