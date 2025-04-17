@@ -1,6 +1,6 @@
 
 import { useNavigate, useLocation } from 'react-router-dom';
-import { generatePDF } from '@/services/workflow/generatePDF.js';
+import { generatePDF } from '@/services/workflow/generatePDF';
 import { useState, useEffect } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';

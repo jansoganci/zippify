@@ -105,9 +105,9 @@ app.use('/api', imageEditingRouter);
 // Content Optimization Route
 
 // Import workflow services
-import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
-import { generatePDF } from '../src/services/workflow/generatePDF.js';
-import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
+import { optimizePattern } from './src/services/workflow/optimizePattern.js';
+import { generatePDF } from './src/services/workflow/generatePDF.js';
+import { generateEtsyListing } from './src/services/workflow/generateEtsyListing.js';
 
 import { saveListing } from './src/features/listings/services/listingService.js';
 
@@ -159,8 +159,15 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     // 4. Import axios dynamically
     const axios = (await import('axios')).default;
     
-    // 5. Prepare API endpoint
-    const endpoint = apiUrl.includes('/chat/completions') ? apiUrl : `${apiUrl}/chat/completions`;
+    // 5. Prepare API endpoint - Fix URL format by removing markdown formatting
+    let cleanApiUrl = apiUrl;
+    // Check if URL has markdown formatting [text](url) and extract the actual URL
+    if (apiUrl && apiUrl.includes('](')) {
+      cleanApiUrl = apiUrl.replace(/\[([^\]]*)\]\(([^\)]*)\)/g, '$2');
+      console.log(`Fixed API URL format from ${apiUrl} to ${cleanApiUrl}`);
+    }
+    
+    const endpoint = cleanApiUrl.includes('/chat/completions') ? cleanApiUrl : `${cleanApiUrl}/chat/completions`;
     
     // 6. Format request payload for DeepSeek API
     const requestPayload = {
@@ -204,15 +211,47 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
         contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
       });
     } catch (err) {
+      // Enhanced error logging with detailed information
+      console.log('DeepSeek API Key:', process.env.DEEPSEEK_API_KEY ? 'Present (length: ' + process.env.DEEPSEEK_API_KEY.length + ')' : 'Missing');
+      
+      // 🔴 Comprehensive error logging to reveal the actual error
+      console.error("🔴 DeepSeek API request failed:");
+      console.error("Status:", err?.response?.status);
+      console.error("Status Text:", err?.response?.statusText);
+      console.error("Data:", JSON.stringify(err?.response?.data, null, 2));
+      console.error("Headers:", err?.response?.headers);
+      console.error("Error Code:", err?.code);
+      console.error("Error Message:", err?.message);
+      console.error("Request Config:", JSON.stringify({
+        url: err?.config?.url,
+        method: err?.config?.method,
+        headers: err?.config?.headers,
+        data: err?.config?.data ? JSON.parse(err?.config?.data) : null
+      }, null, 2));
+      
       log.error(`[${requestId}] DeepSeek API request failed:`, {
         message: err.message,
         code: err.code,
+        status: err.response?.status,
+        statusText: err.response?.statusText,
+        data: err.response?.data,
+        headers: err.response?.headers,
         stack: err.stack?.split('\n')[0]
       });
       
       return res.status(500).json({
         message: "DeepSeek API request failed", 
         error: err.message,
+        details: {
+          code: err.code,
+          status: err.response?.status,
+          statusText: err.response?.statusText,
+          data: err.response?.data,
+          errorType: err.name,
+          isAxiosError: err.isAxiosError || false,
+          isNetworkError: !err.response && err.request ? true : false,
+          isTimeoutError: err.code === 'ECONNABORTED'
+        },
         requestId
       });
     }

@@ -31,11 +31,8 @@ const CreateListing: React.FC = () => {
   const { keywords, addKeyword, clearKeywords } = useSeoKeywords();
   const [prompt, setPrompt] = useState<string>("");
   
-  // Clear keywords when component first mounts
-  React.useEffect(() => {
-    // Clear any existing keywords to ensure a fresh start
-    clearKeywords();
-  }, []); // Empty dependency array means this runs once on mount
+  // We no longer clear keywords on mount to preserve keywords selected in the SeoKeywordAnalysis page
+  // Instead, we'll rely on the context to maintain the selected keywords between pages
   
   // Debug log to verify keywords are loaded correctly
   React.useEffect(() => {
