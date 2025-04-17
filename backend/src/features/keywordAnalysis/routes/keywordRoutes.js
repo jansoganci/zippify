@@ -2,7 +2,7 @@ import express from 'express';
 import { getKeywordAnalysis } from '../services/keywordService.js';
 import checkQuota from '../../../../middleware/checkQuota.js';
 import incrementQuota from '../../../../utils/incrementQuota.js';
-import verifyToken from '../../../../middleware/auth.js';
+import { verifyToken } from '../../../../middleware/auth.js';
 
 const router = express.Router();
 

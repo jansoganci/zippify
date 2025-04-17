@@ -94,7 +94,7 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
       
     const topP = generationOptions.topP !== undefined ? 
       generationOptions.topP : 
-      (process.env.GEMINI_TOP_P !== undefined ? parseFloat(process.env.GEMINI_TOP_P) : 0.7);
+      (process.env.GEMINI_TOP_P !== undefined ? parseFloat(process.env.GEMINI_TOP_P) : 0.9);
       
     const topK = generationOptions.topK !== undefined ? 
       generationOptions.topK : 
@@ -116,9 +116,9 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     
     
     const model = genAI.getGenerativeModel({
-      model: modelName,
+      model: "gemini-2.0-flash-exp",
       generationConfig: {
-        temperature,         // Configurable temperature for controlling randomness
+        temperature: 0.0,    // Set to 0.0 to fully disable creative variation
         topP,                // Configurable topP for creative outputs
         topK,                // Configurable topK for diverse options
         maxOutputTokens,     // Configurable token limit for output length
@@ -179,7 +179,7 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     console.log(`Prompt used: "${systemPrompt}"`);
     
     // Define the fallback prompt for when the primary attempt fails
-    const fallbackPrompt = `${systemPrompt}\n\nAlternative instructions: Clean up the background and enhance brightness for better product visibility.`;
+    const fallbackPrompt = `${systemPrompt}\n\nAlternative instructions: Keep the subject unchanged. Do NOT touch the person or the product. Only remove the background.`;
     
     // Extract responses from the Gemini API
     let responseText = '';
@@ -190,7 +190,24 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
       // Wrap the API call in retryWithBackoff
       response = await retryWithBackoff(async () => {
         console.log("Executing Gemini API call...");
-        const result = await model.generateContent([textPart, imagePart]);
+        const result = await model.generateContent({
+          contents: [
+            {
+              parts: [
+                { text: systemPrompt },
+                { 
+                  inline_data: {
+                    data: base64Data,
+                    mime_type: mimeType
+                  }
+                }
+              ]
+            }
+          ],
+          generationConfig: {
+            responseModalities: ["text", "image"]
+          }
+        });
         const response = result.response;
         
         // Log the raw response for debugging
@@ -231,7 +248,21 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         console.log(`Fallback prompt used: "${fallbackPrompt}"`);
         
         // Make one final attempt with the fallback prompt
-        const fallbackResult = await model.generateContent([fallbackTextPart, imagePart]);
+        const fallbackResult = await model.generateContent({
+          contents: [
+            {
+              parts: [
+                { text: fallbackPrompt },
+                { 
+                  inline_data: {
+                    data: base64Data,
+                    mime_type: mimeType
+                  }
+                }
+              ]
+            }
+          ]
+        });
         response = fallbackResult.response;
         
         console.log("🔍 Gemini fallback response:", JSON.stringify(response, null, 2));
@@ -301,10 +332,21 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         console.log(`Fallback prompt: "${fallbackPrompt}"`);
         
         // Keep the same ordering (text first, then image) for consistency
-        const fallbackResult = await model.generateContent([
-          { text: fallbackPrompt },
-          imagePart
-        ]);
+        const fallbackResult = await model.generateContent({
+          contents: [
+            {
+              parts: [
+                { text: fallbackPrompt },
+                { 
+                  inline_data: {
+                    data: base64Data,
+                    mime_type: mimeType
+                  }
+                }
+              ]
+            }
+          ]
+        });
         
         const fallbackResponse = fallbackResult.response;
         console.log("Fallback response received:", JSON.stringify(fallbackResponse, null, 2));
@@ -365,6 +407,16 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
           
           // Process the image with Sharp
           let sharpImage = sharp(buffer);
+          
+          // Check image metadata for quality validation
+          const metadata = await sharpImage.metadata();
+          console.log(`Image metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}`);
+          
+          // Validate image quality - width must be at least 800px and format should be png
+          if (metadata.width < 800 || metadata.format !== 'png') {
+            console.warn(`Low quality image detected: width=${metadata.width}, format=${metadata.format}`);
+            throw new Error("Low quality output, retrying...");
+          }
           
           // Resize the image if dimensions are provided
           sharpImage = sharpImage.resize({

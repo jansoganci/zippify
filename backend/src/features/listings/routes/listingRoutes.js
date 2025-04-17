@@ -1,6 +1,6 @@
 import express from 'express';
 import * as listingService from '../services/listingService.js';
-import verifyToken from '../../../../middleware/auth.js';
+import { verifyToken } from '../../../../middleware/auth.js';
 
 const router = express.Router();
 
