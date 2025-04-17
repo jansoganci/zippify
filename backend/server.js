@@ -99,18 +99,22 @@ app.use('/api/keywords', keywordAnalysisRoutes);
 // Listings Route
 app.use('/api/listings', listingRoutes);
 
+// Image Editing Routes
+app.use('/api', imageEditingRouter);
+
 // Content Optimization Route
 
 // Import workflow services
 import { optimizePattern } from '../src/services/workflow/optimizePattern.js';
 import { generatePDF } from '../src/services/workflow/generatePDF.js';
 import { generateEtsyListing } from '../src/services/workflow/generateEtsyListing.js';
-import { callGeminiApi } from '../src/services/google-image/callGeminiApi.js';
+
 import { saveListing } from './src/features/listings/services/listingService.js';
 
 // Import routes
 import { keywordRoutes as keywordAnalysisRoutes } from './src/features/keywordAnalysis/index.js';
 import { listingRoutes } from './src/features/listings/index.js';
+import imageEditingRouter from './src/features/imageEditing/imageEditing.routes.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 
@@ -523,7 +527,7 @@ app.post('/api/generate-pdf', async (req, res) => {
 
   // Import quota middleware and auth middleware
   import checkQuota from './middleware/checkQuota.js';
-  import verifyToken from './middleware/auth.js';
+  import { verifyToken } from './middleware/auth.js';
   import incrementQuota from './utils/incrementQuota.js';
 
   app.post('/api/generate-etsy', verifyToken, checkQuota("create-listing"), async (req, res) => {

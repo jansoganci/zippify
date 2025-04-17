@@ -3,7 +3,7 @@
  * Shows how to use the checkQuota middleware and incrementQuota utility
  */
 import express from 'express';
-import verifyToken from '../middleware/auth.js';
+import { verifyToken } from '../middleware/auth.js';
 import checkQuota from '../middleware/checkQuota.js';
 import incrementQuota from '../utils/incrementQuota.js';
 

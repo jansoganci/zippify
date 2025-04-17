@@ -45,7 +45,7 @@ if (!process.env.JWT_SECRET) {
  * @param {Function} next - Express next middleware function
  * @returns {void}
  */
-const verifyToken = (req, res, next) => {
+export function verifyToken(req, res, next) {
   // Get the token from the Authorization header
   const authHeader = req.headers['authorization'];
   
@@ -79,4 +79,16 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-export default verifyToken;
+
+
+/**
+ * Middleware to check user quota for specific features
+ * @param {string} featureKey - The feature key to check quota for
+ * @returns {Function} - Express middleware function
+ */
+export function checkQuota(featureKey) {
+  return async function (req, res, next) {
+    // TODO: Add quota checking logic
+    next();
+  };
+}

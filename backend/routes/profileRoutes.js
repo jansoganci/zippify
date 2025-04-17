@@ -4,7 +4,7 @@
  */
 import express from 'express';
 import { getCurrentUser, updateProfile } from '../controllers/profileController.js';
-import verifyToken from '../middleware/auth.js';
+import { verifyToken } from '../middleware/auth.js';
 
 // Create Express router
 const router = express.Router();
