@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { optimizePattern } from '@/services/workflow/optimizePattern.js';
+import { optimizePattern } from '@/services/workflow/optimizePattern';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

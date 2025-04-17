@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { generateEtsyListing } from '@/services/workflow/generateEtsyListing.js';
+import { generateEtsyListing } from '@/services/workflow/generateEtsyListing';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
