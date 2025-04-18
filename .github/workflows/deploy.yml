@@ -20,8 +20,9 @@ jobs:
 
       - name: Copy .env file to server
         run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
-          scp -o StrictHostKeyChecking=no .env root@5.78.110.161:/root/zippify/.env
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env" << 'EOF'
+          ${{ secrets.ENV_FILE }}
+          EOF
 
       - name: Deploy to Hetzner with Safe Rollback
         run: |
