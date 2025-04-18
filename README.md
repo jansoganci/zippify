@@ -1,6 +1,7 @@
 # Zippify
 
 Do you know, I added CI/CD to this project?!!!??
+Today, 18.04.2025, I added CI/CD to this project. During the process, I encountered some issues with the workflow file.
 
 ## Project Description
 
