@@ -6,6 +6,8 @@ Today, 18.04.2025, I added CI/CD to this project. During the process, I encounte
 Sikicem artık bu son olur umarım.
 
 sonogluson
+sonogluson.son
+
 
 ## Project Description
 
