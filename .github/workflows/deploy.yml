@@ -1,0 +1,53 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Copy .env file to server
+        run: |
+          echo "${{ secrets.ENV_FILE }}" > .env
+          scp -o StrictHostKeyChecking=no .env root@5.78.110.161:/root/zippify/.env
+
+      - name: Deploy to Hetzner with Safe Rollback
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
+            cd ~/zippify
+
+            echo "📦 Pulling latest code..."
+            git pull
+
+            echo "🔖 Tagging current images as backup..."
+            docker compose images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>' | while read image; do
+              docker tag "$image" "$image-backup"
+            done
+
+            echo "🐳 Building containers..."
+            if docker compose build --no-cache; then
+              echo "✅ Build successful, restarting app..."
+              docker compose down
+              docker compose up -d
+            else
+              echo "❌ Build failed! Rolling back to previous images..."
+              docker compose down
+              docker compose images --format '{{.Repository}}:{{.Tag}}' | grep -v '<none>' | while read image; do
+                docker tag "$image-backup" "$image"
+              done
+              docker compose up -d
+            fi
+          EOF
