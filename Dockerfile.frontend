@@ -1,8 +1,12 @@
+# Dockerfile.frontend
 FROM node:18
 
 WORKDIR /app
 
-COPY package*.json ./
+ENV NODE_ENV=development
+
+COPY package.json ./
+COPY package-lock.json ./
 RUN npm install
 
 COPY . .
