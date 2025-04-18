@@ -3,7 +3,7 @@ import { createApiError, ErrorCodes } from './utils/errors.js';
 
 // Backend API için axios instance'ı
 const backendApi = axios.create({
-  baseURL: 'http://localhost:3001', // Backend sunucusunun adresi
+  baseURL: '/api',// Backend sunucusunun adresi
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
