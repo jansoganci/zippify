@@ -1,5 +1,7 @@
 # Zippify
 
+Do you know, I added CI/CD to this project?!!!??
+
 ## Project Description
 
 Zippify is an application designed for e-commerce sellers to automate their product listing process. Users simply upload raw product information, and Zippify generates optimized product descriptions, enhanced product images, and downloadable ZIP files ready for immediate use.
