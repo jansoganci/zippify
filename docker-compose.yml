@@ -2,8 +2,8 @@ version: '3'
 services:
   backend:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
     working_dir: /app
     command: npm run dev:backend
     ports:
