@@ -5,6 +5,8 @@ Today, 18.04.2025, I added CI/CD to this project. During the process, I encounte
 
 Sikicem artık bu son olur umarım.
 
+sonogluson
+
 ## Project Description
 
 Zippify is an application designed for e-commerce sellers to automate their product listing process. Users simply upload raw product information, and Zippify generates optimized product descriptions, enhanced product images, and downloadable ZIP files ready for immediate use.
