@@ -3,7 +3,7 @@ name: Deploy to Hetzner
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
@@ -23,25 +23,25 @@ jobs:
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
 
-            echo "📁 Gidiyoruz klasöre: ~/zippify"
+            echo "📁 Navigating to: ~/zippify"
             cd ~/zippify
 
-            echo "📥 Kodları çekiyoruz"
+            echo "📥 Pulling latest code"
             git pull origin main
 
-            echo "📦 Bağımlılıklar yükleniyor"
+            echo "📦 Installing dependencies"
             npm install
 
-            echo "🏗️ Build işlemi başlatılıyor"
+            echo "🏗️ Building project"
             npm run build
 
-            echo "🚚 dist klasörünü /var/www/zippify içine kopyalıyoruz"
+            echo "🚚 Copying dist folder to /var/www/zippify"
             cp -r dist/* /var/www/zippify/
 
-            echo "🔁 Nginx yeniden başlatılıyor"
+            echo "🔁 Restarting Nginx"
             systemctl restart nginx
 
-            echo "🟢 Her şey tamam. 🎉"
+            echo "🟢 Deployment complete. "
           EOF
 
       - name: Copy .env to Server
