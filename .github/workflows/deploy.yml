@@ -26,8 +26,8 @@ jobs:
             echo "📁 Navigating to: ~/zippify"
             cd ~/zippify
 
-            echo "📥 Pulling latest code"
-            git pull origin master
+            echo "📥 Pulling latest code with rebase"
+            git pull origin master --rebase
 
             echo "📦 Installing dependencies"
             npm install
@@ -35,13 +35,15 @@ jobs:
             echo "🏗️ Building project"
             npm run build
 
+            echo "🧹 Cleaning old files in /var/www/zippify"
+            rm -rf /var/www/zippify/*
             echo "🚚 Copying dist folder to /var/www/zippify"
             cp -r dist/* /var/www/zippify/
 
             echo "🔁 Restarting Nginx"
             systemctl restart nginx
 
-            echo "🟢 Deployment complete. "
+            echo "✅ Deployment successful"
           EOF
 
       - name: Copy .env to Server
