@@ -356,37 +356,7 @@ const initializeDb = async () => {
 // **AUTHENTICATION ROUTES**
 
 // **Register User**
-app.post('/api/auth/register', async (req, res) => {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-        return res.status(400).json({ message: 'All fields are required' });
-    }
-
-    const db = await initializeDb();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    try {
-        const existingUser = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-        if (existingUser) {
-            return res.status(400).json({ message: 'Email already in use' });
-        }
-
-        // Insert into users table
-        const userResult = await db.run('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', 
-            [username, email, hashedPassword]);
-        
-        // Get the inserted user's ID
-        const userId = userResult.lastID;
-        
-        // Create empty profile for the user
-        await db.run('INSERT INTO profiles (user_id, first_name, last_name, store_name) VALUES (?, ?, ?, ?)',
-            [userId, '', '', '']);
-
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
+// (Removed direct route to prevent conflict with router-based /api/auth/register)
 
 // **Login User**
 app.post('/api/auth/login', async (req, res) => {
