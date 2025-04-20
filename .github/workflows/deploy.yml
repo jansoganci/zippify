@@ -51,3 +51,9 @@ jobs:
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env" << 'EOF'
           ${{ secrets.ENV_FILE }}
           EOF
+
+      - name: Copy .env.production to Server
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env.production" << 'EOF'
+          ${{ secrets.ENV_PRODUCTION_FILE }}
+          EOF
