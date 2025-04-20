@@ -3,6 +3,7 @@
  * Handles user registration and login
  */
 import bcrypt from 'bcryptjs';
+import log from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { createUser, getUserByEmail } from '../models/userModel.js';
 
@@ -27,14 +28,14 @@ const JWT_EXPIRY = process.env.JWT_EXPIRY;
  */
 export async function registerUser(req, res) {
   const requestId = req.headers['x-request-id'] || `auth-${Date.now()}`;
-  console.log(`[${requestId}] Processing registration request`);
+  log.info(`[${requestId}] Processing registration request`);
   
   try {
     const { email, password } = req.body;
     
     // Validate input
     if (!email || !password) {
-      console.log(`[${requestId}] Registration failed: Missing required fields`);
+      log.info(`[${requestId}] Registration failed: Missing required fields`);
       return res.status(400).json({
         success: false,
         message: 'Email and password are required',
@@ -45,7 +46,7 @@ export async function registerUser(req, res) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      console.log(`[${requestId}] Registration failed: Invalid email format`);
+      log.info(`[${requestId}] Registration failed: Invalid email format`);
       return res.status(400).json({
         success: false,
         message: 'Invalid email format',
@@ -55,7 +56,7 @@ export async function registerUser(req, res) {
     
     // Validate password strength
     if (password.length < 8) {
-      console.log(`[${requestId}] Registration failed: Password too short`);
+      log.info(`[${requestId}] Registration failed: Password too short`);
       return res.status(400).json({
         success: false,
         message: 'Password must be at least 8 characters long',
@@ -66,7 +67,7 @@ export async function registerUser(req, res) {
     // Check if user already exists
     const existingUser = await getUserByEmail(email);
     if (existingUser) {
-      console.log(`[${requestId}] Registration failed: Email already in use`);
+      log.info(`[${requestId}] Registration failed: Email already in use`);
       return res.status(409).json({
         success: false,
         message: 'Email is already registered',
@@ -80,7 +81,7 @@ export async function registerUser(req, res) {
     
     // Create the user
     const newUser = await createUser(email, hashedPassword);
-    console.log(`[${requestId}] User created successfully with ID: ${newUser.id}`);
+    log.info(`[${requestId}] User created successfully with ID: ${newUser.id}`);
     
     // Generate JWT token
     const token = jwt.sign(
@@ -103,7 +104,7 @@ export async function registerUser(req, res) {
       requestId
     });
   } catch (error) {
-    console.error(`[${requestId}] Registration error:`, error.message);
+    log.error(`[${requestId}] Registration error:`, error.message);
     return res.status(500).json({
       success: false,
       message: 'Registration failed',
@@ -121,14 +122,14 @@ export async function registerUser(req, res) {
  */
 export async function loginUser(req, res) {
   const requestId = req.headers['x-request-id'] || `auth-${Date.now()}`;
-  console.log(`[${requestId}] Processing login request`);
+  log.info(`[${requestId}] Processing login request`);
   
   try {
     const { email, password } = req.body;
     
     // Validate input
     if (!email || !password) {
-      console.log(`[${requestId}] Login failed: Missing required fields`);
+      log.info(`[${requestId}] Login failed: Missing required fields`);
       return res.status(400).json({
         success: false,
         message: 'Email and password are required',
@@ -139,7 +140,7 @@ export async function loginUser(req, res) {
     // Get user by email
     const user = await getUserByEmail(email);
     if (!user) {
-      console.log(`[${requestId}] Login failed: User not found`);
+      log.info(`[${requestId}] Login failed: User not found`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -150,7 +151,7 @@ export async function loginUser(req, res) {
     // Compare password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      console.log(`[${requestId}] Login failed: Invalid password`);
+      log.info(`[${requestId}] Login failed: Invalid password`);
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
@@ -165,7 +166,7 @@ export async function loginUser(req, res) {
       { expiresIn: JWT_EXPIRY }
     );
     
-    console.log(`[${requestId}] User logged in successfully: ${user.id}`);
+    log.info(`[${requestId}] User logged in successfully: ${user.id}`);
     
     // Return success response
     return res.status(200).json({
@@ -182,7 +183,7 @@ export async function loginUser(req, res) {
       requestId
     });
   } catch (error) {
-    console.error(`[${requestId}] Login error:`, error.message);
+    log.error(`[${requestId}] Login error:`, error.message);
     return res.status(500).json({
       success: false,
       message: 'Login failed',

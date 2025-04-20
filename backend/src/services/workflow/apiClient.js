@@ -48,7 +48,7 @@ const getEnv = (key, defaultValue) => {
 };
 
 // API Configuration with environment-aware variables
-const API_URL = getEnv('DEEPSEEK_API_URL', 'https://api.deepseek.com/v1');
+const API_URL = getEnv('DEEPSEEK_API_URL');
 const MODEL = getEnv('DEEPSEEK_MODEL', 'deepseek-chat');
 const MAX_TOKENS = parseInt(getEnv('DEEPSEEK_MAX_TOKENS', '4096'), 10);
 const MAX_RETRIES = parseInt(getEnv('DEEPSEEK_MAX_RETRIES', '5'), 10); // Arttırıldı

@@ -164,7 +164,7 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
     // Check if URL has markdown formatting [text](url) and extract the actual URL
     if (apiUrl && apiUrl.includes('](')) {
       cleanApiUrl = apiUrl.replace(/\[([^\]]*)\]\(([^\)]*)\)/g, '$2');
-      console.log(`Fixed API URL format from ${apiUrl} to ${cleanApiUrl}`);
+      log.info(`Fixed API URL format from ${apiUrl} to ${cleanApiUrl}`);
     }
     
     const endpoint = cleanApiUrl.includes('/chat/completions') ? cleanApiUrl : `${cleanApiUrl}/chat/completions`;
@@ -212,17 +212,17 @@ async function proxyToDeepSeekAPI(req, res, requestId) {
       });
     } catch (err) {
       // Enhanced error logging with detailed information
-      console.log('DeepSeek API Key:', process.env.DEEPSEEK_API_KEY ? 'Present (length: ' + process.env.DEEPSEEK_API_KEY.length + ')' : 'Missing');
+      log.info('DeepSeek API Key:', process.env.DEEPSEEK_API_KEY ? 'Present (length: ' + process.env.DEEPSEEK_API_KEY.length + ')' : 'Missing');
       
       // 🔴 Comprehensive error logging to reveal the actual error
-      console.error("🔴 DeepSeek API request failed:");
-      console.error("Status:", err?.response?.status);
-      console.error("Status Text:", err?.response?.statusText);
-      console.error("Data:", JSON.stringify(err?.response?.data, null, 2));
-      console.error("Headers:", err?.response?.headers);
-      console.error("Error Code:", err?.code);
-      console.error("Error Message:", err?.message);
-      console.error("Request Config:", JSON.stringify({
+      log.error("🔴 DeepSeek API request failed:");
+      log.error("Status:", err?.response?.status);
+      log.error("Status Text:", err?.response?.statusText);
+      log.error("Data:", JSON.stringify(err?.response?.data, null, 2));
+      log.error("Headers:", err?.response?.headers);
+      log.error("Error Code:", err?.code);
+      log.error("Error Message:", err?.message);
+      log.error("Request Config:", JSON.stringify({
         url: err?.config?.url,
         method: err?.config?.method,
         headers: err?.config?.headers,

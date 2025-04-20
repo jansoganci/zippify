@@ -3,6 +3,7 @@
  * Handles user profile operations
  */
 import dbPromise from '../db.js';
+import log from '../utils/logger.js';
 
 /**
  * Get the current user's profile
@@ -12,7 +13,7 @@ import dbPromise from '../db.js';
  */
 export const getCurrentUser = async (req, res) => {
   const requestId = req.headers['x-request-id'] || `profile-${Date.now()}`;
-  console.log(`[${requestId}] Getting current user profile`);
+  log.info(`[${requestId}] Getting current user profile`);
   
   try {
     const db = await dbPromise;
@@ -20,7 +21,7 @@ export const getCurrentUser = async (req, res) => {
     const { id } = req.user;
     
     if (!id) {
-      console.log(`[${requestId}] Profile retrieval failed: Missing user ID in token`);
+      log.info(`[${requestId}] Profile retrieval failed: Missing user ID in token`);
       return res.status(400).json({
         success: false,
         message: 'Invalid user data in token',
@@ -35,7 +36,7 @@ export const getCurrentUser = async (req, res) => {
     );
     
     if (!profile) {
-      console.log(`[${requestId}] Profile not found for user: ${id}`);
+      log.info(`[${requestId}] Profile not found for user: ${id}`);
       return res.status(404).json({
         success: false,
         message: 'Profile not found',
@@ -43,7 +44,7 @@ export const getCurrentUser = async (req, res) => {
       });
     }
     
-    console.log(`[${requestId}] Profile retrieved successfully for user: ${id}`);
+    log.info(`[${requestId}] Profile retrieved successfully for user: ${id}`);
     
     // Return the user profile data
     return res.status(200).json({
@@ -52,7 +53,7 @@ export const getCurrentUser = async (req, res) => {
       requestId
     });
   } catch (error) {
-    console.error(`[${requestId}] Profile retrieval error:`, error.message);
+    log.error(`[${requestId}] Profile retrieval error:`, error.message);
     return res.status(500).json({
       success: false,
       message: 'Failed to retrieve profile',
@@ -70,7 +71,7 @@ export const getCurrentUser = async (req, res) => {
  */
 export const updateProfile = async (req, res) => {
   const requestId = req.headers['x-request-id'] || `profile-${Date.now()}`;
-  console.log(`[${requestId}] Updating user profile`);
+  log.info(`[${requestId}] Updating user profile`);
   
   try {
     const db = await dbPromise;
@@ -78,7 +79,7 @@ export const updateProfile = async (req, res) => {
     const { id } = req.user;
     
     if (!id) {
-      console.log(`[${requestId}] Profile update failed: Missing user ID in token`);
+      log.info(`[${requestId}] Profile update failed: Missing user ID in token`);
       return res.status(400).json({
         success: false,
         message: 'Invalid user data in token',
@@ -91,7 +92,7 @@ export const updateProfile = async (req, res) => {
     
     // Validate required fields
     if (!firstName || !lastName) {
-      console.log(`[${requestId}] Profile update failed: Missing required fields`);
+      log.info(`[${requestId}] Profile update failed: Missing required fields`);
       return res.status(400).json({
         success: false,
         message: 'First name and last name are required',
@@ -108,14 +109,14 @@ export const updateProfile = async (req, res) => {
         'UPDATE profiles SET first_name = ?, last_name = ?, store_name = ? WHERE user_id = ?',
         [firstName, lastName, storeName || '', id]
       );
-      console.log(`[${requestId}] Profile updated successfully for user: ${id}`);
+      log.info(`[${requestId}] Profile updated successfully for user: ${id}`);
     } else {
       // Create new profile if it doesn't exist
       await db.run(
         'INSERT INTO profiles (user_id, first_name, last_name, store_name) VALUES (?, ?, ?, ?)',
         [id, firstName, lastName, storeName || '']
       );
-      console.log(`[${requestId}] New profile created for user: ${id}`);
+      log.info(`[${requestId}] New profile created for user: ${id}`);
     }
     
     // Get the updated profile
@@ -131,7 +132,7 @@ export const updateProfile = async (req, res) => {
       requestId
     });
   } catch (error) {
-    console.error(`[${requestId}] Profile update error:`, error.message);
+    log.error(`[${requestId}] Profile update error:`, error.message);
     return res.status(500).json({
       success: false,
       message: 'Failed to update profile',
