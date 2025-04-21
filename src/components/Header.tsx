@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { User, Moon, Sun, Globe, LogOut } from 'lucide-react';
 import { 
   DropdownMenu, 
@@ -9,15 +9,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 const Header = () => {
-  // This would come from a theme context in a real app
   const [isDarkMode, setIsDarkMode] = useState(false);
-  
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    } else {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    }
+  }, []);
+
   const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    // In a real app, you'd update the theme here
+    const next = !isDarkMode;
+    setIsDarkMode(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
   };
   
   return (
@@ -76,14 +89,24 @@ const Header = () => {
               <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
             </DropdownMenuItem>
             
-            <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+            <DropdownMenuItem 
+              className="cursor-pointer flex items-center gap-2"
+              onClick={() => navigate('/profile')}
+            >
               <User size={16} />
               <span>Profile</span>
             </DropdownMenuItem>
             
             <DropdownMenuSeparator />
             
-            <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive">
+            <DropdownMenuItem 
+              className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
+              onClick={() => {
+                localStorage.removeItem('zippify_token');
+                localStorage.removeItem('theme'); 
+                navigate('/login');
+              }}
+            >
               <LogOut size={16} />
               <span>Log Out</span>
             </DropdownMenuItem>
