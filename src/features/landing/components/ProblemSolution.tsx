@@ -42,7 +42,7 @@ export const ProblemSolution = () => {
               </h2>
               <p className="max-w-[700px] text-base text-muted-foreground leading-relaxed">
                 Focus on creating beautiful products, not wrestling with listing details. 
-                See how Zippify transforms your Etsy shop experience:
+                See how listify.digital transforms your Etsy shop experience:
               </p>
             </div>
           </div>

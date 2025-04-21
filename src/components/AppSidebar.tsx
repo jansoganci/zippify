@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -50,17 +49,17 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
   return (
     <aside 
       className={cn(
-        "bg-sidebar h-screen flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border",
+        "bg-sidebar h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border",
         isCollapsed ? "w-[72px]" : "w-[240px]"
       )}
     >
-      <div className="p-4 flex items-center">
+      <div className="p-1 flex items-center">
         {!isCollapsed && (
-          <span className="text-sidebar-foreground font-semibold text-xl tracking-tight">EtsyElevate</span>
+          <span className="text-sidebar-foreground font-semibold text-xl tracking-tight"></span>
         )}
       </div>
       
-      <div className="mt-8 flex-1 px-2">
+      <div className="mt-1 flex-1 px-2">
         <SidebarItem 
           icon={LayoutDashboard} 
           label="Dashboard" 

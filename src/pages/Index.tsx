@@ -49,7 +49,7 @@ const tips = [
   {
     id: 5,
     icon: <FilePlus className="text-primary" />,
-    prefix: "Zippify Tip",
+    prefix: "listify.digital Tip",
     content: "You can generate listing descriptions with AI from the Create Listing page."
   },
   {

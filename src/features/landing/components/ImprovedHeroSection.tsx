@@ -13,7 +13,7 @@ const ImprovedHeroSection = () => {
               AI‑Powered Etsy Listings in 2 Minutes Flat
             </h1>
             <p className="mx-auto max-w-[700px] text-lg text-muted-foreground dark:text-[#E5E7EB] leading-relaxed mt-4">
-              Stop struggling with bland descriptions and invisible listings. Zippify transforms your product ideas into SEO‑optimized Etsy listings that actually sell.
+              Stop struggling with bland descriptions and invisible listings. <strong>listify.digital</strong> transforms your product ideas into SEO‑optimized Etsy listings that actually sell.
             </p>
           </AnimateOnScroll>
 

@@ -55,7 +55,7 @@ export const HeroSection = () => {
                 <span className="text-primary">AI-Powered</span> Etsy Listings in 2 Minutes Flat
               </h1>
               <p className="text-muted-foreground md:text-xl max-w-[42rem]">
-                Stop struggling with bland descriptions and invisible listings. Zippify transforms your product ideas into SEO-optimized Etsy listings that <span className="font-medium text-foreground">actually sell</span>.
+                Stop struggling with bland descriptions and invisible listings. listify.digital transforms your product ideas into SEO-optimized Etsy listings that <span className="font-medium text-foreground">actually sell</span>.
               </p>
             </AnimateOnScroll>
             

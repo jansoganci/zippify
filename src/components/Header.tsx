@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { NavLink } from "react-router-dom";
 
 const Header = () => {
   // This would come from a theme context in a real app
@@ -20,71 +21,74 @@ const Header = () => {
   };
   
   return (
-    <header 
-      className="
-        sticky top-0 z-50 
-        w-full 
-        backdrop-blur-sm 
-        bg-white/80 dark:bg-gray-900/80 
-        border-b border-gray-200 dark:border-gray-700
-      "
-    >
-      <div className="h-16 flex items-center justify-between px-6 max-w-7xl mx-auto">
-        <div className="flex items-center">
-          <div className="text-2xl font-semibold tracking-tight text-primary">EtsyElevate</div>
+    <header className="w-full h-16 flex items-center justify-between px-8 bg-background/90 border-b border-border shadow-sm">
+      {/* Logo & Marka */}
+      <div className="flex items-center gap-2">
+        {/* Logo örnek: */}
+        <div className="rounded-full bg-primary/80 text-white w-8 h-8 flex items-center justify-center font-bold text-lg">L</div>
+        <span className="text-2xl font-bold tracking-tight text-primary">listify.digital</span>
+      </div>
+
+      {/* Orta Menü */}
+      <nav className="flex-1 flex justify-center">
+        <div className="flex gap-4 px-6 py-2 rounded-full border border-primary/40 bg-background/80 shadow-md">
+          <NavLink to="/seo-keywords" className="font-medium px-3 py-1 rounded hover:bg-primary/10">SEO</NavLink>
+          <NavLink to="/create" className="font-medium px-3 py-1 rounded hover:bg-primary/10">Listings</NavLink>
+          <NavLink to="/edit-image" className="font-medium px-3 py-1 rounded hover:bg-primary/10">Images</NavLink>
         </div>
-        
-        <div className="flex items-center gap-4">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 mt-1 animate-fade-in">
-              <div className="flex items-center justify-start gap-2 p-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback>U</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col space-y-0.5">
-                  <p className="text-sm font-medium">John Doe</p>
-                  <p className="text-xs text-muted-foreground">john@example.com</p>
-                </div>
+      </nav>
+
+      {/* Profil Dropdown (Aynen kalacak) */}
+      <div className="flex items-center">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="/placeholder.svg" alt="User" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56 mt-1 animate-fade-in">
+            <div className="flex items-center justify-start gap-2 p-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src="/placeholder.svg" alt="User" />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col space-y-0.5">
+                <p className="text-sm font-medium">John Doe</p>
+                <p className="text-xs text-muted-foreground">john@example.com</p>
               </div>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                <Globe size={16} />
-                <span>Language</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
-                onClick={toggleTheme} 
-                className="cursor-pointer flex items-center gap-2"
-              >
-                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
-                <User size={16} />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive">
-                <LogOut size={16} />
-                <span>Log Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            </div>
+            
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+              <Globe size={16} />
+              <span>Language</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem 
+              onClick={toggleTheme} 
+              className="cursor-pointer flex items-center gap-2"
+            >
+              {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+              <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
+              <User size={16} />
+              <span>Profile</span>
+            </DropdownMenuItem>
+            
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive">
+              <LogOut size={16} />
+              <span>Log Out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );
