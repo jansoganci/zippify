@@ -9,6 +9,21 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Save, User, Store, AlertCircle } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 
+// Helper to extract user-friendly error messages
+function getUserFriendlyError(error: unknown): string {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as any).response === 'object' &&
+    (error as any).response?.data
+  ) {
+    const data = (error as any).response.data;
+    return data.userMessage || data.message || (error as any).message || 'There was a problem loading your profile information.';
+  }
+  return (error as any)?.message || 'There was a problem loading your profile information.';
+}
+
 const Profile = () => {
   const {
     formData,
@@ -49,7 +64,7 @@ const Profile = () => {
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>
-                      There was a problem loading your profile information.
+                      {getUserFriendlyError(error)}
                     </AlertDescription>
                   </Alert>
                 )}

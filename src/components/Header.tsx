@@ -1,6 +1,5 @@
-import { useTheme } from 'next-themes';
-import { useNavigate } from 'react-router-dom';
-import { User, Moon, Sun, Globe, LogOut, List } from 'lucide-react';
+import { useState } from 'react';
+import { User, Moon, Sun, Globe, LogOut } from 'lucide-react';
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -12,32 +11,27 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
-  const { theme, setTheme } = useTheme();
-  const navigate = useNavigate();
+  // This would come from a theme context in a real app
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-  
-  const handleLogout = () => {
-    // Remove auth tokens from localStorage
-    localStorage.removeItem('zippify_token');
-    localStorage.removeItem('zippify_user');
-    
-    // Redirect to login page
-    navigate('/login');
+    setIsDarkMode(!isDarkMode);
+    // In a real app, you'd update the theme here
   };
   
   return (
-    <header className="h-14 bg-background shadow-sm fixed inset-x-0 top-0 z-50">
-      <div className="container mx-auto px-4 flex items-center justify-between h-full">
+    <header 
+      className="
+        sticky top-0 z-50 
+        w-full 
+        backdrop-blur-sm 
+        bg-white/80 dark:bg-gray-900/80 
+        border-b border-gray-200 dark:border-gray-700
+      "
+    >
+      <div className="h-16 flex items-center justify-between px-6 max-w-7xl mx-auto">
         <div className="flex items-center">
-          <div className="flex items-center gap-2 cursor-pointer group">
-            <List size={24} className="text-primary transition-transform duration-200 group-hover:scale-105" />
-            <span className="text-2xl font-semibold tracking-tight text-primary transition-transform duration-200 group-hover:scale-105 border-b-2 border-transparent group-hover:border-primary">
-              Listify
-            </span>
-          </div>
+          <div className="text-2xl font-semibold tracking-tight text-primary">EtsyElevate</div>
         </div>
         
         <div className="flex items-center gap-4">
@@ -73,24 +67,18 @@ const Header = () => {
                 onClick={toggleTheme} 
                 className="cursor-pointer flex items-center gap-2"
               >
-                {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
-                <span>{theme === "dark" ? 'Light Mode' : 'Dark Mode'}</span>
+                {isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
+                <span>{isDarkMode ? 'Light Mode' : 'Dark Mode'}</span>
               </DropdownMenuItem>
               
-              <DropdownMenuItem 
-                onClick={() => navigate('/profile')}
-                className="cursor-pointer flex items-center gap-2"
-              >
+              <DropdownMenuItem className="cursor-pointer flex items-center gap-2">
                 <User size={16} />
                 <span>Profile</span>
               </DropdownMenuItem>
               
               <DropdownMenuSeparator />
               
-              <DropdownMenuItem 
-                onClick={handleLogout}
-                className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
-              >
+              <DropdownMenuItem className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive">
                 <LogOut size={16} />
                 <span>Log Out</span>
               </DropdownMenuItem>

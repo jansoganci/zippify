@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generateEtsyListing } from '@/services/workflow/generateEtsyListing';
+import { error } from '../utils/logger';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Label } from '@/components/ui/label';
+import ListingResultPreview from '@/features/etsyListing/components/ListingResultPreview';
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -26,7 +25,7 @@ const ListingGeneration = () => {
   const [copiedFields, setCopiedFields] = useState<Record<string, boolean>>({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedContent, setGeneratedContent] = useState<any>(null);
-  const [error, setError] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const formattedContent = location.state?.formattedContent || '';
 
@@ -46,12 +45,20 @@ const ListingGeneration = () => {
             altTexts: result.altTexts
           });
         } else {
-          setError(result.error || 'Etsy listing could not be generated.');
+          setErrorMsg(result.error || 'Etsy listing could not be generated.');
           setGeneratedContent(null);
         }
-      } catch (error) {
-        console.error('Listing generation error:', error);
-        setError(error.message || 'An unexpected error occurred');
+      } catch (err: any) {
+        error('Listing generation error:', err);
+        let msg = 'An unexpected error occurred';
+        if (typeof err === 'object' && err !== null && err.response?.data) {
+          msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
+        } else if (typeof err === 'object' && err !== null && err.message) {
+          msg = err.message;
+        } else if (typeof err === 'string') {
+          msg = err;
+        }
+        setErrorMsg(msg);
         setGeneratedContent(null);
       } finally {
         setIsGenerating(false);
@@ -120,10 +127,10 @@ const ListingGeneration = () => {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight">Step 3: Etsy Listing Generation</h1>
-            <Badge className={isGenerating ? "bg-yellow-500 hover:bg-yellow-600" : error ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}>
+            <Badge className={isGenerating ? "bg-yellow-500 hover:bg-yellow-600" : errorMsg ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600"}>
               {isGenerating ? (
                 <><span className="mr-1 h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" /> Generating</>
-              ) : error ? (
+              ) : errorMsg ? (
                 <><span className="mr-1 h-3 w-3" /> Error</>
               ) : (
                 <><Check className="mr-1 h-3 w-3" /> Ready</>
@@ -134,100 +141,23 @@ const ListingGeneration = () => {
             The following listing content has been generated based on your draft. You can review and copy each section.
           </p>
 
-          {error && (
+          {errorMsg && (
             <div className="bg-red-100 text-red-700 p-4 rounded-md">
-              <strong>Error:</strong> {error}
+              <strong>Error:</strong> {errorMsg}
             </div>
           )}
         </div>
 
-        {!error && generatedContent && (
+        {!errorMsg && generatedContent && (
           <div className="space-y-6">
-            {/* Title */}
-            <Card className="shadow-sm">
-              <CardContent className="pt-6">
-                <Label htmlFor="title" className="text-lg font-medium">Title</Label>
-                <div className="flex items-start sm:items-center gap-2 flex-col sm:flex-row">
-                  <Input
-                    id="title"
-                    value={isGenerating ? 'Generating...' : (generatedContent?.title || '')}
-                    readOnly
-                    className="flex-1 bg-muted/40"
-                  />
-                  <Button variant="outline" size="sm" className="min-w-24" onClick={() => handleCopy('title', generatedContent?.title || '')}>
-                    {copiedFields.title ? <><Check className="mr-1 h-4 w-4" /> Copied</> : <><Copy className="mr-1 h-4 w-4" /> Copy</>}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Description */}
-            <Card className="shadow-sm">
-              <CardContent className="pt-6">
-                <Label htmlFor="description" className="text-lg font-medium">Description</Label>
-                <div className="flex items-start gap-2 flex-col">
-                  <Textarea
-                    id="description"
-                    value={isGenerating ? 'Generating...' : (generatedContent?.description || '')}
-                    readOnly
-                    className="min-h-[200px] bg-muted/40"
-                  />
-                  <Button variant="outline" size="sm" className="self-end min-w-24" onClick={() => handleCopy('description', generatedContent?.description || '')}>
-                    {copiedFields.description ? <><Check className="mr-1 h-4 w-4" /> Copied</> : <><Copy className="mr-1 h-4 w-4" /> Copy</>}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Tags */}
-            <Card className="shadow-sm">
-              <CardContent className="pt-6">
-                <Label htmlFor="tags" className="text-lg font-medium">Tags & Keywords</Label>
-                <div className="flex items-start sm:items-center gap-2 flex-col sm:flex-row">
-                  <Input
-                    id="tags"
-                    value={Array.isArray(generatedContent?.tags) ? generatedContent.tags.join(', ') : generatedContent?.tags || ''}
-                    readOnly
-                    className="flex-1 bg-muted/40"
-                  />
-                  <Button variant="outline" size="sm" className="min-w-24" onClick={() => handleCopy('tags', Array.isArray(generatedContent?.tags) ? generatedContent.tags.join(', ') : generatedContent?.tags || '')}>
-                    {copiedFields.tags ? <><Check className="mr-1 h-4 w-4" /> Copied</> : <><Copy className="mr-1 h-4 w-4" /> Copy</>}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Alt Text */}
-            <Card className="shadow-sm">
-              <CardContent className="pt-6">
-                <Label htmlFor="altText" className="text-lg font-medium">Alt Text for Images</Label>
-
-                {!generatedContent?.altTexts?.length && (
-                  <p className="text-muted-foreground text-sm">No alt text found or still loading...</p>
-                )}
-
-                <div className="flex flex-col space-y-4">
-                  {generatedContent?.altTexts?.map((text, index) => (
-                    <div key={index} className="flex items-start sm:items-center gap-2 flex-col sm:flex-row">
-                      <Input
-                        id={`altText-${index}`}
-                        value={text}
-                        readOnly
-                        className="flex-1 bg-muted/40"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="min-w-24"
-                        onClick={() => handleCopy(`altText-${index}`, text)}
-                      >
-                        {copiedFields[`altText-${index}`] ? <><Check className="mr-1 h-4 w-4" /> Copied</> : <><Copy className="mr-1 h-4 w-4" /> Copy</>}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {generatedContent && (
+              <ListingResultPreview
+                title={generatedContent.title}
+                description={generatedContent.description}
+                tags={Array.isArray(generatedContent.tags) ? generatedContent.tags : []}
+                altTexts={Array.isArray(generatedContent.altTexts) ? generatedContent.altTexts : []}
+              />
+            )}
           </div>
         )}
 

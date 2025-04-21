@@ -25,7 +25,7 @@ export const profileService = {
       });
       return updatedProfile;
     } catch (error) {
-      console.error('Failed to update profile:', error);
+      if (import.meta.env.MODE !== 'production') console.error('Failed to update profile:', error);
       throw error;
     }
   }

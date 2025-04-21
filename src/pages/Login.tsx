@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api/apiClient";
 import { Eye, EyeOff, LogIn } from "lucide-react";
+import { error } from '../utils/logger';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const form = useForm<LoginFormValues>({
     defaultValues: {
@@ -30,7 +32,8 @@ export default function Login() {
     mode: "onBlur"
   });
   
-  const onSubmit = async (data: LoginFormValues) => {
+
+const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     setErrorMessage(null);
     
@@ -48,11 +51,17 @@ export default function Login() {
       
       // Redirect to dashboard
       navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Login error:", error);
-      setErrorMessage(
-        error.message || "Login failed. Please check your credentials and try again."
-      );
+    } catch (err: any) {
+      error("Login error:", err);
+      let msg = "Login failed. Please check your credentials and try again.";
+      if (typeof err === 'object' && err !== null && err.response?.data) {
+        msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
+      } else if (typeof err === 'object' && err !== null && err.message) {
+        msg = err.message;
+      } else if (typeof err === 'string') {
+        msg = err;
+      }
+      setErrorMsg(msg);
     } finally {
       setIsLoading(false);
     }
@@ -73,9 +82,9 @@ export default function Login() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {errorMessage && (
+            {errorMsg && (
               <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{errorMessage}</AlertDescription>
+                <AlertDescription>{errorMsg}</AlertDescription>
               </Alert>
             )}
             

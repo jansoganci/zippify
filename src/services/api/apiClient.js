@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
 const devLog = (message, ...args) => {
   if (import.meta.env.DEV) {
     // Only log important API events, not detailed data
-    console.log(`[API] ${message}`);
+    if (import.meta.env.MODE !== 'production') console.log(`[API] ${message}`);
   }
 };
 

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { api } from "../services/api/apiClient";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
+import { error } from '../utils/logger';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const form = useForm<RegisterFormValues>({
     defaultValues: {
@@ -32,7 +34,8 @@ export default function Register() {
     mode: "onBlur"
   });
   
-  const onSubmit = async (data: RegisterFormValues) => {
+
+const onSubmit = async (data: RegisterFormValues) => {
     // Check if passwords match
     if (data.password !== data.confirmPassword) {
       setErrorMessage("Passwords do not match");
@@ -45,22 +48,28 @@ export default function Register() {
     try {
       // Call the register API endpoint
       const response = await api.register(null, data.email, data.password);
-      
+
       // Store token in localStorage
       localStorage.setItem("zippify_token", response.token);
-      
+
       // Store user info if returned
       if (response.user) {
         localStorage.setItem("zippify_user", JSON.stringify(response.user));
       }
-      
+
       // Redirect to dashboard
       navigate("/dashboard");
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      setErrorMessage(
-        error.message || "Registration failed. Please try again."
-      );
+    } catch (err: any) {
+      error("Registration error:", err);
+      let msg = "Registration failed. Please try again.";
+      if (typeof err === 'object' && err !== null && err.response?.data) {
+        msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
+      } else if (typeof err === 'object' && err !== null && err.message) {
+        msg = err.message;
+      } else if (typeof err === 'string') {
+        msg = err;
+      }
+      setErrorMsg(msg);
     } finally {
       setIsLoading(false);
     }
@@ -81,9 +90,9 @@ export default function Register() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {errorMessage && (
+            {errorMsg && (
               <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{errorMessage}</AlertDescription>
+                <AlertDescription>{errorMsg}</AlertDescription>
               </Alert>
             )}
             

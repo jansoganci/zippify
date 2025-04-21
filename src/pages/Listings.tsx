@@ -1,8 +1,8 @@
-
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import ListingCard from '@/components/ListingCard';
 import { api } from '@/services/api/apiClient';
+import { log, info, warn, error } from '../utils/logger';
 
 interface RawListing {
   id: string;
@@ -22,6 +22,7 @@ interface Listing {
 
 const Listings = () => {
   const [listings, setListings] = useState<Listing[]>([]);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchListings = async () => {
@@ -41,7 +42,7 @@ const Listings = () => {
         }
         
         if (import.meta.env.DEV) {
-          console.log(`[Listings] Fetched ${listings.length} items`);
+          log(`[Listings] Fetched ${listings.length} items`);
         }
         // Transform listings with proper date handling
         const transformedListings = listings.map((listing) => {
@@ -51,7 +52,7 @@ const Listings = () => {
           if (!listing.createdAt || listing.createdAt === 'undefined') {
             // Only log in development, not in production
             if (import.meta.env.DEV) {
-              console.warn(`[Listings] Missing createdAt for listing ${listing.id}`);
+              warn(`[Listings] Missing createdAt for listing ${listing.id}`);
             }
             createdAt = new Date();
           } else {
@@ -73,12 +74,13 @@ const Listings = () => {
         });
         
         setListings(transformedListings);
-      } catch (error) {
+      } catch (err) {
+        setErrorMsg('Failed to load listings');
         // Always log errors in development, but only critical errors in production
         if (import.meta.env.DEV) {
-          console.error('[Listings] Error fetching:', error);
-        } else if (error instanceof Error) {
-          console.error('[Listings] Failed to load listings');
+          error('[Listings] Error fetching:', err);
+        } else if (err instanceof Error) {
+          error('[Listings] Failed to load listings');
         }
       }
     };
@@ -102,7 +104,7 @@ const Listings = () => {
               createdAt={listing.createdAt}
               description={listing.description}
               tags={listing.tags}
-//              onClick={() => console.log('Clicked listing:', listing.id)}
+//              onClick={() => log('Clicked listing:', listing.id)}
             />
           ))}
         </div>

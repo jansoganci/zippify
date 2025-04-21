@@ -88,13 +88,13 @@ export const generatePDF = async (input) => {
       
       if (backendResponse.data?.choices?.[0]?.message?.content) {
         markdownContent = backendResponse.data.choices[0].message.content;
-        console.log(`Successfully received PDF content from backend API`);
+        logger.info(`Successfully received PDF content from backend API`);
       } else {
         throw new Error('Invalid response from backend API');
       }
     } catch (backendError) {
       // Backend hata verirse, doğrudan API'yi kullanmayı dene (fallback)
-      console.warn(`Backend API error, falling back to direct API call:`, backendError.message);
+      logger.warn(`Backend API error, falling back to direct API call:`, backendError.message);
       markdownContent = await makeCompletion(SYSTEM_PROMPT, userPrompt);
     }
 
@@ -148,7 +148,7 @@ export const generatePDF = async (input) => {
     };
 
   } catch (error) {
-    console.error('PDF Generation Error:', error.message);
+    logger.error('PDF Generation Error:', error.message);
     return {
       success: false,
       error: error.message

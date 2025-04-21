@@ -35,13 +35,13 @@ export async function retryWithBackoff(fn, maxRetries = 3, initialDelay = 1000) 
       
       // If we've exhausted all retries, throw the last error
       if (currentRetry >= maxRetries) {
-        console.error(`All ${maxRetries} retry attempts failed.`);
-        console.error(`Error history:`, errors.map(e => e.message));
+        logger.error(`All ${maxRetries} retry attempts failed.`);
+        logger.error(`Error history:`, errors.map(e => e.message));
         throw error;
       }
       
       // Log the error and prepare for retry
-      console.warn(`Attempt ${currentRetry + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
+      logger.warn(`Attempt ${currentRetry + 1} failed: ${error.message}. Retrying in ${delay}ms...`);
       
       // Wait before the next retry
       await new Promise(resolve => setTimeout(resolve, delay));

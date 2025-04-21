@@ -1,140 +1,174 @@
 
-import { Card, CardContent } from "@/components/ui/card";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { useEffect, useRef, useState } from "react";
+import { Search, FileText, Image, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Zap } from "lucide-react";
-import { AnimateOnScroll } from "./AnimateOnScroll";
+import { AnimateOnScroll } from "@/features/landing/components/AnimateOnScroll";
+import { Card, CardContent } from "@/components/ui/card";
+
+// Feature content data
+const featureContent = [
+  {
+    id: 1,
+    title: "SEO & Keyword Analysis",
+    icon: Search,
+    subtitle: "Find untapped opportunities with AI-powered keyword research.",
+    videoSrc: "https://placehold.it/1280x720.mp4", // Replace with real
+    color: "purple"
+  },
+  {
+    id: 2,
+    title: "Effortless Listing Creation",
+    icon: FileText,
+    subtitle: "AI writes conversion-focused listings in seconds.",
+    videoSrc: "https://placehold.it/1280x720.mp4", // Replace with real
+    color: "yellow"
+  },
+  {
+    id: 3,
+    title: "Visual Photo Editing",
+    icon: Image,
+    subtitle: "Transform product images with one-click enhancements.",
+    videoSrc: "https://placehold.it/1280x720.mp4", // Replace with real
+    color: "green"
+  }
+];
 
 export const LiveDemoPreview = () => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Responsive size state for mobile adaptation
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Track window resize for responsiveness
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Autoplay video on feature switch
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.play();
+    }
+  }, [activeIndex]);
+
   return (
-    <section className="w-full py-12 md:py-24 lg:py-32 relative overflow-hidden bg-background">
-      {/* Subtle gradient background effect */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent to-muted/20 pointer-events-none"></div>
-      
-      <div className="container px-4 md:px-6 relative">
-        <AnimateOnScroll animation="fade-up" duration={500}>
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="inline-flex h-6 animate-fade-in items-center rounded-full bg-primary/10 px-3 text-sm font-medium text-primary">
-              <Zap size={16} className="mr-2" />
-              See the magic happen
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                From Idea to <span className="text-primary">Perfect Listing</span> in Minutes
-              </h2>
-              <p className="max-w-[700px] text-muted-foreground md:text-xl/relaxed mx-auto">
-                No more staring at a blank screen. Just add your basic product details, 
-                and watch as Zippify transforms them into a complete, professional listing.
-              </p>
-            </div>
-          </div>
-        </AnimateOnScroll>
-        
-        <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <AnimateOnScroll animation="fade-right" delay={200} duration={500}>
-            <div className="space-y-6">
-              <Card className="hover:shadow-md transition-all duration-300 border-primary/10">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center">
-                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-primary text-sm">1</span>
-                    You Provide the Basics
-                  </h3>
-                  <div className="space-y-4">
-                    <div className="transition-all duration-300 hover:bg-muted/50 p-2 rounded-md">
-                      <p className="text-sm font-medium mb-1 text-primary">Product Name</p>
-                      <p className="p-2 bg-muted rounded-md">Hand-knitted Alpaca Wool Sweater</p>
-                    </div>
-                    
-                    <div className="transition-all duration-300 hover:bg-muted/50 p-2 rounded-md">
-                      <p className="text-sm font-medium mb-1 text-primary">Brief Description</p>
-                      <p className="p-2 bg-muted rounded-md">Warm sweater made from alpaca wool in blue color, size medium.</p>
-                    </div>
-                    
-                    <div className="transition-all duration-300 hover:bg-muted/50 p-2 rounded-md">
-                      <p className="text-sm font-medium mb-1 text-primary">Product Image</p>
-                      <div className="w-full h-32 bg-muted rounded-md flex items-center justify-center text-muted-foreground">
-                        <div className="flex flex-col items-center">
-                          <svg className="w-10 h-10 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                          </svg>
-                          <p className="text-xs mt-2">Your product photo</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </AnimateOnScroll>
-          
-          <AnimateOnScroll animation="fade-left" delay={400} duration={500}>
-            <Card className="bg-gradient-to-br from-background to-muted/30 shadow-md hover:shadow-lg transition-all duration-300">
-              <CardContent className="p-6">
-                <h3 className="text-xl font-semibold mb-4 flex items-center">
-                  <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center mr-2 text-primary text-sm">2</span>
-                  Zippify Creates a Complete Listing
-                </h3>
-                <div className="space-y-4">
-                  <div className="transition-all duration-300 hover:bg-background p-2 rounded-md">
-                    <p className="text-sm font-medium mb-1 text-primary">SEO-Optimized Title</p>
-                    <p className="p-2 bg-muted rounded-md border-l-2 border-primary">Hand-knitted 100% Alpaca Wool Sweater | Cozy Handmade Winter Pullover | Eco-Friendly Knitwear | Blue Medium Size</p>
-                  </div>
-                  
-                  <div className="transition-all duration-300 hover:bg-background p-2 rounded-md">
-                    <p className="text-sm font-medium mb-1 text-primary">Professional Description</p>
-                    <div className="p-2 bg-muted rounded-md h-32 overflow-y-auto text-left border-l-2 border-primary">
-                      <p className="text-sm">
-                        Wrap yourself in luxurious comfort with this handcrafted alpaca wool sweater, 
-                        lovingly knitted to provide exceptional warmth without the bulk. 
-                        Each stitch represents our commitment to quality craftsmanship and sustainable fashion...
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="transition-all duration-300 hover:bg-background p-2 rounded-md">
-                    <p className="text-sm font-medium mb-1 text-primary">SEO Tags (Based on Real Searches)</p>
-                    <div className="flex flex-wrap gap-2">
-                      {["alpaca wool", "handmade sweater", "blue knitwear", "winter pullover", "eco-friendly"].map((tag) => (
-                        <span key={tag} className="px-2 py-1 bg-primary/10 text-primary text-xs rounded-full hover:bg-primary/20 transition-colors cursor-pointer">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="transition-all duration-300 hover:bg-background p-2 rounded-md">
-                    <p className="text-sm font-medium mb-1 text-primary">Enhanced Image</p>
-                    <AspectRatio ratio={4/3} className="bg-muted rounded-md overflow-hidden border-l-2 border-primary">
-                      <div className="h-full w-full flex items-center justify-center bg-gradient-to-r from-primary/5 to-secondary/5">
-                        <div className="flex flex-col items-center text-muted-foreground">
-                          <svg className="w-12 h-12 text-primary/30" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                          </svg>
-                          <p className="text-sm mt-2">Professionally enhanced image</p>
-                          <p className="text-xs mt-1">With improved lighting, background removal, and composition</p>
-                        </div>
-                      </div>
-                    </AspectRatio>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </AnimateOnScroll>
+    <section className="relative py-20 overflow-hidden" id="features">
+      {/* Subtle background gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/20 z-0">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_500px_at_50%_300px,rgba(155,135,245,0.3),transparent)]"></div>
         </div>
-        
-        <AnimateOnScroll animation="fade-up" delay={600} duration={500}>
-          <div className="mt-12 text-center">
-            <Button 
-              size="lg" 
-              className="group bg-primary hover:scale-105 hover:shadow-lg transition-all duration-300"
-            >
-              Try It With Your Product
-              <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <p className="text-sm text-muted-foreground mt-3">
-              No technical skills required. Just upload and let AI do the work.
-            </p>
+      </div>
+      <div className="container relative z-10 px-2 mx-auto">
+        <AnimateOnScroll animation="fade-up" className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-3">
+            Powerful Tools for{" "}
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary to-purple-400">Etsy Sellers</span>
+          </h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Simplify your workflow and boost sales with our integrated suite of seller tools.
+          </p>
+        </AnimateOnScroll>
+        {/* Desktop two-col layout */}
+        <div className={`flex flex-col ${isMobile ? "" : "md:flex-row md:justify-center md:items-stretch"} w-full gap-6 md:gap-12 max-w-6xl mx-auto transition-all`}>
+          {/* Left/Top: Main video card */}
+          <div className={`${isMobile ? "" : "w-full md:w-[60%]"} flex items-center justify-center`}>
+            <div className="relative aspect-video w-full md:w-full rounded-2xl shadow-2xl overflow-hidden border border-white/10 bg-black">
+              {/* Video */}
+              <video
+                ref={videoRef}
+                className="w-full h-full object-cover"
+                autoPlay
+                playsInline
+                muted
+                loop
+                poster=""
+                style={{
+                  background: "#222",
+                }}
+              >
+                <source src={featureContent[activeIndex].videoSrc} type="video/mp4" />
+              </video>
+              {/* Subtle overlay for text */}
+              {/* Subtle overlay: from 0% at top to 30% black at bottom */}
+              <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-black/0 via-black/10 to-black/30"></div>
+
+              {/* Text overlay */}
+              <div className="absolute left-0 bottom-0 right-0 px-6 py-6 md:px-10 z-10 flex flex-col gap-1">
+                <div className="flex items-center">
+                  <div className={`
+                    mr-4 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold shrink-0 
+                    ${activeIndex === 0 ? "bg-purple-100 text-purple-600" :
+                      activeIndex === 1 ? "bg-yellow-100 text-yellow-600" :
+                      "bg-green-100 text-green-600"}
+                  `}>
+                    {featureContent[activeIndex].id}
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-1">{featureContent[activeIndex].title}</h3>
+                </div>
+                <p className="text-white/90 text-sm md:text-base">{featureContent[activeIndex].subtitle}</p>
+              </div>
+            </div>
           </div>
+          {/* Right/Bottom: Three smaller feature cards */}
+          <div className={`${isMobile ? "mt-6 flex flex-col gap-3" : "flex flex-col gap-4 w-full md:w-[40%] min-w-[250px] max-w-xs"}`}>
+            {featureContent.map((feature, index) => {
+              const Icon = feature.icon;
+              const isActive = index === activeIndex;
+              return (
+                <button
+                  key={feature.id}
+                  onClick={() => setActiveIndex(index)}
+                  className={`group relative w-full transition-all focus:outline-none
+                    ${isActive
+                      ? "z-10 opacity-100 scale-105 border-2 border-primary bg-background"
+                      : "opacity-60 scale-100 border border-transparent"}
+                    rounded-xl shadow-md px-3 md:px-2 py-2 md:py-3 hover:opacity-90 hover:scale-105
+                    flex items-center gap-3
+                  `}
+                  style={{minHeight: isMobile ? 60 : 72}}
+                  aria-current={isActive}
+                  tabIndex={0}
+                >
+                  <div className={`
+                      w-10 h-10 flex items-center justify-center rounded-full bg-white/90 shadow
+                      ${index === 0 ? "text-purple-500 ring-2 ring-purple-200" :
+                        index === 1 ? "text-yellow-600 ring-2 ring-yellow-200" :
+                        "text-green-600 ring-2 ring-green-200"}
+                    `}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <span className="block font-semibold text-sm md:text-base">{feature.title}</span>
+                    <span className="block text-xs md:text-xs text-muted-foreground">{feature.subtitle}</span>
+                  </div>
+                  {/* Arrow indicator for active */}
+                  {isActive && (
+                    <ArrowRight className={`ml-2 text-primary animate-fade-in transition-all`} />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {/* CTA Button */}
+        <AnimateOnScroll 
+          animation="fade-up" 
+          delay={300} 
+          className="mt-12 flex justify-center"
+        >
+          <Button
+            size="lg"
+            className="px-8 py-6 text-lg font-bold rounded-full shadow-xl bg-gradient-to-r from-primary to-purple-600 hover:opacity-90 hover:scale-105 transition-all"
+          >
+            Start Free Trial
+            <ArrowRight className="ml-2" />
+          </Button>
         </AnimateOnScroll>
       </div>
     </section>

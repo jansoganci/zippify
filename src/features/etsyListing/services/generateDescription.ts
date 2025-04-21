@@ -46,7 +46,7 @@ export async function generateDescription({
   const token = localStorage.getItem('zippify_token');
 
   // Return AI call structure (adjust model/provider if needed)
-  const response = await fetch("/api/deepseek", {
+  const response = await fetch("/deepseek", {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",

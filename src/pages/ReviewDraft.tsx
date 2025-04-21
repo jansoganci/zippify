@@ -1,4 +1,4 @@
-
+import { error } from '../utils/logger';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generatePDF } from '@/services/workflow/generatePDF';
 import { useState, useEffect } from 'react';
@@ -22,7 +22,8 @@ const ReviewDraft = () => {
   const location = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const [formattedContent, setFormattedContent] = useState('');
-  const [error, setError] = useState('');
+  const [errorState, setErrorState] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   
   // Get the optimized pattern from the previous page
   const optimizedPattern = location.state?.optimizedPattern || '';
@@ -52,18 +53,27 @@ Care instructions: Hand wash only with mild soap. Periodically treat with food-s
     // If there's no optimized pattern, don't try to format it
     if (!optimizedPattern) return;
     
-    const formatContent = async () => {
+  
+const formatContent = async () => {
       setIsLoading(true);
       try {
         const result = await generatePDF({ optimizedPattern });
         if (result.success) {
           setFormattedContent(result.pdfContent);
         } else {
-          setError(result.error || 'Failed to format content');
+          setErrorMsg(result.error || 'Failed to format content');
         }
-      } catch (error) {
-        console.error('PDF generation error:', error);
-        setError(error.message || 'An unexpected error occurred');
+      } catch (err: any) {
+        error('PDF generation error:', err);
+        let msg = 'An unexpected error occurred';
+        if (typeof err === 'object' && err !== null && err.response?.data) {
+          msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
+        } else if (typeof err === 'object' && err !== null && err.message) {
+          msg = err.message;
+        } else if (typeof err === 'string') {
+          msg = err;
+        }
+        setErrorMsg(msg);
       } finally {
         setIsLoading(false);
       }
@@ -127,7 +137,7 @@ Care instructions: Hand wash only with mild soap. Periodically treat with food-s
             
             <ScrollArea className="h-[400px] w-full rounded-md border">
               <div className="p-4 font-mono text-sm whitespace-pre-wrap">
-                {isLoading ? 'Formatting content...' : error ? `Error: ${error}` : (formattedContent || draftContent)}
+                {isLoading ? 'Formatting content...' : error ? `Error: ${errorMsg}` : (formattedContent || draftContent)}
               </div>
             </ScrollArea>
           </CardContent>

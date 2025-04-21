@@ -2,11 +2,9 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 export const ScrollingStickyButton = () => {
   const [isVisible, setIsVisible] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,7 +36,6 @@ export const ScrollingStickyButton = () => {
       <Button
         size="lg"
         className="group shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 bg-primary overflow-hidden relative"
-        onClick={() => navigate('/create')}
       >
         <span className="relative z-10 flex items-center">
           Start Free Trial

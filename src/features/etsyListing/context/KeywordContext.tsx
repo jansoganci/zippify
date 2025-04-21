@@ -44,7 +44,7 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       const storedKeywords = localStorage.getItem(STORAGE_KEY);
       return storedKeywords ? JSON.parse(storedKeywords) : [];
     } catch (error) {
-      console.error('Error loading keywords from localStorage:', error);
+      if (import.meta.env.MODE !== 'production') if (import.meta.env.MODE !== 'production') console.error('Error loading keywords from localStorage:', error);
       return [];
     }
   });
@@ -60,9 +60,9 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       // Immediately save to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedKeywords));
-        console.log(`Saved ${updatedKeywords.length} keywords to localStorage`);
+        if (import.meta.env.MODE !== 'production') if (import.meta.env.MODE !== 'production') console.log(`Saved ${updatedKeywords.length} keywords to localStorage`);
       } catch (error) {
-        console.error('Error saving keywords to localStorage:', error);
+        if (import.meta.env.MODE !== 'production') if (import.meta.env.MODE !== 'production') console.error('Error saving keywords to localStorage:', error);
       }
       
       return updatedKeywords;
@@ -77,11 +77,11 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
         const parsedKeywords = JSON.parse(storedKeywords);
         if (Array.isArray(parsedKeywords) && parsedKeywords.length > 0) {
           setKeywordsWithStorage(parsedKeywords);
-          console.log(`Loaded ${parsedKeywords.length} keywords from localStorage on mount`);
+          if (import.meta.env.MODE !== 'production') if (import.meta.env.MODE !== 'production') console.log(`Loaded ${parsedKeywords.length} keywords from localStorage on mount`);
         }
       }
     } catch (error) {
-      console.error('Error loading keywords from localStorage on mount:', error);
+      if (import.meta.env.MODE !== 'production') if (import.meta.env.MODE !== 'production') console.error('Error loading keywords from localStorage on mount:', error);
     }
   }, []);
 

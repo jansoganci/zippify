@@ -1,3 +1,5 @@
+// src/App.tsx
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,15 +21,16 @@ import ForgetPassword from "./pages/ForgetPassword";
 import Index from "./pages/Index";
 import CreateListing from "./features/etsyListing/pages/CreateListing";
 import Listings from "./pages/Listings";
-import ListingDetailPage from "./pages/ListingDetailPage"; // ✅ Ekledik
+import ListingDetailPage from "./pages/ListingDetailPage";
 import Profile from "./pages/Profile";
-import OptimizePattern from "./pages/optimizePattern";
+import OptimizePattern from "./pages/optimizePattern";       // ⚠️ Casing must match file name
 import ReviewDraft from "./pages/ReviewDraft";
 import ListingGeneration from "./pages/ListingGeneration";
 import EditProductImage from "./features/imageEditing/EditImagePage";
 import SeoKeywordAnalysis from "./features/seoAnalysis/SeoKeywordAnalysis";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
+import RootRedirect from "./pages/RootRedirect";
 
 const queryClient = new QueryClient();
 
@@ -39,90 +42,130 @@ const App = () => (
         <Sonner />
         <KeywordProvider>
           <BrowserRouter>
-        <Routes>
-          {/* Authentication Routes */}
-          <Route path="/login" element={
-            <AuthRedirect>
-              <Login />
-            </AuthRedirect>
-          } />
-          <Route path="/register" element={
-            <AuthRedirect>
-              <Register />
-            </AuthRedirect>
-          } />
-          <Route path="/forgot-password" element={
-            <AuthRedirect>
-              <ForgetPassword />
-            </AuthRedirect>
-          } />
+            <Routes>
+              {/* Authentication Routes */}
+              <Route
+                path="/login"
+                element={
+                  <AuthRedirect>
+                    <Login />
+                  </AuthRedirect>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <AuthRedirect>
+                    <Register />
+                  </AuthRedirect>
+                }
+              />
+              <Route
+                path="/forgot-password"
+                element={
+                  <AuthRedirect>
+                    <ForgetPassword />
+                  </AuthRedirect>
+                }
+              />
 
-          {/* Dashboard Route */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Index />
-            </ProtectedRoute>
-          } />
+              {/* Dashboard Route */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Index />
+                  </ProtectedRoute>
+                }
+              />
 
-          {/* Landing Page Route */}
-          <Route path="/landing" element={<LandingPage />} />
+              {/* Landing Page */}
+              <Route path="/landing" element={<LandingPage />} />
 
-          {/* Protected Application Routes */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/create" element={
-            <ProtectedRoute>
-              <CreateListing />
-            </ProtectedRoute>
-          } />
-          <Route path="/optimize" element={
-            <ProtectedRoute>
-              <OptimizePattern />
-            </ProtectedRoute>
-          } />
-          <Route path="/review" element={
-            <ProtectedRoute>
-              <ReviewDraft />
-            </ProtectedRoute>
-          } />
-          <Route path="/listing-generation" element={
-            <ProtectedRoute>
-              <ListingGeneration />
-            </ProtectedRoute>
-          } />
-          <Route path="/edit-image" element={
-            <ProtectedRoute>
-              <EditProductImage />
-            </ProtectedRoute>
-          } />
-          <Route path="/seo-keywords" element={
-            <ProtectedRoute>
-              <SeoKeywordAnalysis />
-            </ProtectedRoute>
-          } />
-          <Route path="/listings" element={
-            <ProtectedRoute>
-              <Listings />
-            </ProtectedRoute>
-          } />
-          {/* ✅ Detay sayfası için yeni route */}
-          <Route path="/listings/:id" element={
-            <ProtectedRoute>
-              <ListingDetailPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
+              {/* Root Redirect (auth‐aware) */}
+              <Route path="/" element={<RootRedirect />} />
 
-          {/* 404 Route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+              {/* Protected Application Routes */}
+              <Route
+                path="/create"
+                element={
+                  <ProtectedRoute>
+                    <CreateListing />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/optimize"
+                element={
+                  <ProtectedRoute>
+                    <OptimizePattern />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/review"
+                element={
+                  <ProtectedRoute>
+                    <ReviewDraft />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/listing-generation"
+                element={
+                  <ProtectedRoute>
+                    <ListingGeneration />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-image"
+                element={
+                  <ProtectedRoute>
+                    <EditProductImage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/seo-keywords"
+                element={
+                  <ProtectedRoute>
+                    <SeoKeywordAnalysis />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/listings"
+                element={
+                  <ProtectedRoute>
+                    <Listings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/listings/:id"
+                element={
+                  <ProtectedRoute>
+                    <ListingDetailPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Catch‑all 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </KeywordProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   </ThemeProvider>
 );
 

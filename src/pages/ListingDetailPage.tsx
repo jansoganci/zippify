@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Tag, ArrowLeft, Loader2 } from 'lucide-react';
+import { log, error } from '../utils/logger';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/services/api/apiClient';
 
@@ -22,14 +22,15 @@ interface Listing {
 const ListingDetailPage = () => {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
   useEffect(() => {
+
     const fetchListing = async () => {
       if (!id) {
-        setError('Listing ID not found');
+        setErrorMsg('Listing ID not found');
         setLoading(false);
         return;
       }
@@ -39,7 +40,7 @@ const ListingDetailPage = () => {
         const response = await (api as any).getListing(id);
         
         if (import.meta.env.DEV) {
-          console.log(`[ListingDetail] Response for listing ${id}:`, {
+          log(`[ListingDetail] Response for listing ${id}:`, {
             hasData: !!response?.data,
             hasListing: !!response?.data?.listing
           });
@@ -50,7 +51,7 @@ const ListingDetailPage = () => {
           const listingData = response.data.listing;
           
           if (import.meta.env.DEV) {
-            console.log('[ListingDetail] Raw listing data:', {
+            log('[ListingDetail] Raw listing data:', {
               hasAltTexts: 'alt_texts' in listingData,
               hasOriginalPrompt: 'original_prompt' in listingData,
               altTextsType: listingData.alt_texts ? typeof listingData.alt_texts : 'undefined',
@@ -77,11 +78,11 @@ const ListingDetailPage = () => {
             originalPrompt: listingData.original_prompt || ''
           });
         } else {
-          setError('Listing not found');
+          setErrorMsg('Listing not found');
         }
       } catch (err) {
-        setError('Failed to load listing details');
-        console.error('Error fetching listing:', err);
+        setErrorMsg('Failed to load listing details');
+        error('Error fetching listing:', err);
       } finally {
         setLoading(false);
       }
@@ -109,10 +110,10 @@ const ListingDetailPage = () => {
           </div>
         )}
         
-        {error && (
+        {errorMsg && (
           <Card className="bg-destructive/10 border-destructive">
             <CardContent className="p-6">
-              <p className="text-destructive font-medium">{error}</p>
+              <p className="text-destructive font-medium">{errorMsg}</p>
               <Button 
                 variant="outline" 
                 className="mt-4" 
@@ -124,7 +125,7 @@ const ListingDetailPage = () => {
           </Card>
         )}
         
-        {!loading && !error && listing && (
+        {!loading && !errorMsg && listing && (
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">{listing.title}</CardTitle>

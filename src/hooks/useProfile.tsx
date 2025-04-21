@@ -18,7 +18,7 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/api/profile', {
+  const response = await fetch('/profile', {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -42,7 +42,7 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/api/profile', {
+  const response = await fetch('/profile', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ export function useProfile() {
   useEffect(() => {
     const token = localStorage.getItem('zippify_token');
     if (!token) {
-      console.warn('No authentication token found, redirecting to login');
+      if (import.meta.env.MODE !== 'production') console.warn('No authentication token found, redirecting to login');
       navigate('/login');
     }
   }, [navigate]);
@@ -97,7 +97,7 @@ export function useProfile() {
   // Handle query errors
   useEffect(() => {
     if (error) {
-      console.error('Profile fetch error:', error);
+      if (import.meta.env.MODE !== 'production') console.error('Profile fetch error:', error);
       if (error instanceof Error && 
           (error.message.includes('Unauthorized') || 
            error.message.includes('No authentication token'))) {

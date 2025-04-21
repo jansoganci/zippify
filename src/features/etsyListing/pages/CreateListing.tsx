@@ -36,7 +36,7 @@ const CreateListing: React.FC = () => {
   
   // Debug log to verify keywords are loaded correctly
   React.useEffect(() => {
-    console.log('[DEBUG] Keywords in CreateListing:', keywords);
+    if (import.meta.env.MODE !== 'production') console.log('[DEBUG] Keywords in CreateListing:', keywords);
   }, [keywords]);
   const [newKeyword, setNewKeyword] = useState<string>("");
   const [result, setResult] = useState<ListingResult>({
@@ -110,8 +110,8 @@ const CreateListing: React.FC = () => {
         keywords.map(k => k.keyword)
       );
 
-      console.log("🟡 Tags result:", tagsResponse?.content);
-      console.log("🟠 Alt Texts result:", altTextResponse?.content);
+      if (import.meta.env.MODE !== 'production') console.log("🟡 Tags result:", tagsResponse?.content);
+      if (import.meta.env.MODE !== 'production') console.log("🟠 Alt Texts result:", altTextResponse?.content);
 
       // Check if all responses have valid content
       if (titleResponse?.content && descriptionResponse?.content && 
@@ -119,26 +119,26 @@ const CreateListing: React.FC = () => {
         
         // If all API calls were successful, increment quota
         try {
-          await backendApi.post('/api/increment-quota', { featureKey: 'create-listing' });
-          console.log('Successfully incremented quota for create-listing');
+          await backendApi.post('/increment-quota', { featureKey: 'create-listing' });
+          if (import.meta.env.MODE !== 'production') console.log('Successfully incremented quota for create-listing');
         } catch (quotaError) {
           // Log error but don't show to user
-          console.error('Failed to increment quota:', quotaError);
+          if (import.meta.env.MODE !== 'production') console.error('Failed to increment quota:', quotaError);
         }
       }
       
       let tags = [];
       try {
         tags = JSON.parse(tagsResponse?.content || "[]");
-        console.log("✅ Tags parsed successfully:", tags);
+        if (import.meta.env.MODE !== 'production') console.log("✅ Tags parsed successfully:", tags);
       } catch (e) {
-        console.error("❌ Failed to parse tags JSON:", tagsResponse?.content);
+        if (import.meta.env.MODE !== 'production') console.error("❌ Failed to parse tags JSON:", tagsResponse?.content);
         tags = [];
       }
       const altTexts = altTextResponse?.content || "";
       
-      console.log("🟡 Tags array after processing:", tags);
-      console.log("🟠 Alt Texts after processing:", altTexts);
+      if (import.meta.env.MODE !== 'production') console.log("🟡 Tags array after processing:", tags);
+      if (import.meta.env.MODE !== 'production') console.log("🟠 Alt Texts after processing:", altTexts);
       
       setResult({
         title: titleResponse?.content || "",
@@ -173,8 +173,8 @@ const CreateListing: React.FC = () => {
           ? altTextsArray 
           : [altTexts.trim()];
         
-        console.log("🟢 Processed altTexts array:", finalAltTextsArray);
-        console.log("🟢 Final altTexts array:", finalAltTextsArray);
+        if (import.meta.env.MODE !== 'production') console.log("🟢 Processed altTexts array:", finalAltTextsArray);
+        if (import.meta.env.MODE !== 'production') console.log("🟢 Final altTexts array:", finalAltTextsArray);
         
         await createListing({
           title: titleResponse?.content || "",
@@ -183,12 +183,12 @@ const CreateListing: React.FC = () => {
           altTexts: finalAltTextsArray,
           originalPrompt: prompt
         });
-        console.log("✅ [CreateListing] Listing saved successfully to DB");
+        if (import.meta.env.MODE !== 'production') console.log("✅ [CreateListing] Listing saved successfully to DB");
       } catch (err) {
-        console.error("❌ [CreateListing] Failed to save listing to DB:", err.message);
+        if (import.meta.env.MODE !== 'production') console.error("❌ [CreateListing] Failed to save listing to DB:", err.message);
       }
     } catch (err) {
-      console.error("Error generating listing:", err);
+      if (import.meta.env.MODE !== 'production') console.error("Error generating listing:", err);
       
       // Check for 403 Quota Exceeded error
       if (err.response && err.response.status === 403) {

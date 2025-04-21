@@ -45,12 +45,12 @@ export const optimizePattern = async (pattern) => {
   try {
     // Validate input
     if (!pattern) {
-      console.error(`[${requestId}] Pattern text is missing`);
+      logger.error(`[${requestId}] Pattern text is missing`);
       throw new Error('Pattern text is required');
     }
     
     if (typeof pattern !== 'string') {
-      console.error(`[${requestId}] Invalid pattern type: ${typeof pattern}`);
+      logger.error(`[${requestId}] Invalid pattern type: ${typeof pattern}`);
       throw new Error('Pattern must be a string');
     }
 
@@ -102,8 +102,8 @@ export const optimizePattern = async (pattern) => {
           throw new Error('Invalid response from backend API');
         }
       } catch (backendError) {
-        // Backend hata verirse, doğrudan API'yi kullanmayı dene (fallback)
-        console.warn(`[${requestId}] Backend API error, falling back to direct API call:`, backendError.message);
+        // If backend fails, try using direct API (fallback)
+        logger.warn(`[${requestId}] Backend API error, falling back to direct API call:`, backendError.message);
         optimizedPattern = await Promise.race([
           makeCompletion(SYSTEM_PROMPT, userPrompt),
           new Promise((_, reject) => 
@@ -112,13 +112,13 @@ export const optimizePattern = async (pattern) => {
         ]);
       }
     } catch (apiError) {
-      console.error(`[${requestId}] API error:`, apiError);
+      logger.error(`[${requestId}] API error:`, apiError);
       throw new Error(`DeepSeek API error: ${apiError.message}`);
     }
     
     // Validate response
     if (!optimizedPattern || typeof optimizedPattern !== 'string' || optimizedPattern.length < 10) {
-      console.error(`[${requestId}] Invalid API response:`, optimizedPattern);
+      logger.error(`[${requestId}] Invalid API response:`, optimizedPattern);
       throw new Error('Received invalid response from DeepSeek API');
     }
     
@@ -136,7 +136,7 @@ export const optimizePattern = async (pattern) => {
     };
 
   } catch (error) {
-    console.error(`[${requestId}] Pattern Optimization Error:`, error);
+    logger.error(`[${requestId}] Pattern Optimization Error:`, error);
     return {
       success: false,
       error: error.message,

@@ -42,7 +42,7 @@ const EditProductImage = () => {
     
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      console.log(`Image selected: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
+      if (import.meta.env.MODE !== 'production') console.log(`Image selected: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
       
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size exceeds 5MB limit. Please select a smaller image.");
@@ -52,12 +52,12 @@ const EditProductImage = () => {
       const reader = new FileReader();
       
       reader.onload = () => {
-        console.log("Image successfully loaded and converted to base64");
+        if (import.meta.env.MODE !== 'production') console.log("Image successfully loaded and converted to base64");
         setSelectedImage(reader.result as string);
       };
       
       reader.onerror = () => {
-        console.error("Error reading file:", reader.error);
+        if (import.meta.env.MODE !== 'production') console.error("Error reading file:", reader.error);
         setError("Failed to read the image file. Please try another image.");
       };
       
@@ -76,7 +76,7 @@ const EditProductImage = () => {
       return;
     }
     
-    console.log(`Submitting image edit request with prompt: "${prompt}"`);
+    if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
     setIsLoading(true);
     
     // Process the image edit using the service function
@@ -176,7 +176,7 @@ const EditProductImage = () => {
         variant: successCount === results.length ? "default" : "destructive"
       });
     } catch (error) {
-      console.error("Batch processing error:", error);
+      if (import.meta.env.MODE !== 'production') console.error("Batch processing error:", error);
       toast({
         title: "Processing Error",
         description: error instanceof Error ? error.message : "Failed to process images",
@@ -214,7 +214,7 @@ const EditProductImage = () => {
                   return;
                 }
                 
-                console.log(`Submitting image edit request with prompt: "${prompt}"`);
+                if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
                 setIsLoading(true);
                 
                 // Process the image edit using the service function

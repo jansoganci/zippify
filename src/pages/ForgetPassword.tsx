@@ -39,10 +39,16 @@ export default function ForgetPassword() {
       setIsSuccess(true);
       form.reset(); // Clear the form
     } catch (error: any) {
-      console.error("Forgot password error:", error);
-      setErrorMessage(
-        error.message || "Failed to process your request. Please try again."
-      );
+      if (import.meta.env.MODE !== 'production') console.error("Forgot password error:", error);
+      if (import.meta.env.MODE !== 'production') console.warn("Forgot password error:", error);
+      // Enhanced error handling for backend messages
+      let msg = "Failed to process your request. Please try again.";
+      if (error?.response?.data) {
+        msg = error.response.data.userMessage || error.response.data.message || error.message || msg;
+      } else if (error?.message) {
+        msg = error.message;
+      }
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
     }

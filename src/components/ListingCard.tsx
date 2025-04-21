@@ -1,3 +1,4 @@
+
 import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,7 +11,7 @@ interface ListingCardProps {
   createdAt: Date;
   description: string;
   tags: string[];
-  onClick?: () => void;
+  onListingClick?: () => void;
 }
 
 const ListingCard = ({
@@ -19,15 +20,14 @@ const ListingCard = ({
   createdAt,
   description,
   tags,
-  onClick,
+  onListingClick,
 }: ListingCardProps) => {
-  const navigate = useNavigate();
   const displayTags = tags.slice(0, 5);
   const remainingTags = tags.length - 5;
 
   return (
     <Card 
-      onClick={() => onClick ? onClick() : navigate(`/listings/${id}`)}
+      onClick={() => onListingClick?.()}
       className="hover:shadow-md hover:border-primary/20 transition-all duration-300 cursor-pointer"
     >
       <CardContent className="p-6">

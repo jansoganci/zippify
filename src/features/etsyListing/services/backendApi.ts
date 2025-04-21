@@ -13,8 +13,8 @@ export async function createListing(listingData: {
   originalPrompt: string;
 }) {
   try {
-    console.log("💶 [createListing] Payload being sent:", listingData);
-    const response = await apiClient.post("/api/save-listing", listingData);
+    if (import.meta.env.MODE !== 'production') console.log("💶 [createListing] Payload being sent:", listingData);
+    const response = await apiClient.post("/save-listing", listingData);
     return response.data;
   } catch (error) {
     console.error("❌ [createListing] Failed to save listing:", error);

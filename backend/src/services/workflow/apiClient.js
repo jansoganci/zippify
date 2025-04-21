@@ -51,10 +51,10 @@ const getEnv = (key, defaultValue) => {
 const API_URL = getEnv('DEEPSEEK_API_URL');
 const MODEL = getEnv('DEEPSEEK_MODEL', 'deepseek-chat');
 const MAX_TOKENS = parseInt(getEnv('DEEPSEEK_MAX_TOKENS', '4096'), 10);
-const MAX_RETRIES = parseInt(getEnv('DEEPSEEK_MAX_RETRIES', '5'), 10); // Arttırıldı
-const RETRY_DELAY = parseInt(getEnv('DEEPSEEK_RETRY_DELAY', '3000'), 10); // Arttırıldı
-const TIMEOUT = parseInt(getEnv('DEEPSEEK_TIMEOUT', '60000'), 10); // Arttırıldı
-const RATE_LIMIT = parseInt(getEnv('DEEPSEEK_RATE_LIMIT', '5'), 10); // Azaltıldı
+const MAX_RETRIES = parseInt(getEnv('DEEPSEEK_MAX_RETRIES', '5'), 10); // Increased
+const RETRY_DELAY = parseInt(getEnv('DEEPSEEK_RETRY_DELAY', '3000'), 10); // Increased
+const TIMEOUT = parseInt(getEnv('DEEPSEEK_TIMEOUT', '60000'), 10); // Increased
+const RATE_LIMIT = parseInt(getEnv('DEEPSEEK_RATE_LIMIT', '5'), 10); // Decreased
 
 // Function to get API key dynamically when needed instead of at module load time
 const getApiKey = () => {
@@ -191,7 +191,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', {
+    logger.error('API Error:', {
       message: error.message,
       code: error.code,
       status: error.response?.status,
@@ -243,41 +243,30 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
   console.log('API Key status:', currentApiKey ? `Present (length: ${currentApiKey.length})` : 'Missing');
   
   if (!currentApiKey) {
-    console.error('API Key not found. Environment:', isNode ? 'Node.js' : 'Browser');
+    logger.error('API Key not found. Environment:', isNode ? 'Node.js' : 'Browser');
     throw createApiError('DeepSeek API key is not configured', { code: ErrorCodes.MISSING_REQUIRED_FIELD });
   }
 
-  // Detaylı API URL logı
+  // Detailed API URL log
   const fullUrl = `${API_URL}${endpoint}`;
   console.log(`Full API URL: ${fullUrl}`);
 
   while (attempt <= maxAttempts) {
     try {
-      console.log(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { 
+      logger.info(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { 
         endpoint,
-        model: data.model,
-        messagesCount: data.messages?.length,
-        maxTokens: data.max_tokens
-      });
-      
-      // Wait for rate limit if needed
-      await checkRateLimit();
-      
-      // Set headers with current API key for each request
-      const headers = {
-        'Authorization': `Bearer ${currentApiKey}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'X-Request-ID': `req-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`
-      };
+      });
       
-      // Sadece Node.js ortamında yasaklı header'ları ekle
+      // Add restricted headers only in Node.js environment
       if (isNode) {
         headers['Accept-Encoding'] = 'gzip,deflate,compress';
         headers['User-Agent'] = 'Zippify/1.0';
       }
       
-      // Daha uzun timeout için özel yapılandırma
+      // Custom configuration for longer timeout
       const requestConfig = { 
         headers,
         timeout: TIMEOUT // Her istek için timeout'u ayarla
@@ -287,7 +276,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       if (headers?.Authorization) {
         console.log("Authorization header is present.");
       } else {
-        console.warn("Authorization header is missing!");
+        logger.warn("Authorization header is missing!");
       }
       
       // Log non-sensitive headers
@@ -322,7 +311,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       }
       
       // Handle invalid response format
-      console.error('Invalid API response format:', response.data);
+      logger.error('Invalid API response format:', response.data);
       throw createApiError('Invalid API response format', {
         code: ErrorCodes.INVALID_API_RESPONSE,
         metadata: { endpoint, response: response.data }
@@ -331,8 +320,8 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
     } catch (error) {
       lastError = error;
       
-      // Detaylı hata logı
-      console.error('API request error details:', {
+      // Detailed error log
+      logger.error('API request error details:', {
         message: error.message,
         code: error.code,
         name: error.name,
@@ -351,7 +340,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
         }
       });
       
-      // Daha fazla hata türü için kontrol
+      // Check for more error types
       const isTimeout = error.code === 'ECONNABORTED' || error.message.includes('timeout');
       const isConnectionReset = error.code === 'ECONNRESET';
       const isNetworkError = error.code === 'ENOTFOUND' || error.code === 'EAI_AGAIN' || error.message.includes('network');
@@ -360,18 +349,18 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       const isRetryable = isTimeout || isRateLimit || isServerError || isConnectionReset || isNetworkError;
       
       if (isRetryable && attempt < maxAttempts) {
-        // Daha akıllı backoff stratejisi
+        // Smarter backoff strategy
         let delay;
         if (isRateLimit && error.metadata?.retryAfter) {
           delay = error.metadata.retryAfter;
         } else if (isConnectionReset || isNetworkError) {
-          // Ağ hataları için daha uzun bekleme
+          // Longer wait for network errors
           delay = Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt), 30000);
         } else {
           delay = Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt - 1), 30000);
         }
         
-        console.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
+        logger.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
           endpoint,
           error: error.message,
           errorCode: error.code,
@@ -446,7 +435,7 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
   };
 
   try {
-    // API_URL zaten '/chat/completions' içeriyorsa, tekrar ekleme
+    // If API_URL already contains '/chat/completions', don't append again
     const endpoint = API_URL.includes('/chat/completions') ? '' : '/chat/completions';
     const response = await makeRequest(endpoint, data);
     if (!response.data?.choices?.[0]?.message?.content) {
@@ -457,7 +446,7 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
     return response.data.choices[0].message.content;
   } catch (error) {
     if (error.code === ErrorCodes.API_TIMEOUT) {
-      console.error('API request timed out, using fallback response');
+      logger.error('API request timed out, using fallback response');
       // Use mock response as fallback
       if (userPrompt.includes('optimize this knitting pattern')) {
         return mockResponses.optimizePattern;

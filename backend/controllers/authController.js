@@ -49,7 +49,9 @@ export async function registerUser(req, res) {
       log.info(`[${requestId}] Registration failed: Invalid email format`);
       return res.status(400).json({
         success: false,
-        message: 'Invalid email format',
+        code: 'INVALID_EMAIL_FORMAT',
+        userMessage: 'Please enter a valid email address.',
+        developerMessage: 'Invalid email format',
         requestId
       });
     }
@@ -59,7 +61,9 @@ export async function registerUser(req, res) {
       log.info(`[${requestId}] Registration failed: Password too short`);
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 8 characters long',
+        code: 'WEAK_PASSWORD',
+        userMessage: 'Your password must be at least 8 characters long.',
+        developerMessage: 'Password must be at least 8 characters long',
         requestId
       });
     }
@@ -70,7 +74,9 @@ export async function registerUser(req, res) {
       log.info(`[${requestId}] Registration failed: Email already in use`);
       return res.status(409).json({
         success: false,
-        message: 'Email is already registered',
+        code: 'USER_ALREADY_EXISTS',
+        userMessage: 'This email address is already registered.',
+        developerMessage: 'Email is already registered',
         requestId
       });
     }
@@ -93,7 +99,9 @@ export async function registerUser(req, res) {
     // Return success response
     return res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      code: 'USER_REGISTERED',
+      userMessage: 'Registration successful! You can now log in.',
+      developerMessage: 'User registered successfully',
       token,
       user: {
         id: newUser.id,
@@ -107,7 +115,9 @@ export async function registerUser(req, res) {
     log.error(`[${requestId}] Registration error:`, error.message);
     return res.status(500).json({
       success: false,
-      message: 'Registration failed',
+      code: 'REGISTRATION_ERROR',
+      userMessage: 'An error occurred during registration. Please try again later.',
+      developerMessage: 'Registration failed',
       error: error.message,
       requestId
     });
@@ -171,7 +181,9 @@ export async function loginUser(req, res) {
     // Return success response
     return res.status(200).json({
       success: true,
-      message: 'Login successful',
+      code: 'LOGIN_SUCCESS',
+      userMessage: 'Login successful!',
+      developerMessage: 'Login successful',
       token,
       user: {
         id: user.id,
@@ -186,7 +198,9 @@ export async function loginUser(req, res) {
     log.error(`[${requestId}] Login error:`, error.message);
     return res.status(500).json({
       success: false,
-      message: 'Login failed',
+      code: 'LOGIN_ERROR',
+      userMessage: 'An error occurred during login. Please try again later.',
+      developerMessage: 'Login failed',
       error: error.message,
       requestId
     });

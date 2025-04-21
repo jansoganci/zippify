@@ -39,7 +39,7 @@ const OptimizePattern = () => {
         setOptimizedContent(`Error: ${result.error || 'Failed to optimize content'}`);
       }
     } catch (error) {
-      console.error('Optimization error:', error);
+      if (import.meta.env.MODE !== 'production') console.error('Optimization error:', error);
       setOptimizedContent(`Error: ${error.message || 'An unexpected error occurred'}`);
     } finally {
       setIsOptimizing(false);
