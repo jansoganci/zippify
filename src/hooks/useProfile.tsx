@@ -18,7 +18,7 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/profile', {
+  const response = await fetch('/api/profile', {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -42,7 +42,7 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/profile', {
+  const response = await fetch('/api/profile', {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
