@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Axios instance for frontend API calls (via Nginx proxy)
 const backendApi = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
