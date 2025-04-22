@@ -47,22 +47,22 @@ const handleAuthResponse = (response) => {
 export const api = {
   // Authentication endpoints
   async login(email, password) {
-    const response = await apiClient.post('/auth/login', { email, password });
+    const response = await apiClient.post('/api/auth/login', { email, password });
     return handleAuthResponse(response);
   },
 
   async register(username, email, password) {
-    const response = await apiClient.post('/auth/register', { username, email, password });
+    const response = await apiClient.post('/api/auth/register', { username, email, password });
     return handleAuthResponse(response);
   },
 
   async forgotPassword(email) {
-    const response = await apiClient.post('/auth/forgot-password', { email });
+    const response = await apiClient.post('/api/auth/forgot-password', { email });
     return response.data;
   },
 
   async resetPassword(newPassword, token) {
-    const response = await apiClient.post('/auth/reset-password', { 
+    const response = await apiClient.post('/api/auth/reset-password', { 
       newPassword,
       token
     });
@@ -70,48 +70,48 @@ export const api = {
   },
 
   async verifyEmail(token) {
-    const response = await apiClient.post('/auth/verify-email', { token });
+    const response = await apiClient.post('/api/auth/verify-email', { token });
     return response.data;
   },
   // Profile endpoints
   async getProfile() {
-    const response = await apiClient.get('/profile');
+    const response = await apiClient.get('/api/profile');
     return response.data;
   },
 
   async updateProfile(profileData) {
-    const response = await apiClient.put('/profile', profileData);
+    const response = await apiClient.put('/api/profile', profileData);
     return response.data;
   },
 
   // Listings endpoints
   async getListings(userId) {
-    const response = await apiClient.get(`/listings?userId=${userId}`);
+    const response = await apiClient.get(`/api/listings?userId=${userId}`);
     return response.data;
   },
   
   async getListing(listingId) {
-    const response = await apiClient.get(`/listings/${listingId}`);
+    const response = await apiClient.get(`/api/listings/${listingId}`);
     return response.data;
   },
 
   async createListing(listingData) {
-    const response = await apiClient.post('/listings', listingData);
+    const response = await apiClient.post('/api/listings', listingData);
     return response.data;
   },
 
   async updateListing(listingId, listingData) {
-    const response = await apiClient.put(`/listings/${listingId}`, listingData);
+    const response = await apiClient.put(`/api/listings/${listingId}`, listingData);
     return response.data;
   },
 
   async deleteListing(listingId) {
-    await apiClient.delete(`/listings/${listingId}`);
+    await apiClient.delete(`/api/listings/${listingId}`);
   },
 
   // Files endpoints
   async getFiles(listingId) {
-    const response = await apiClient.get(`/files?listingId=${listingId}`);
+    const response = await apiClient.get(`/api/files?listingId=${listingId}`);
     return response.data;
   },
 
@@ -120,7 +120,7 @@ export const api = {
     formData.append('file', fileData);
     formData.append('listingId', listingId);
     
-    const response = await apiClient.post('/files', formData, {
+    const response = await apiClient.post('/api/files', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
