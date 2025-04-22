@@ -17,12 +17,41 @@ jobs:
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+          
+      - name: Copy .env Files First
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
+            
+            echo "📁 Setting up environment files"
+            # Root .env dosyasını oluştur
+            cat > /root/zippify/.env << 'ENVFILE'
+          EOF
+          
+          echo "${{ secrets.ENV_FILE }}" | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env"
+          
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            # Backend .env dosyasını oluştur
+            cp /root/zippify/.env /root/zippify/backend/.env
+            
+            # Production .env dosyasını oluştur
+            cat > /root/zippify/.env.production << 'ENVPRODFILE'
+          EOF
+          
+          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env.production"
 
       - name: Deploy and Restart
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-
+            
+            # Log dosyası oluştur
+            DEPLOY_LOG="/root/zippify/deploy_$(date +%Y%m%d_%H%M%S).log"
+            exec > >(tee -a "$DEPLOY_LOG") 2>&1
+            
+            echo "📝 Logging deployment to: $DEPLOY_LOG"
+            echo "⏱️ Deployment started at $(date)"
+            
             echo "📁 Navigating to: ~/zippify"
             cd ~/zippify
 
@@ -56,4 +85,42 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env.production" << 'EOF'
           ${{ secrets.ENV_PRODUCTION_FILE }}
+          EOF
+
+      - name: Restart Backend and Check Status
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
+            
+            echo "🔄 Restarting backend service"
+            cd /root/zippify/backend
+            
+            # Eksik paketleri yükle
+            echo "📦 Installing backend dependencies"
+            npm install
+            
+            # Backend servisini yeniden başlat
+            echo "🚀 Restarting backend service"
+            pm2 restart zippify-backend
+            
+            # Backend servisinin durumunu kontrol et
+            echo "🔍 Checking backend service status"
+            pm2 status zippify-backend
+            
+            # Backend loglarını kontrol et
+            echo "📋 Last 10 lines of backend logs:"
+            pm2 logs zippify-backend --lines 10
+            
+            # Sağlık kontrolü
+            echo "🩺 Performing health check"
+            sleep 3
+            if curl -s http://localhost:3001/api/health | grep -q "ok"; then
+              echo "✅ Backend health check passed"
+            else
+              echo "⚠️ Backend health check warning - service might not be fully ready"
+              # Hata durumunda çıkış yapmıyoruz, sadece uyarı veriyoruz
+            fi
+            
+            echo "📊 Deployment completed at $(date)"
+            echo "📝 Full logs available at: /root/zippify/deploy_*.log"
           EOF
