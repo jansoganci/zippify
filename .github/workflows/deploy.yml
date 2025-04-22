@@ -55,8 +55,15 @@ jobs:
             echo "📁 Navigating to: ~/zippify"
             cd ~/zippify
 
-            echo "📥 Pulling latest code with rebase"
-            git pull origin master --rebase
+            echo "📥 Checking for local changes"
+            if git status --porcelain | grep -q "."; then
+              echo "🔄 Stashing local changes"
+              git stash
+            fi
+            
+            echo "📥 Pulling latest code"
+            git fetch origin
+            git reset --hard origin/master
 
             echo "📦 Installing dependencies"
             npm install
