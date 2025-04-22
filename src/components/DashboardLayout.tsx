@@ -15,7 +15,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
   
   return (
-  <div className="min-h-screen w-full bg-background flex flex-col">
+  <div className="min-h-screen w-full bg-background dark:bg-background flex flex-col">
     <Header />
     <div className="flex flex-1 w-full h-full min-h-screen">
       <AppSidebar isCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
@@ -30,7 +30,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </div>
       </main>
     </div>
-    <footer className="w-full h-8 bg-background border-t py-1">
+    <footer className="w-full h-8 bg-background border-t border-border/60 dark:border-border/30 py-1">
       <Footer variant="compact" />
     </footer>
   </div>

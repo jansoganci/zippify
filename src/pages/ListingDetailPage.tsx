@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Tag, ArrowLeft, Loader2 } from 'lucide-react';
+import { Tag, ArrowLeft, Loader2, Calendar, Copy, Check, FileText, Hash, Image, MessageSquare } from 'lucide-react';
 import { log, error } from '../utils/logger';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '@/services/api/apiClient';
+import { toast } from '@/components/ui/use-toast';
+import { Separator } from '@/components/ui/separator';
 
 interface Listing {
   id: string;
@@ -23,8 +25,20 @@ const ListingDetailPage = () => {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [copiedSection, setCopiedSection] = React.useState<string | null>(null);
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  
+  const copyToClipboard = (text: string, section: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedSection(section);
+    toast({
+      title: "Copied to clipboard",
+      description: `${section} has been copied to your clipboard.`,
+    });
+    
+    setTimeout(() => setCopiedSection(null), 2000);
+  };
 
   useEffect(() => {
 
@@ -126,59 +140,142 @@ const ListingDetailPage = () => {
         )}
         
         {!loading && !errorMsg && listing && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">{listing.title}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Created on {format(listing.createdAt, 'MMMM d, yyyy')}
-            </p>
-          </CardHeader>
-          
-          <CardContent className="space-y-6">
-            {/* Description Section */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Description</h2>
-              <p className="text-muted-foreground whitespace-pre-wrap">{listing.description}</p>
-            </div>
-            
-            {/* Tags Section */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Tags</h2>
-              <div className="flex flex-wrap gap-2">
-                {listing.tags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant="secondary"
-                    className="flex items-center gap-1"
-                  >
-                    <Tag className="w-3 h-3" />
-                    {tag}
-                  </Badge>
-                ))}
+        <div className="space-y-6">
+          {/* Title Card */}
+          <Card className="overflow-hidden border-l-4 border-l-primary">
+            <CardContent className="p-0">
+              <div className="flex items-start justify-between p-6 bg-muted/20">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="flex items-center gap-1 px-2 py-1 text-xs font-normal text-muted-foreground border-muted/30 dark:border-muted/10">
+                      <Calendar className="w-3 h-3" />
+                      {format(listing.createdAt, 'MMMM d, yyyy')}
+                    </Badge>
+                  </div>
+                  <h1 className="text-2xl font-bold text-foreground">{listing.title}</h1>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => copyToClipboard(listing.title, 'Title')}
+                  className="mt-1"
+                >
+                  {copiedSection === 'Title' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
               </div>
-            </div>
-            
-            {/* Alt Texts Section */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Alt Texts</h2>
-              <ul className="list-disc pl-5 text-muted-foreground space-y-1">
-                {listing.altTexts.map((text, index) => (
-                  <li key={index}>{text}</li>
-                ))}
-              </ul>
-            </div>
-            
-            {/* Original Prompt Section */}
-            <div>
-              <h2 className="text-lg font-semibold mb-2">Original Prompt</h2>
-              <Card className="bg-muted">
-                <CardContent className="p-4">
-                  <p className="text-sm text-muted-foreground">{listing.originalPrompt}</p>
-                </CardContent>
-              </Card>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          {/* Description Card */}
+          <Card className="overflow-hidden border-l-4 border-l-primary/80">
+            <CardContent className="p-0">
+              <div className="flex items-start justify-between p-4 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">Description</h3>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => copyToClipboard(listing.description, 'Description')}
+                >
+                  {copiedSection === 'Description' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="h-[1px] w-full bg-border" />
+              <div className="p-5">
+                <p className="text-foreground whitespace-pre-wrap">{listing.description}</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Tags Card */}
+          <Card className="overflow-hidden border-l-4 border-l-primary/60">
+            <CardContent className="p-0">
+              <div className="flex items-start justify-between p-4 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <Hash className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">Tags</h3>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => copyToClipboard(listing.tags.join(', '), 'Tags')}
+                >
+                  {copiedSection === 'Tags' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="h-[1px] w-full bg-border" />
+              <div className="p-5">
+                <div className="flex flex-wrap gap-2">
+                  {listing.tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="flex items-center gap-1 text-xs py-1 px-2 bg-secondary/50 dark:bg-secondary/30"
+                    >
+                      <Tag className="w-3 h-3" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Alt Texts Card */}
+          <Card className="overflow-hidden border-l-4 border-l-primary/40">
+            <CardContent className="p-0">
+              <div className="flex items-start justify-between p-4 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <Image className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">Alt Texts for Images</h3>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => copyToClipboard(listing.altTexts.join('\n\n'), 'Alt Texts')}
+                >
+                  {copiedSection === 'Alt Texts' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="h-[1px] w-full bg-border" />
+              <div className="p-5">
+                <ul className="space-y-3">
+                  {listing.altTexts.map((text, index) => (
+                    <li key={index} className="pl-4 border-l-2 border-muted">
+                      <span className="text-xs font-medium text-muted-foreground block mb-1">Image {index + 1}</span>
+                      <p className="text-foreground">{text}</p>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {/* Original Prompt Card */}
+          <Card className="overflow-hidden border-l-4 border-l-primary/20">
+            <CardContent className="p-0">
+              <div className="flex items-start justify-between p-4 bg-muted/20">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">Original Prompt</h3>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={() => copyToClipboard(listing.originalPrompt, 'Original Prompt')}
+                >
+                  {copiedSection === 'Original Prompt' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="h-[1px] w-full bg-border" />
+              <div className="p-5 bg-muted/5">
+                <p className="text-foreground whitespace-pre-wrap">{listing.originalPrompt}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         )}
       </div>
     </DashboardLayout>

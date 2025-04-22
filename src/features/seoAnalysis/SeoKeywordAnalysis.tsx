@@ -13,7 +13,9 @@ import {
   ArrowUpDown, 
   Check, 
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  FileText,
+  BarChart
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -244,17 +246,24 @@ const SeoKeywordAnalysis = () => {
       <div className="container mx-auto py-6 px-4 max-w-7xl">
       <div className="flex flex-col space-y-8">
         {/* Page Header */}
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight">SEO & Keyword Analysis</h1>
-          <p className="text-muted-foreground">
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">SEO & Keyword Analysis</h1>
+          </div>
+          <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
             Analyze keywords for your product listings and optimize for search engines.
           </p>
         </div>
 
         {/* Analysis Form */}
-        <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Analysis Parameters</CardTitle>
+        <Card className="w-full border-muted/40 dark:border-muted/20 shadow-sm overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
+          <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+            <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+              <BarChart className="h-5 w-5 text-primary" />
+              <span>Analysis Parameters</span>
+            </CardTitle>
             <CardDescription>
               Enter your product details to get keyword suggestions.
             </CardDescription>
@@ -292,6 +301,7 @@ const SeoKeywordAnalysis = () => {
                             placeholder="E.g., Handmade Ceramic Mug" 
                             {...field} 
                             required
+                            className="border-input/60 focus-visible:ring-primary/20 bg-background"
                           />
                         </FormControl>
                         <FormDescription>
@@ -311,7 +321,8 @@ const SeoKeywordAnalysis = () => {
                         <FormControl>
                           <Input 
                             placeholder="E.g., Home & Living" 
-                            {...field} 
+                            {...field}
+                            className="border-input/60 focus-visible:ring-primary/20 bg-background dark:bg-background-dark dark:border-input-dark/60 dark:focus-visible:ring-primary-dark/20"
                           />
                         </FormControl>
                         <FormDescription>
@@ -383,8 +394,9 @@ const SeoKeywordAnalysis = () => {
 
         {/* Results Section - Only show if we have results */}
         {keywords.length > 0 && (
-          <Card className="w-full">
-            <CardHeader>
+          <Card className="w-full border-muted/40 dark:border-muted/20 shadow-sm overflow-hidden">
+            <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
+            <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
                   <CardTitle>Keyword Suggestions</CardTitle>
@@ -554,14 +566,16 @@ const SeoKeywordAnalysis = () => {
 
         {/* Selected Keywords Section - Static Display */}
         {selectedKeywords.length > 0 && (
-          <Card className="w-full">
-            <CardHeader>
+          <Card className="w-full border-muted/40 dark:border-muted/20 shadow-sm overflow-hidden">
+            <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
+            <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle>Selected Keywords ({selectedKeywords.length})</CardTitle>
                 {selectedKeywords.length > 0 && (
                   <Button 
                     size="sm"
                     variant="secondary"
+                    className="transition-all hover:bg-secondary/80"
                     onClick={() => {
                       try {
                         // Log for debugging
@@ -586,6 +600,7 @@ const SeoKeywordAnalysis = () => {
                       }
                     }}
                   >
+                    <FileText className="h-4 w-4 mr-2" />
                     Use Selected Keywords
                   </Button>
                 )}
@@ -596,7 +611,7 @@ const SeoKeywordAnalysis = () => {
                 {selectedKeywords.map((keyword, index) => (
                   <div 
                     key={`selected-keyword-${keyword.id || index}`}
-                    className="flex items-center gap-2 bg-secondary px-3 py-1 rounded-full text-sm"
+                    className="flex items-center gap-2 bg-secondary/90 dark:bg-secondary/80 px-3 py-1 rounded-full text-sm"
                   >
                     <span>{keyword.keyword}</span>
                     <button 

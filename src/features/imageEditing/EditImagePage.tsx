@@ -1,12 +1,22 @@
 import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/components/ui/use-toast";
-import { InfoIcon, Download, AlertTriangle, Lightbulb, Plus, Image as ImageIcon, Loader2 } from "lucide-react";
+import { 
+  InfoIcon, 
+  Download, 
+  AlertTriangle, 
+  Lightbulb, 
+  Plus, 
+  Image as ImageIcon, 
+  Loader2,
+  Wand2,
+  Calendar
+} from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,13 +28,14 @@ import { editImageWithPrompt, editMultipleImages, processSingleImageEdit, proces
 import PromptTemplateSelector from "./components/PromptTemplateSelector";
 import ExamplePromptLibrary from "./components/ExamplePromptLibrary";
 
-const EditProductImage = () => {
+const NewEditImagePage = () => {
   // Single image editing state
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [responseText, setResponseText] = useState<string | null>(null);
   
   // Platform and category selection
   const [platform, setPlatform] = useState<string>("etsy");
@@ -65,11 +76,12 @@ const EditProductImage = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSingleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Clear any previous errors when user takes a new action
     setError(null);
+    setResponseText(null);
     
     if (!selectedImage || !prompt) {
       setError("Please select an image and enter a prompt");
@@ -79,27 +91,44 @@ const EditProductImage = () => {
     if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
     setIsLoading(true);
     
-    // Process the image edit using the service function
-    const result = await processSingleImageEdit(selectedImage, prompt);
-    
-    if (result.image) {
-      setGeneratedImage(result.image);
+    try {
+      // Process the image edit using the service function
+      const result = await processSingleImageEdit(selectedImage, prompt);
+      
+      if (result.image) {
+        setGeneratedImage(result.image);
+        
+        // Check if responseText exists in result (using type assertion)
+        const resultWithResponse = result as { image: string; error: string; responseText?: string };
+        if (resultWithResponse.responseText) {
+          setResponseText(resultWithResponse.responseText);
+        }
+        
+        toast({
+          title: "Image Edited Successfully",
+          description: "Your image has been processed with AI",
+        });
+      } else if (result.error) {
+        setError(result.error);
+        
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: result.error,
+        });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      setError(errorMessage);
       
       toast({
-        title: "Image Edited Successfully",
-        description: "Your image has been processed with AI",
-      });
-    } else if (result.error) {
-      setError(result.error);
-      
-      toast({
-        title: "Error",
-        description: result.error,
         variant: "destructive",
+        title: "Error",
+        description: errorMessage,
       });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   // Handle batch image selection
@@ -110,70 +139,56 @@ const EditProductImage = () => {
 
   // Process batch of images
   const handleBatchProcess = async () => {
-    if (selectedFiles.length === 0) {
+    if (selectedFiles.length === 0 || !prompt.trim()) {
       toast({
-        title: "No images selected",
-        description: "Please select at least one image to process",
-        variant: "destructive"
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please select images and provide editing instructions",
       });
       return;
     }
-
-    if (!prompt.trim()) {
-      toast({
-        title: "No prompt provided",
-        description: "Please enter a prompt describing how to edit the images",
-        variant: "destructive"
-      });
-      return;
-    }
-
+    
     setIsBatchProcessing(true);
-    setBatchResults([]);
-
-    // Define the progress callback function
-    const handleProgressUpdate = (index: number, status: BatchImageResult['status'], result?: string, errorMsg?: string) => {
-      setBatchResults(prev => {
-        const updated = [...prev];
-        if (!updated[index]) {
-          // Initialize if not exists
-          updated[index] = {
-            originalImage: URL.createObjectURL(selectedFiles[index]),
-            editedImage: null,
-            status: 'pending',
-            fileName: selectedFiles[index].name
-          };
-        }
-        
-        updated[index].status = status;
-        
-        if (status === 'completed' && result) {
-          updated[index].editedImage = result;
-        }
-        
-        if (status === 'error' && errorMsg) {
-          updated[index].error = errorMsg;
-        }
-        
-        return updated;
-      });
-    };
-
+    setBatchResults(selectedFiles.map((file, index) => ({
+      id: `img-${index}`,
+      fileName: file.name, // Changed 'name' to 'fileName' to match BatchImageResult type
+      status: 'pending',
+      originalImage: URL.createObjectURL(file),
+      editedImage: null,
+      error: null
+    })));
+    
     try {
-      // Process all images with the service function
-      const results = await processBatchImageEdits(selectedFiles, prompt, handleProgressUpdate, category, platform);
-
-      // Final update with all results
-      setBatchResults(results);
+      // Define the progress callback function
+      const handleProgressUpdate = (index: number, status: BatchImageResult['status'], result?: string, errorMsg?: string) => {
+        setBatchResults(prev => {
+          const newResults = [...prev];
+          
+          if (index >= 0 && index < newResults.length) {
+            newResults[index] = {
+              ...newResults[index],
+              status,
+              editedImage: result || null,
+              error: errorMsg || null
+            };
+          }
+          
+          return newResults;
+        });
+      };
       
-      // Show success toast
-      const successCount = results.filter(r => r.status === 'completed').length;
+      // Process each image sequentially
+      await processBatchImageEdits(
+        selectedFiles,
+        prompt,
+        handleProgressUpdate, // Correct parameter order - onProgress is the third parameter
+        category,
+        platform
+      );
+      
       toast({
-        title: `Processed ${successCount} of ${results.length} images`,
-        description: successCount === results.length 
-          ? "All images were successfully processed" 
-          : `${results.length - successCount} images failed to process`,
-        variant: successCount === results.length ? "default" : "destructive"
+        title: "Batch Processing Complete",
+        description: `Processed ${selectedFiles.length} images`,
       });
     } catch (error) {
       if (import.meta.env.MODE !== 'production') console.error("Batch processing error:", error);
@@ -189,85 +204,87 @@ const EditProductImage = () => {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-6">
-        <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="single">Single Image</TabsTrigger>
-            <TabsTrigger value="batch">Batch Processing</TabsTrigger>
-          </TabsList>
+      <div className="py-6 space-y-6">
+        {/* Page Header Section */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Image Editor</h1>
+          </div>
+          <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
+            Enhance your product images with AI-powered editing tools.
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-muted/60 dark:border-muted/30 shadow-sm overflow-hidden">
+          <Tabs defaultValue="single" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-muted/70 to-muted/50 dark:from-muted/30 dark:to-muted/20 p-1">
+              <TabsTrigger 
+                value="single" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  <span>Single Image</span>
+                </div>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="batch" 
+                className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm data-[state=active]:font-medium"
+              >
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  <span>Batch Processing</span>
+                </div>
+              </TabsTrigger>
+            </TabsList>
           
           <TabsContent value="single" className="mt-4">
-            {/* Local state for single image mode */}
-            {(() => {
-              // Local responseText state only used in this tab
-              const [responseText, setResponseText] = useState<string | null>(null);
+            <div className="space-y-6">
+              {/* Platform and Category Selector */}
+              <PromptTemplateSelector
+                platform={platform}
+                setPlatform={setPlatform}
+                category={category}
+                setCategory={setCategory}
+              />
               
-              // Update handleSubmit to use the local responseText state
-              const handleSingleSubmit = async (e: React.FormEvent) => {
-                e.preventDefault();
+              {/* Single Image Editor Card */}
+              <Card className="border-muted/40 dark:border-muted/20 overflow-hidden">
+                <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40"></div>
+                <CardHeader className="bg-muted/10 dark:bg-muted/5">
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    Edit Product Image
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Upload an image and provide instructions for AI-powered editing.
+                  </CardDescription>
+                </CardHeader>
                 
-                // Clear any previous errors when user takes a new action
-                setError(null);
-                
-                if (!selectedImage || !prompt) {
-                  setError("Please select an image and enter a prompt");
-                  return;
-                }
-                
-                if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
-                setIsLoading(true);
-                
-                // Process the image edit using the service function
-                const result = await processSingleImageEdit(selectedImage, prompt, category, platform);
-                
-                if (result.image) {
-                  setGeneratedImage(result.image);
-                  setResponseText(null);
+                <CardContent className="space-y-6">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Error</AlertTitle>
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
                   
-                  toast({
-                    title: "Image Edited Successfully",
-                    description: "Your image has been processed with AI",
-                  });
-                } else if (result.error) {
-                  setError(result.error);
-                  
-                  toast({
-                    title: "Error",
-                    description: result.error,
-                    variant: "destructive",
-                  });
-                }
-                
-                setIsLoading(false);
-              };
-              
-              return (
-                <div className="space-y-4">
-                  {/* Platform and Category Selector */}
-                  <PromptTemplateSelector
-                    platform={platform}
-                    setPlatform={setPlatform}
-                    category={category}
-                    setCategory={setCategory}
-                  />
-                  
-                  <Card className="shadow-md">
-                    <CardHeader>
-                      <CardTitle>Image Editor</CardTitle>
-                      <CardDescription>
-                        Transform your product images with AI-powered editing
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                <form onSubmit={handleSingleSubmit} className="space-y-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="image-upload">Upload Image</Label>
+                  <div className="space-y-2 group">
+                    <Label htmlFor="image-upload" className="flex items-center gap-2 text-foreground">
+                      <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors">
+                        <ImageIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      Upload Image
+                    </Label>
                     <Input
                       id="image-upload"
                       type="file"
-                      accept=".jpeg,.jpg,.png"
+                      accept="image/*"
                       onChange={handleImageChange}
-                      className="bg-background"
+                      disabled={isLoading}
+                      className="border-input/60 focus-visible:ring-primary/20 bg-background"
                     />
                     <Alert variant="default" className="bg-muted/50 border-muted">
                       <InfoIcon className="h-4 w-4" />
@@ -276,37 +293,27 @@ const EditProductImage = () => {
                       </AlertDescription>
                     </Alert>
                   </div>
-
-                  {selectedImage && (
-                    <div className="mt-4 rounded-md overflow-hidden border">
-                      <img 
-                        src={selectedImage} 
-                        alt="Preview" 
-                        className="w-full h-auto object-contain max-h-[300px]" 
-                      />
-                    </div>
-                  )}
-
-                  {error && (
-                    <Alert variant="destructive" className="mt-4">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  )}
-
-                  <div className="space-y-2">
+                  
+                  <div className="h-px w-full my-4 bg-border/60 dark:bg-border/40" />
+                  
+                  <div className="space-y-2 group">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="prompt" className="text-lg font-medium">Edit Instructions</Label>
+                      <Label htmlFor="edit-prompt" className="flex items-center gap-2 text-foreground">
+                        <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors">
+                          <Wand2 className="h-4 w-4 text-primary" />
+                        </div>
+                        Edit Instructions
+                      </Label>
                       <Popover>
                         <PopoverTrigger asChild>
-                          <Button variant="outline" size="sm" className="h-8">
-                            <Lightbulb className="h-3.5 w-3.5 mr-2" />
+                          <Button variant="outline" size="sm" className="h-8 border-input/60 bg-background hover:bg-muted/20">
+                            <Lightbulb className="h-3.5 w-3.5 mr-2 text-primary" />
                             Example Prompts
                           </Button>
                         </PopoverTrigger>
-                        <PopoverContent side="bottom" align="end" className="w-80">
+                        <PopoverContent side="bottom" align="end" className="w-80 border-muted/40 dark:border-muted/20">
                           <div className="space-y-2">
-                            <h4 className="font-medium text-sm">Example Prompts</h4>
+                            <h4 className="font-medium text-sm text-foreground">Example Prompts</h4>
                             <p className="text-xs text-muted-foreground">Click to use these example prompts</p>
                           </div>
                           <ExamplePromptLibrary onSelectPrompt={setPrompt} />
@@ -314,18 +321,22 @@ const EditProductImage = () => {
                       </Popover>
                     </div>
                     <Textarea
-                      id="prompt"
+                      id="edit-prompt"
                       placeholder="Describe how you want to edit the image..."
-                      className="min-h-[80px]"
+                      className="min-h-[80px] border-input/60 focus-visible:ring-primary/20 bg-background"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
+                      disabled={isLoading}
                     />
                   </div>
-
+                  
+                  <div className="h-px w-full my-4 bg-border/60 dark:bg-border/40" />
+                  
                   <Button 
-                    type="submit" 
-                    className="w-full" 
+                    className="w-full shadow-sm" 
+                    onClick={handleSingleSubmit} 
                     disabled={isLoading || !selectedImage || !prompt.trim()}
+                    variant="default"
                   >
                     {isLoading ? (
                       <>
@@ -336,53 +347,102 @@ const EditProductImage = () => {
                       <>Edit Image</>
                     )}
                   </Button>
-                </form>
-
-                {(generatedImage || responseText) && (
-                  <div className="mt-8 space-y-6">
-                    {generatedImage && (
+                </CardContent>
+              </Card>
+              
+              {/* Original Image Preview */}
+              {selectedImage && !generatedImage && (
+                <Card className="border-muted/40 dark:border-muted/20 overflow-hidden">
+                  <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+                    <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4 text-primary" />
+                      Original Image
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    <div className="border border-muted/40 dark:border-muted/20 rounded-md overflow-hidden bg-muted/10 dark:bg-muted/5">
+                      <img 
+                        src={selectedImage} 
+                        alt="Original product" 
+                        className="w-full h-auto max-h-[300px] object-contain"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Results Section */}
+              {generatedImage && (
+                <Card className="border-muted/40 dark:border-muted/20 overflow-hidden">
+                  <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40"></div>
+                  <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+                        <Wand2 className="h-4 w-4 text-primary" />
+                        Edited Image
+                      </CardTitle>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-input/60 bg-background hover:bg-muted/20"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = generatedImage;
+                          link.download = 'edited-image.png';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          
+                          toast({
+                            title: "Download Started",
+                            description: "Your edited image download has started.",
+                          });
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-2 text-primary" />
+                        Download
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-lg font-medium">Generated Image</Label>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = generatedImage;
-                            link.download = `edited-image-${Date.now()}.png`;
-                            link.click();
-                          }}>
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="rounded-md overflow-hidden border">
-                          <img
-                            src={generatedImage}
-                            alt="Generated Result"
-                            className="w-full h-auto object-contain max-h-[300px]"
+                        <h3 className="text-xs font-medium text-muted-foreground">Original</h3>
+                        <div className="border border-muted/40 dark:border-muted/20 rounded-md overflow-hidden bg-muted/10 dark:bg-muted/5">
+                          <img 
+                            src={selectedImage} 
+                            alt="Original product" 
+                            className="w-full h-auto max-h-[300px] object-contain"
                           />
                         </div>
-                        <p className="text-xs text-muted-foreground italic mt-1">
-                        ⚠️ The Gemini model currently supports limited image dimensions. Improvements are ongoing to achieve higher resolution and quality outputs. Please optimize your images by resizing them before uploading to the system if possible.
-                        </p>
                       </div>
-                    )}
+                      <div className="space-y-2">
+                        <h3 className="text-xs font-medium text-muted-foreground">Edited</h3>
+                        <div className="border border-muted/40 dark:border-muted/20 rounded-md overflow-hidden bg-muted/10 dark:bg-muted/5">
+                          <img 
+                            src={generatedImage} 
+                            alt="AI edited product" 
+                            className="w-full h-auto max-h-[300px] object-contain"
+                          />
+                        </div>
+                      </div>
+                    </div>
                     
                     {responseText && (
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <Label className="text-lg font-medium">AI Comments</Label>
-                        </div>
-                        <div className="rounded-md border p-4 bg-muted/20">
-                          <p className="whitespace-pre-wrap text-sm">{responseText}</p>
+                        <h3 className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <InfoIcon className="h-4 w-4 text-primary" />
+                          AI Comments
+                        </h3>
+                        <div className="rounded-md border border-muted/40 dark:border-muted/20 p-4 bg-muted/10 dark:bg-muted/5">
+                          <p className="whitespace-pre-wrap text-sm text-foreground">{responseText}</p>
                         </div>
                       </div>
                     )}
-                  </div>
-                )}
-              </CardContent>
-                  </Card>
-                </div>
-              );
-            })()}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
           </TabsContent>
           
           <TabsContent value="batch" className="mt-4">
@@ -402,53 +462,69 @@ const EditProductImage = () => {
               />
               
               {/* Prompt Input for Batch Processing */}
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="batch-prompt" className="text-lg font-medium">Edit Instructions</Label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-8">
-                              <Lightbulb className="h-3.5 w-3.5 mr-2" />
-                              Example Prompts
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent side="bottom" align="end" className="w-80">
-                            <div className="space-y-2">
-                              <h4 className="font-medium text-sm">Example Prompts</h4>
-                              <p className="text-xs text-muted-foreground">Click to use these example prompts</p>
-                            </div>
-                            <ExamplePromptLibrary onSelectPrompt={setPrompt} />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <Textarea
-                        id="batch-prompt"
-                        placeholder="Apply the same edit to all images..."
-                        className="min-h-[80px]"
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        disabled={isBatchProcessing}
-                      />
+              <Card className="border-muted/40 dark:border-muted/20 overflow-hidden">
+                <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40"></div>
+                <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+                  <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                    <Wand2 className="h-5 w-5 text-primary" />
+                    Batch Edit Instructions
+                  </CardTitle>
+                  <CardDescription className="text-muted-foreground">
+                    Enter instructions to apply to all selected images.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2 group">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="batch-prompt" className="flex items-center gap-2 text-foreground">
+                        <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors">
+                          <Wand2 className="h-4 w-4 text-primary" />
+                        </div>
+                        Edit Instructions
+                      </Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-8 border-input/60 bg-background hover:bg-muted/20">
+                            <Lightbulb className="h-3.5 w-3.5 mr-2 text-primary" />
+                            Example Prompts
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent side="bottom" align="end" className="w-80 border-muted/40 dark:border-muted/20">
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm text-foreground">Example Prompts</h4>
+                            <p className="text-xs text-muted-foreground">Click to use these example prompts</p>
+                          </div>
+                          <ExamplePromptLibrary onSelectPrompt={setPrompt} />
+                        </PopoverContent>
+                      </Popover>
                     </div>
-                    
-                    <Button 
-                      className="w-full" 
-                      onClick={handleBatchProcess} 
-                      disabled={isBatchProcessing || selectedFiles.length === 0 || !prompt.trim()}
-                    >
-                      {isBatchProcessing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing {batchResults.filter(r => r.status === 'completed').length}/{selectedFiles.length} Images...
-                        </>
-                      ) : (
-                        <>Start Batch Processing {selectedFiles.length} Images</>
-                      )}
-                    </Button>
+                    <Textarea
+                      id="batch-prompt"
+                      placeholder="Apply the same edit to all images..."
+                      className="min-h-[80px] border-input/60 focus-visible:ring-primary/20 bg-background"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      disabled={isBatchProcessing}
+                    />
                   </div>
+                  
+                  <div className="h-px w-full my-4 bg-border/60 dark:bg-border/40" />
+                  
+                  <Button 
+                    className="w-full shadow-sm" 
+                    onClick={handleBatchProcess} 
+                    disabled={isBatchProcessing || selectedFiles.length === 0 || !prompt.trim()}
+                    variant="default"
+                  >
+                    {isBatchProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing {batchResults.filter(r => r.status === 'completed').length}/{selectedFiles.length} Images...
+                      </>
+                    ) : (
+                      <>Start Batch Processing {selectedFiles.length} Images</>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
               
@@ -461,10 +537,11 @@ const EditProductImage = () => {
               )}
             </div>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default EditProductImage;
+export default NewEditImagePage;

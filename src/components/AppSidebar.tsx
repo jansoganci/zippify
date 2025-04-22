@@ -27,8 +27,8 @@ const SidebarItem = ({ icon: Icon, label, href, isActive = false, isCollapsed }:
       className={cn(
         "flex items-center gap-3 px-4 py-3 my-1 rounded-lg transition-all duration-300 ease-in-out",
         isActive 
-          ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-          : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+          ? "bg-sidebar-accent text-sidebar-accent-foreground dark:bg-sidebar-accent/80 dark:text-sidebar-accent-foreground/90" 
+          : "text-sidebar-foreground hover:bg-sidebar-accent/50 dark:hover:bg-sidebar-accent/40",
         isCollapsed && "justify-center"
       )}
     >
@@ -49,7 +49,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
   return (
     <aside 
       className={cn(
-        "bg-sidebar h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border",
+        "bg-sidebar h-screen sticky top-0 flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border/60 dark:border-sidebar-border/30",
         isCollapsed ? "w-[72px]" : "w-[240px]"
       )}
     >
@@ -106,7 +106,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
       
       <button 
         onClick={toggleSidebar}
-        className="m-4 p-2 rounded-full bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors flex items-center justify-center self-end"
+        className="m-4 p-2 rounded-full bg-sidebar-accent/30 hover:bg-sidebar-accent/50 dark:bg-sidebar-accent/20 dark:hover:bg-sidebar-accent/40 transition-colors flex items-center justify-center self-end shadow-sm"
       >
         {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
       </button>

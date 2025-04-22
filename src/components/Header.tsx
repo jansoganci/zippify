@@ -34,7 +34,7 @@ const Header = () => {
   };
   
   return (
-    <header className="w-full h-16 flex items-center justify-between px-8 bg-background/90 border-b border-border shadow-sm">
+    <header className="w-full h-16 flex items-center justify-between px-8 bg-background/90 border-b border-border/60 dark:border-border/30 shadow-sm">
       {/* Logo & Marka */}
       <div className="flex items-center gap-2">
         {/* Logo örnek: */}
@@ -44,10 +44,10 @@ const Header = () => {
 
       {/* Orta Menü */}
       <nav className="flex-1 flex justify-center">
-        <div className="flex gap-4 px-6 py-2 rounded-full border border-primary/40 bg-background/80 shadow-md">
-          <NavLink to="/seo-keywords" className="font-medium px-3 py-1 rounded hover:bg-primary/10">SEO</NavLink>
-          <NavLink to="/create" className="font-medium px-3 py-1 rounded hover:bg-primary/10">Listings</NavLink>
-          <NavLink to="/edit-image" className="font-medium px-3 py-1 rounded hover:bg-primary/10">Images</NavLink>
+        <div className="flex gap-4 px-6 py-2 rounded-full border border-primary/40 dark:border-primary/30 bg-background/80 dark:bg-background/60 shadow-md">
+          <NavLink to="/seo-keywords" className="font-medium px-3 py-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">SEO</NavLink>
+          <NavLink to="/create" className="font-medium px-3 py-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">Listings</NavLink>
+          <NavLink to="/edit-image" className="font-medium px-3 py-1 rounded hover:bg-primary/10 dark:hover:bg-primary/20 transition-colors">Images</NavLink>
         </div>
       </nav>
 
@@ -62,7 +62,7 @@ const Header = () => {
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 mt-1 animate-fade-in">
+          <DropdownMenuContent align="end" className="w-56 mt-1 animate-fade-in border-border/60 dark:border-border/30">
             <div className="flex items-center justify-start gap-2 p-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg" alt="User" />

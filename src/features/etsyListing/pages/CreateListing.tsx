@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Plus } from "lucide-react";
+import { AlertCircle, Plus, FileText, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
 interface ListingResult {
@@ -209,31 +209,39 @@ const CreateListing: React.FC = () => {
   return (
     <DashboardLayout>
       <div className="container mx-auto py-6 px-4 max-w-7xl">
-        <div className="flex flex-col space-y-8">
+        <div className="flex flex-col space-y-8 pb-8">
           {/* Page Header */}
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">Create Etsy Listing</h1>
-            <p className="text-muted-foreground">
+          <div className="px-4 py-4">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Etsy Listing</h1>
+            </div>
+            <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
               Generate optimized Etsy listings using your product description and selected keywords.
             </p>
           </div>
 
           {/* Input Form */}
-          <Card className="w-full">
-            <CardHeader>
-              <CardTitle>Listing Details</CardTitle>
-              <CardDescription>
+          <Card className="w-full border-muted/40 dark:border-muted/20 shadow-sm overflow-hidden">
+            <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
+            <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+              <CardTitle className="text-xl font-semibold text-foreground flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                <span>Listing Details</span>
+              </CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Enter your product description and we'll generate an optimized listing.
               </CardDescription>
             </CardHeader>
             <CardContent>
               {quotaExceeded && (
-                <div className="bg-red-50 border border-red-200 text-red-800 rounded-md p-4 mb-6">
-                  <div className="flex items-center">
-                    <AlertCircle className="h-5 w-5 mr-2" />
-                    <span className="font-medium">Your daily listing quota has been used (5/5). Please upgrade to continue.</span>
-                  </div>
-                </div>
+                <Alert variant="destructive" className="mb-6">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  <AlertTitle>Quota Exceeded</AlertTitle>
+                  <AlertDescription>
+                    Your daily listing quota has been used (5/5). Please upgrade to continue.
+                  </AlertDescription>
+                </Alert>
               )}
               {error && (
                 <Alert variant="destructive" className="mb-6">
@@ -247,7 +255,7 @@ const CreateListing: React.FC = () => {
                 <div>
                   <div className="flex flex-col space-y-2">
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-medium text-gray-700">Product Description</h3>
+                      <h3 className="text-sm font-medium text-foreground">Product Description</h3>
                       <SamplePromptList onPromptSelect={setPrompt} />
                     </div>
                     <PromptInput prompt={prompt} setPrompt={setPrompt} />
@@ -255,7 +263,7 @@ const CreateListing: React.FC = () => {
                 </div>
 
                 <div>
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Keywords:</h3>
+                  <h3 className="text-sm font-medium text-foreground mb-2">Selected Keywords:</h3>
                   
                   {/* Keyword input */}
                   <div className="flex items-center space-x-2 mb-4">
@@ -288,10 +296,23 @@ const CreateListing: React.FC = () => {
                 <div className="flex flex-col md:flex-row gap-4">
                   <Button 
                     onClick={handleGenerate} 
-                    className="w-full md:w-auto"
+                    className="w-full md:w-auto shadow-sm hover:shadow-md transition-all"
                     disabled={loading}
                   >
-                    {loading ? "Generating..." : "Generate Listing"}
+                    {loading ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-background" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        Generate Listing
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -300,10 +321,11 @@ const CreateListing: React.FC = () => {
 
           {/* Results Section - Only show if we have results */}
           {(result.title || result.description || result.keywords.length > 0 || result.altText) && (
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Generated Listing</CardTitle>
-                <CardDescription>
+            <Card className="w-full border-muted/40 dark:border-muted/20 mt-8 shadow-sm overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
+              <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
+                <CardTitle className="text-xl font-semibold text-foreground">Generated Listing</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Your optimized Etsy listing is ready to use.
                 </CardDescription>
               </CardHeader>
