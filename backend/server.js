@@ -59,8 +59,6 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
 
-
-
 // Disable SSL certificate validation for development
 // NOT: Bu ayar sadece geliştirme ortamında kullanılmalıdır, production'da kaldırılmalıdır
 if (process.env.NODE_ENV === 'development') {
@@ -117,172 +115,12 @@ import { listingRoutes } from './src/features/listings/index.js';
 import imageEditingRouter from './src/features/imageEditing/imageEditing.routes.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 // DeepSeek API proxy function with improved error handling and logging
-async function proxyToDeepSeekAPI(req, res, requestId) {
-  try {
-    // 1. Validate environment variables
-    const apiUrl = process.env.DEEPSEEK_API_URL;
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    
-    if (!apiUrl || !apiKey) {
-      log.error(`[${requestId}] DeepSeek API configuration missing:`, {
-        apiUrl: !!apiUrl,
-        apiKey: !!apiKey
-      });
-      throw new Error('DeepSeek API configuration is missing');
-    }
-    
-    // 2. Validate request payload
-    const { system, prompt } = req.body;
-    
-    if (!system || !prompt) {
-      log.error(`[${requestId}] Invalid request payload:`, {
-        hasSystem: !!system,
-        hasPrompt: !!prompt,
-        bodyKeys: Object.keys(req.body)
-      });
-      return res.status(400).json({
-        error: 'Invalid request payload. Both system and prompt are required.',
-        requestId
-      });
-    }
-    
-    // 3. Log request details (sanitized)
-    log.info(`[${requestId}] DeepSeek API request:`, {
-      endpoint: apiUrl,
-      systemPromptLength: system?.length || 0,
-      userPromptLength: prompt?.length || 0,
-      apiKeyPresent: !!apiKey
-    });
-    
-    // 4. Import axios dynamically
-    const axios = (await import('axios')).default;
-    
-    // 5. Prepare API endpoint - Fix URL format by removing markdown formatting
-    let cleanApiUrl = apiUrl;
-    // Check if URL has markdown formatting [text](url) and extract the actual URL
-    if (apiUrl && apiUrl.includes('](')) {
-      cleanApiUrl = apiUrl.replace(/\[([^\]]*)\]\(([^\)]*)\)/g, '$2');
-      log.info(`Fixed API URL format from ${apiUrl} to ${cleanApiUrl}`);
-    }
-    
-    const endpoint = cleanApiUrl.includes('/chat/completions') ? cleanApiUrl : `${cleanApiUrl}/chat/completions`;
-    
-    // 6. Format request payload for DeepSeek API
-    const requestPayload = {
-      model: 'deepseek-chat',
-      messages: [
-        {
-          role: 'system',
-          content: system
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 2000,
-      stream: false
-    };
-    
-    // 7. Prepare headers
-    const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      'Accept-Encoding': 'gzip,deflate,compress',
-      'User-Agent': 'Zippify-Backend/1.0',
-    };
-    
-    // 8. Make API request with timeout
-    log.info(`[${requestId}] Sending request to DeepSeek API: ${endpoint}`);
-    let response;
-    try {
-      response = await axios.post(endpoint, requestPayload, { 
-        headers,
-        timeout: 30000 // 30 second timeout
-      });
-      
-      // 9. Log successful response
-      log.info(`[${requestId}] DeepSeek API response received:`, {
-        status: response.status,
-        contentLength: response.data?.choices?.[0]?.message?.content?.length || 0
-      });
-    } catch (err) {
-      // Enhanced error logging with detailed information
-      log.info('DeepSeek API Key:', process.env.DEEPSEEK_API_KEY ? 'Present (length: ' + process.env.DEEPSEEK_API_KEY.length + ')' : 'Missing');
-      
-      // 🔴 Comprehensive error logging to reveal the actual error
-      log.error("🔴 DeepSeek API request failed:");
-      log.error("Status:", err?.response?.status);
-      log.error("Status Text:", err?.response?.statusText);
-      log.error("Data:", JSON.stringify(err?.response?.data, null, 2));
-      log.error("Headers:", err?.response?.headers);
-      log.error("Error Code:", err?.code);
-      log.error("Error Message:", err?.message);
-      log.error("Request Config:", JSON.stringify({
-        url: err?.config?.url,
-        method: err?.config?.method,
-        headers: err?.config?.headers,
-        data: err?.config?.data ? JSON.parse(err?.config?.data) : null
-      }, null, 2));
-      
-      log.error(`[${requestId}] DeepSeek API request failed:`, {
-        message: err.message,
-        code: err.code,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        headers: err.response?.headers,
-        stack: err.stack?.split('\n')[0]
-      });
-      
-      return res.status(500).json({
-        message: "DeepSeek API request failed", 
-        error: err.message,
-        details: {
-          code: err.code,
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          data: err.response?.data,
-          errorType: err.name,
-          isAxiosError: err.isAxiosError || false,
-          isNetworkError: !err.response && err.request ? true : false,
-          isTimeoutError: err.code === 'ECONNABORTED'
-        },
-        requestId
-      });
-    }
-    
-    // 10. Format response for frontend
-    const content = response.data?.choices?.[0]?.message?.content || '';
-    
-    return res.json({
-      content,
-      raw: response.data
-    });
-  } catch (error) {
-    // 11. Enhanced error logging
-    log.error(`[${requestId}] DeepSeek API Error:`, {
-      message: error.message,
-      status: error.response?.status,
-      data: error.response?.data,
-      stack: error.stack
-    });
-    
-    // 12. Return appropriate error response
-    const statusCode = error.response?.status || 500;
-    const errorMessage = error.response?.data?.error?.message || error.message;
-    
-    return res.status(statusCode).json({
-      error: `Failed to proxy request to DeepSeek API: ${errorMessage}`,
-      requestId,
-      details: error.response?.data
-    });
-  }
-}
+// Bu fonksiyon aiRoutes.js dosyasına taşındı
+// Kodun daha modüler olması için, tüm AI ile ilgili işlemler aiRoutes.js dosyasında toplanıyor
+// Bu sayede, yeni AI sağlayıcıları eklemek daha kolay olacak
 
 app.post('/api/optimize', async (req, res) => {
   const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
@@ -390,33 +228,16 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // **Server Start**
-// DeepSeek API Proxy Route
-app.post('/api/deepseek', verifyToken, async (req, res, next) => {
-  const requestId = req.headers['x-request-id'] || `req-${Date.now()}`;
-  const { featureKey } = req.body;
+// Yönlendirme: /api/deepseek -> /api/ai/deepseek
+// Bu yönlendirme, eski kodun çalışmaya devam etmesini sağlar (geriye dönük uyumluluk)
+app.post('/api/deepseek', verifyToken, (req, res) => {
+  // Eski endpoint'i logla
+  log.info(`[DEPRECATED] Received request to /api/deepseek - This endpoint is deprecated, use /api/ai/deepseek instead`);
   
-  if (!featureKey || typeof featureKey !== "string") {
-    return res.status(400).json({ error: "Missing or invalid featureKey" });
-  }
-  
-  log.info(`[${requestId}] Received DeepSeek API proxy request for feature: ${featureKey}`);
-  
-  const quotaMiddleware = checkQuota(featureKey);
-  quotaMiddleware(req, res, async () => {
-    try {
-      await proxyToDeepSeekAPI(req, res, requestId);
-      
-      // Quota increment removed - will be handled by frontend after successful completion
-      // await incrementQuota(req.user.id, featureKey);
-      // log.info(`[quota] Incremented usage for user ${req.user.id} — Feature: ${featureKey}`);
-    } catch (error) {
-      log.error(`[${requestId}] DeepSeek API Proxy Error:`, error);
-      res.status(500).json({
-        error: `Failed to proxy request to DeepSeek API: ${error.message}`,
-        requestId
-      });
-    }
-  });
+  // İsteği /api/ai/deepseek'e yönlendir
+  // Bu, frontend kodunu değiştirmeden geçiş yapmamızı sağlar
+  req.url = '/deepseek';
+  app._router.handle(req, res);
 });
 
 // Manual Quota Increment Endpoint
@@ -714,3 +535,5 @@ app.post('/api/generate-pdf', async (req, res) => {
       });
     }
   });
+
+app.use('/api/ai', aiRoutes);

@@ -74,13 +74,13 @@ export const api = {
     return response.data;
   },
   // Profile endpoints
-  async getProfile(userId) {
-    const response = await apiClient.get(`/profiles/${userId}`);
+  async getProfile() {
+    const response = await apiClient.get('/profile');
     return response.data;
   },
 
-  async updateProfile(userId, profileData) {
-    const response = await apiClient.put(`/profiles/${userId}`, profileData);
+  async updateProfile(profileData) {
+    const response = await apiClient.put('/profile', profileData);
     return response.data;
   },
 

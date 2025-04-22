@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -18,7 +17,7 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/api/profile', {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/profile`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -42,7 +41,7 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch('/api/profile', {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/profile`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',

@@ -1,4 +1,4 @@
-const winston = require('winston');
+import winston from 'winston';
 
 const env = process.env.NODE_ENV || 'development';
 
@@ -18,7 +18,7 @@ const logger = winston.createLogger({
   ]
 });
 
-module.exports = {
+export default {
   info: (...args) => logger.info(...args),
   warn: (...args) => logger.warn(...args),
   error: (...args) => logger.error(...args),

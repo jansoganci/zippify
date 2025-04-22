@@ -1,9 +1,9 @@
 import { api } from '../api/apiClient';
 
 export const profileService = {
-  async getProfile(userId) {
+  async getProfile() {
     try {
-      const profile = await api.getProfile(userId);
+      const profile = await api.getProfile();
       return profile;
     } catch (error) {
       if (error.response?.status === 404) {
@@ -14,11 +14,11 @@ export const profileService = {
     }
   },
 
-  async updateProfile(userId, profileData) {
+  async updateProfile(profileData) {
     const { first_name, last_name, store_name } = profileData;
     
     try {
-      const updatedProfile = await api.updateProfile(userId, {
+      const updatedProfile = await api.updateProfile({
         first_name,
         last_name,
         store_name

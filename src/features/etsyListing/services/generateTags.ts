@@ -1,12 +1,14 @@
 import { etsyRules } from "@/platformRules/etsyRules";
+import { DEFAULT_AI_PROVIDER } from '@/config/ai';
 
 /**
  * Generates optimized Etsy tags based on user input and platform rules.
  * @param promptInput - The input prompt containing product information
  * @param selectedKeywords - Array of keywords to incorporate in the tags
+ * @param provider - Optional AI provider parameter, defaults to central config
  * @returns Generated tags response as a string array (e.g., ["tag 1", "tag 2", ..., "tag 13"])
  */
-export async function generateTags(promptInput: string, selectedKeywords: string[] = []): Promise<any> {
+export async function generateTags(promptInput: string, selectedKeywords: string[] = [], provider?: string): Promise<any> {
   const systemPrompt = etsyRules.tags.fullPrompt;
 
   try {
@@ -27,7 +29,8 @@ export async function generateTags(promptInput: string, selectedKeywords: string
   const token = localStorage.getItem('zippify_token');
 
   // Return AI call structure (adjust model/provider if needed)
-  const response = await fetch(import.meta.env.VITE_DEEPSEEK_ENDPOINT, {
+  const aiProvider = provider || DEFAULT_AI_PROVIDER;
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",

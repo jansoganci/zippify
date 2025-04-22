@@ -1,12 +1,14 @@
 import { etsyRules } from "@/platformRules/etsyRules";
+import { DEFAULT_AI_PROVIDER } from '@/config/ai';
 
 /**
  * Generates SEO-optimized alt text for Etsy product images based on user input and platform rules.
  * @param promptInput - The input prompt containing product information
  * @param selectedKeywords - Array of keywords to incorporate in the alt text
+ * @param provider - Optional AI provider parameter, defaults to central config
  * @returns Generated alt text response
  */
-export async function generateAltText(promptInput: string, selectedKeywords: string[] = []): Promise<any> {
+export async function generateAltText(promptInput: string, selectedKeywords: string[] = [], provider?: string): Promise<any> {
   const systemPrompt = etsyRules.altText.fullPrompt;
 
   try {
@@ -28,7 +30,8 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
   const token = localStorage.getItem('zippify_token');
 
   // Return AI call structure (adjust model/provider if needed)
-  const response = await fetch(import.meta.env.VITE_DEEPSEEK_ENDPOINT, {
+  const aiProvider = provider || DEFAULT_AI_PROVIDER;
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
