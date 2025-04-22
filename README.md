@@ -1,39 +1,152 @@
 # Zippify
 
-Do you know, I added CI/CD to this project?!!!??
-Today, 18.04.2025, I added CI/CD to this project. During the process, I encountered some issues with the workflow file.
-
-Sikicem artık bu son olur umarım.
-
-sonogluson
-sonogluson.son
-
-
 ## Project Description
 
-Zippify is an application designed for e-commerce sellers to automate their product listing process. Users simply upload raw product information, and Zippify generates optimized product descriptions, enhanced product images, and downloadable ZIP files ready for immediate use.
+Zippify is a comprehensive e-commerce seller tool designed to automate and optimize product listing creation across multiple platforms. The application leverages AI to generate SEO-optimized product descriptions, enhance product images, and create downloadable assets ready for immediate use on platforms like Etsy.
+
+## Key Features
+
+- **AI-Powered Listing Generation**: Create optimized product listings with titles, descriptions, and tags
+- **SEO Keyword Analysis**: Analyze keywords for search volume and competition
+- **Image Enhancement**: Edit product images with AI to improve quality and appeal
+- **Batch Processing**: Process multiple images with the same editing instructions
+- **User Management**: Complete authentication system with JWT-based security
+- **Quota Management**: Track and limit feature usage based on user plans
+- **Cross-Platform Support**: Generate listings optimized for different e-commerce platforms
 
 ## Technology Stack
-- **Frontend**: React with TypeScript, Vite as build tool
-- **UI Framework**: TailwindCSS
-- **Backend**: Node.js with Express
-- **Database**: SQLite
-- **Text Generation API**: DeepSeek API
-- **Image Processing API**: Google Image-to-Image API
-- **Authentication**: JWT-based authentication
+
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite 6
+- **UI Framework**: TailwindCSS 3.3.5 with shadcn/ui components
+- **Component Libraries**: Radix UI primitives
+- **State Management**: React Query, React Context
+- **Routing**: React Router Dom 7
+- **Form Handling**: React Hook Form
+- **HTTP Client**: Axios
+
+### Backend
+- **Runtime**: Node.js with Express
+- **Database**: SQLite with sqlite3/sqlite packages
+- **Authentication**: JWT (jsonwebtoken)
+- **Password Hashing**: bcryptjs
+- **Logging**: Winston
+- **AI Integration**: DeepSeek API, Google Generative AI
+- **PDF Generation**: jsPDF, marked
+- **Image Processing**: Sharp
+
+### DevOps
+- **Version Control**: Git
+- **CI/CD**: GitHub Actions
+- **Deployment**: Automated deployment to VPS
+- **Environment Management**: dotenv
 
 ## Project Structure
 
 ```
 /zippify
-├── /src
-│   ├── /components          # UI components
-│   │   └── /ui              # Reusable UI components
+├── /src                     # Frontend source code
+│   ├── /components          # Shared UI components
+│   │   └── /ui              # Reusable UI components (shadcn/ui)
+│   ├── /features            # Feature-based modules
+│   │   ├── /etsyListing     # Etsy listing generation
+│   │   ├── /imageEditing    # Image editing functionality
+│   │   ├── /listings        # Listing management
+│   │   └── /seoAnalysis     # SEO keyword analysis
+│   ├── /hooks               # Custom React hooks
+│   ├── /lib                 # Utility libraries
 │   ├── /pages               # Application pages/routes
-│   ├── /services            # API services
-│   │   ├── /api             # API client configuration
-│   │   ├── /auth            # Authentication services
-│   │   ├── /deepseek        # DeepSeek API integration
+│   └── /services            # API services
+│       ├── /api             # API client
+│       ├── /auth            # Authentication services
+│       └── /deepseek        # DeepSeek AI integration
+├── /backend                 # Backend source code
+│   ├── /controllers         # Request handlers
+│   ├── /middleware          # Express middleware
+│   ├── /models              # Data models
+│   ├── /routes              # API routes
+│   ├── /src                 # Core backend logic
+│   │   ├── /features        # Feature-specific logic
+│   │   └── /services        # External service integrations
+│   └── /utils               # Utility functions
+├── /db                      # Database files
+├── /docs                    # Documentation
+└── /public                  # Static assets
+```
+
+## Installation and Setup
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- Git
+
+### Development Setup
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/jansoganci/zippify.git
+   cd zippify
+   ```
+
+2. Install dependencies
+   ```bash
+   npm install
+   ```
+
+3. Set up environment variables
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
+
+4. Start the development server
+   ```bash
+   npm run dev
+   ```
+   This will start both the frontend (http://localhost:8080) and backend (http://localhost:3001) servers.
+
+### Production Deployment
+
+1. Build the frontend
+   ```bash
+   npm run build
+   ```
+
+2. Deploy the application
+   ```bash
+   # The deployment process is handled by CI/CD
+   git push origin master
+   ```
+
+## API Documentation
+
+Detailed API documentation is available in the `/docs` directory:
+
+- [API Documentation](/docs/API_DOCUMENTATION.md) - Comprehensive API endpoint reference
+- [Architecture](/docs/ARCHITECTURE.md) - System architecture and component interactions
+- [Deployment Guide](/docs/DEPLOYMENT.md) - Deployment instructions and configurations
+- [User Guide](/docs/USER_GUIDE.md) - End-user documentation
+- [Changelog](/docs/CHANGELOG.md) - Version history and updates
+
+## Security
+
+Zippify implements several security measures:
+
+- JWT-based authentication with token expiration
+- Password hashing using bcrypt
+- Input validation and sanitization
+- Rate limiting and quota enforcement
+- Secure API key handling via backend proxy
+
+## License
+
+This project is proprietary software. All rights reserved.
+
+## Contact
+
+For support or inquiries, please contact support@listify.digital.
 │   │   ├── /google-image    # Google Image API integration
 │   │   └── /workflow        # Workflow services
 │   ├── /hooks               # Custom React hooks
