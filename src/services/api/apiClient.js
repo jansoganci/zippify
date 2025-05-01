@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+// API URL yapılandırması
+let API_BASE_URL = import.meta.env.VITE_API_URL;
+
+// Geliştirme ortamında çift '/api' sorununu çöz
+if (import.meta.env.DEV && API_BASE_URL.endsWith('/api')) {
+  // Geliştirme ortamında, API_BASE_URL'den '/api' kısmını kaldır
+  API_BASE_URL = API_BASE_URL.slice(0, -4); // '/api' kısmını kaldır
+  console.log(`[API] Geliştirme ortamında API_BASE_URL düzeltildi: ${API_BASE_URL}`);
+}
 
 // Development-only logging function - only logs essential information
 const devLog = (message, ...args) => {

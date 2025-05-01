@@ -100,6 +100,9 @@ app.use('/api/listings', listingRoutes);
 // Image Editing Routes
 app.use('/api', imageEditingRouter);
 
+// GPT Image Editing Route
+app.use('/api/image/edit/gpt', gptImageRoutes);
+
 // Content Optimization Route
 
 // Import workflow services
@@ -113,6 +116,7 @@ import { saveListing } from './src/features/listings/services/listingService.js'
 import { keywordRoutes as keywordAnalysisRoutes } from './src/features/keywordAnalysis/index.js';
 import { listingRoutes } from './src/features/listings/index.js';
 import imageEditingRouter from './src/features/imageEditing/imageEditing.routes.js';
+import { gptImageRoutes } from './src/features/imageEditing/index.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';

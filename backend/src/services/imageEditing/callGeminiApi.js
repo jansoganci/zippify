@@ -18,6 +18,9 @@ import { categoryPrompts } from './prompts/categoryPrompts.js';
 import { retryWithBackoff } from '../utils/retryLogic.js';
 import { generateImageHash, getImageCache, setImageCache } from '../utils/imageCache.js';
 
+// Import prompt enhancement
+import { enhanceImagePrompt } from '../promptEnhancement/enhancePrompt.js';
+
 /**
  * Calls the Gemini 2.0 Flash API with an image and prompt
  * @param {string} imageBase64 - Base64-encoded image string (with or without data:image prefix)
@@ -59,6 +62,45 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new Error('GEMINI_API_KEY is not defined in environment variables');
+    }
+    
+    // Extract category and platform from options for prompt enhancement
+    const { category = 'general', platform = 'ecommerce' } = options;
+    
+    // Initialize variables for prompt enhancement
+    let enhancedPrompt = null;
+    let enhanced = false;
+    let finalPrompt = prompt;
+    
+    // Try to enhance the prompt, but don't fail if enhancement fails
+    try {
+      // Enhance the prompt using DeepSeek AI
+      console.log(`Enhancing prompt: "${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}"`);  
+      const enhancementResult = await enhanceImagePrompt(prompt, {
+        requestId: `gemini-${Date.now()}`,
+        category,
+        platform
+      });
+      
+      // Extract results
+      enhancedPrompt = enhancementResult.prompt;
+      enhanced = enhancementResult.enhanced;
+      
+      // Use the enhanced prompt if available, otherwise use the original
+      if (enhanced) {
+        finalPrompt = enhancedPrompt;
+        console.log(`Original prompt: "${prompt}"`);  
+        console.log(`Enhanced prompt: "${enhancedPrompt}"`);  
+      }
+    } catch (enhancementError) {
+      // Log the error but continue with the original prompt
+      console.error(`Prompt enhancement failed: ${enhancementError.message}`);
+      console.log(`Using original prompt: "${prompt}"`);  
+      
+      // Ensure we use the original prompt
+      finalPrompt = prompt;
+      enhanced = false;
+      enhancedPrompt = null;
     }
 
     // Extract the base64 data and determine MIME type
@@ -146,13 +188,11 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
 
     // Create a more specific prompt optimized for image editing tasks
     // The specific wording here is important for getting the model to return an image
-    // Extract category from options if provided
-    const { category } = options;
+    // Get the category-specific prompt or use the base prompt
+    const categoryPrompt = categoryPrompts[category] || basePrompt;
     
-    // Build the system prompt based on the base prompt and category-specific additions
-    const systemPrompt = basePrompt + 
-      (category && categoryPrompts[category] ? `\n\n${categoryPrompts[category]}` : "") + 
-      `\n\nEdit this image by: ${prompt}`;
+    // Combine the category prompt with the enhanced user prompt
+    const systemPrompt = `${categoryPrompt}\n\nEdit this image by: ${finalPrompt}`;
     
     // Log which category is being used (if any)
     if (category && categoryPrompts[category]) {
@@ -210,8 +250,12 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         });
         const response = result.response;
         
-        // Log the raw response for debugging
-        console.log("🔍 Gemini raw response:", JSON.stringify(response, null, 2));
+        // Log only essential information from the response, not the full base64 data
+        console.log("🔍 Gemini API call completed", {
+          status: response?.status || "OK",
+          hasImage: !!response?.candidates?.[0]?.content?.parts?.some(part => part.inlineData),
+          finishReason: response?.candidates?.[0]?.finishReason || "UNKNOWN"
+        });
         
         // Process the response to check if it contains an image
         let hasImage = false;
@@ -265,7 +309,11 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         });
         response = fallbackResult.response;
         
-        console.log("🔍 Gemini fallback response:", JSON.stringify(response, null, 2));
+        console.log("🔍 Gemini fallback response completed", {
+          status: response?.status || "OK",
+          hasImage: !!response?.candidates?.[0]?.content?.parts?.some(part => part.inlineData),
+          finishReason: response?.candidates?.[0]?.finishReason || "UNKNOWN"
+        });
       } catch (fallbackError) {
         console.error("Fallback attempt also failed:", fallbackError.message);
         throw new Error(`All attempts failed: ${retryError.message} and fallback: ${fallbackError.message}`);
@@ -349,7 +397,11 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         });
         
         const fallbackResponse = fallbackResult.response;
-        console.log("Fallback response received:", JSON.stringify(fallbackResponse, null, 2));
+        console.log("Fallback response received:", {
+          status: fallbackResponse?.status || "OK",
+          hasImage: !!fallbackResponse?.candidates?.[0]?.content?.parts?.some(part => part.inlineData),
+          finishReason: fallbackResponse?.candidates?.[0]?.finishReason || "UNKNOWN"
+        });
         
         // Check for image in fallback response
         if (fallbackResponse.candidates && 
@@ -466,7 +518,9 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
       success: true,
       image: generatedImage,
       responseText: responseText,
-      message: "Image edited successfully using Gemini API."
+      message: "Image edited successfully using Gemini API.",
+      promptEnhanced: enhanced,
+      enhancedPrompt: enhanced ? enhancedPrompt : null
     };
   } catch (error) {
     console.error('Error calling Gemini API:', error);

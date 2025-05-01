@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export const ScrollingStickyButton = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -36,14 +37,17 @@ export const ScrollingStickyButton = () => {
       <Button
         size="lg"
         className="group shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 bg-primary overflow-hidden relative"
+        asChild
       >
-        <span className="relative z-10 flex items-center">
-          Start Free Trial
-          <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-300" />
-        </span>
-        
-        {/* Subtle pulse/glow effect on hover */}
-        <span className="absolute inset-0 bg-primary-foreground/10 opacity-0 group-hover:opacity-100 group-hover:scale-[1.8] rounded-full blur-md transition-all duration-700 ease-in-out transform-gpu"></span>
+        <Link to="/login">
+          <span className="relative z-10 flex items-center">
+            Start Free Trial
+            <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform duration-300" />
+          </span>
+          
+          {/* Subtle pulse/glow effect on hover */}
+          <span className="absolute inset-0 bg-primary-foreground/10 opacity-0 group-hover:opacity-100 group-hover:scale-[1.8] rounded-full blur-md transition-all duration-700 ease-in-out transform-gpu"></span>
+        </Link>
       </Button>
     </div>
   );

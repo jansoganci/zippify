@@ -27,6 +27,7 @@ import OptimizePattern from "./pages/optimizePattern";       // ⚠️ Casing mu
 import ReviewDraft from "./pages/ReviewDraft";
 import ListingGeneration from "./pages/ListingGeneration";
 import EditProductImage from "./features/imageEditing/EditImagePage";
+import EditImageGPT from "./features/imageEditing/EditImageGPT";
 import SeoKeywordAnalysis from "./features/seoAnalysis/SeoKeywordAnalysis";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
@@ -123,6 +124,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <EditProductImage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/edit-image-gpt"
+                element={
+                  <ProtectedRoute>
+                    <EditImageGPT />
                   </ProtectedRoute>
                 }
               />

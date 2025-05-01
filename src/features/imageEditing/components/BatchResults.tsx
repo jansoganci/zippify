@@ -2,8 +2,9 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { AlertTriangle, Download, Loader2 } from "lucide-react";
+import { AlertTriangle, Download, Loader2, Sparkles } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface BatchImageResult {
   originalImage: string;
@@ -11,6 +12,8 @@ export interface BatchImageResult {
   status: 'pending' | 'processing' | 'completed' | 'error';
   error?: string;
   fileName: string;
+  promptEnhanced?: boolean;
+  enhancedPrompt?: string;
 }
 
 interface BatchResultsProps {
@@ -77,7 +80,23 @@ const BatchResults: React.FC<BatchResultsProps> = ({ results, isProcessing }) =>
           {results.map((result, index) => (
             <div key={index} className="border rounded-md p-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium truncate">{result.fileName}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium truncate">{result.fileName}</p>
+                  {result.promptEnhanced && result.enhancedPrompt && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs max-w-xs">Enhanced prompt: {result.enhancedPrompt}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
                 {result.status === 'completed' && result.editedImage && (
                   <Button 
                     variant="ghost" 

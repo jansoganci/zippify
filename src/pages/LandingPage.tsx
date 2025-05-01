@@ -5,9 +5,9 @@ import ImprovedHeroSection from "@/features/landing/components/ImprovedHeroSecti
 import { ProblemSolution } from "@/features/landing/components/ProblemSolution";
 import { LiveDemoPreview } from "@/features/landing/components/LiveDemoPreview";
 import { StickyCTA } from "@/features/landing/components/StickyCTA";
-import { ScrollingStickyButton } from "@/features/landing/components/ScrollingStickyButton";
 import ProcessSteps from '@/features/landing/components/ProcessSteps';
 import Footer from '@/components/layout/Footer';
+import { Link } from 'react-router-dom';
 
 const LandingPage = () => {
   const [darkMode, setDarkMode] = useState(false);
@@ -30,11 +30,11 @@ const LandingPage = () => {
     <div className="min-h-screen flex flex-col">
       <header className="w-full h-16 border-b bg-background z-10 flex items-center">
         <div className="container flex items-center justify-between">
-          <div className="text-xl font-bold">listify.digital</div>
+          <div className="text-xl font-bold">Listify</div>
           <nav className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
-            <a href="/dashboard" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">Dashboard</a>
+            <Link to="/login" className="text-sm font-medium text-primary hover:text-primary/80 transition-colors">Login</Link>
             <button 
               onClick={toggleTheme} 
               className="ml-4 p-2 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors"
@@ -60,7 +60,6 @@ const LandingPage = () => {
       
       
       <Footer />
-      <ScrollingStickyButton />
     </div>
   );
 };

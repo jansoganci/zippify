@@ -61,6 +61,7 @@ const SeoKeywordAnalysis = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [noKeywordsFound, setNoKeywordsFound] = useState(false);
+  const [isPlaceholder, setIsPlaceholder] = useState(false);
   
   // Access the keyword context for transferring selected keywords to the CreateListing page
   const { setKeywords: setContextKeywords } = useSeoKeywords();
@@ -145,6 +146,7 @@ const SeoKeywordAnalysis = () => {
         if (import.meta.env.MODE !== 'production') console.log('Keywords with IDs:', keywordsWithIds);
         setKeywords(keywordsWithIds);
         setNoKeywordsFound(false);
+        setIsPlaceholder(responseData.data.error === true);
       } else {
         // Log detailed error for debugging
         if (import.meta.env.MODE !== 'production') console.error('Invalid API response format or no keywords returned:', {
@@ -395,6 +397,11 @@ const SeoKeywordAnalysis = () => {
         {/* Results Section - Only show if we have results */}
         {keywords.length > 0 && (
           <Card className="w-full border-muted/40 dark:border-muted/20 shadow-sm overflow-hidden">
+            {isPlaceholder && (
+              <div className="mb-4 rounded-md border-l-4 border-yellow-500 bg-yellow-50 p-3 text-sm text-yellow-800">
+                Google Trends verisi şu anda erişilemedi; tahmini (placeholder) değerler gösteriliyor.
+              </div>
+            )}
             <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40 rounded-t-sm"></div>
             <CardHeader className="bg-muted/10 dark:bg-muted/5 pb-3">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

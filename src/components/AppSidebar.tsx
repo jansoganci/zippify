@@ -1,4 +1,5 @@
 import React from 'react';
+// Vite ortam değişkenlerine erişim için import.meta.env kullanılır
 import { Link } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -8,7 +9,8 @@ import {
   ChevronLeft, 
   ChevronRight,
   Search,
-  Image
+  Image,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -88,6 +90,16 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isActive={activeRoute === '/edit-image'} 
           isCollapsed={isCollapsed}
         />
+        {/* New Feature sadece geliştirme ortamında gösterilir */}
+        {import.meta.env.DEV && (
+          <SidebarItem 
+            icon={Sparkles} 
+            label="New Feature" 
+            href="/edit-image-gpt" 
+            isActive={activeRoute === '/edit-image-gpt'} 
+            isCollapsed={isCollapsed}
+          />
+        )}
         <SidebarItem 
           icon={ListChecks} 
           label="My Listings" 

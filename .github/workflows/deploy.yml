@@ -106,9 +106,22 @@ jobs:
             echo "📦 Installing backend dependencies"
             npm install
             
-            # Backend servisini yeniden başlat
-            echo "🚀 Restarting backend service"
-            pm2 restart zippify-backend
+            # Backend servisini tamamen durdurup yeniden başlat
+            echo "🚀 Stopping and restarting backend service"
+            pm2 delete zippify-backend || true
+            
+            # 3001 portunu kullanan işlemleri kontrol et ve sonlandır
+            echo "🔍 Checking for processes using port 3001"
+            PORT_PID=$(lsof -t -i:3001 || echo "")
+            if [ ! -z "$PORT_PID" ]; then
+              echo "🔥 Killing process using port 3001: $PORT_PID"
+              kill -9 $PORT_PID || true
+            fi
+            
+            # Yeni servisi başlat
+            echo "🌟 Starting new backend service"
+            cd /root/zippify/backend
+            pm2 start server.js --name zippify-backend
             
             # Backend servisinin durumunu kontrol et
             echo "🔍 Checking backend service status"

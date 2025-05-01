@@ -33,5 +33,13 @@ export default defineConfig({
         '.ts': 'tsx',
       },
     },
+    // Exclude backend-only modules from optimization
+    exclude: ['winston', '@colors/colors', 'logform', 'triple-beam', 'winston-transport'],
+  },
+  build: {
+    rollupOptions: {
+      // Explicitly mark backend-only modules as external during build
+      external: ['winston', '@colors/colors', 'logform', 'triple-beam', 'winston-transport', 'fs', 'path', 'os'],
+    },
   },
 })

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { createApiError, ErrorCodes } from './utils/errors.js';
+import log from '../../../utils/logger.js';
 
 // Backend API için axios instance'ı
 const backendApi = axios.create({
@@ -191,7 +192,7 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    logger.error('API Error:', {
+    log.error('API Error:', {
       message: error.message,
       code: error.code,
       status: error.response?.status,
@@ -243,7 +244,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
   console.log('API Key status:', currentApiKey ? `Present (length: ${currentApiKey.length})` : 'Missing');
   
   if (!currentApiKey) {
-    logger.error('API Key not found. Environment:', isNode ? 'Node.js' : 'Browser');
+    log.error('API Key not found. Environment:', isNode ? 'Node.js' : 'Browser');
     throw createApiError('DeepSeek API key is not configured', { code: ErrorCodes.MISSING_REQUIRED_FIELD });
   }
 
@@ -253,7 +254,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
 
   while (attempt <= maxAttempts) {
     try {
-      logger.info(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { 
+      log.info(`Making API request to ${endpoint} (Attempt ${attempt}/${maxAttempts})`, { 
         endpoint,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -276,7 +277,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       if (headers?.Authorization) {
         console.log("Authorization header is present.");
       } else {
-        logger.warn("Authorization header is missing!");
+        log.warn("Authorization header is missing!");
       }
       
       // Log non-sensitive headers
@@ -311,7 +312,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       }
       
       // Handle invalid response format
-      logger.error('Invalid API response format:', response.data);
+      log.error('Invalid API response format:', response.data);
       throw createApiError('Invalid API response format', {
         code: ErrorCodes.INVALID_API_RESPONSE,
         metadata: { endpoint, response: response.data }
@@ -321,7 +322,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
       lastError = error;
       
       // Detailed error log
-      logger.error('API request error details:', {
+      log.error('API request error details:', {
         message: error.message,
         code: error.code,
         name: error.name,
@@ -360,7 +361,7 @@ const makeRequest = async (endpoint, data, retries = MAX_RETRIES) => {
           delay = Math.min(RETRY_DELAY * Math.pow(backoffFactor, attempt - 1), 30000);
         }
         
-        logger.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
+        log.warn(`API request failed, retrying in ${delay}ms... (Attempt ${attempt}/${maxAttempts})`, {
           endpoint,
           error: error.message,
           errorCode: error.code,
@@ -446,7 +447,7 @@ export const makeCompletion = async (systemPrompt, userPrompt) => {
     return response.data.choices[0].message.content;
   } catch (error) {
     if (error.code === ErrorCodes.API_TIMEOUT) {
-      logger.error('API request timed out, using fallback response');
+      log.error('API request timed out, using fallback response');
       // Use mock response as fallback
       if (userPrompt.includes('optimize this knitting pattern')) {
         return mockResponses.optimizePattern;

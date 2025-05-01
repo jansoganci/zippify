@@ -34,12 +34,19 @@ const Header = () => {
   };
   
   return (
-    <header className="w-full h-16 flex items-center justify-between px-8 bg-background/90 border-b border-border/60 dark:border-border/30 shadow-sm">
+    <header className="w-full h-20 flex items-center justify-between px-8 bg-background/90 border-b border-border/60 dark:border-border/30 shadow-sm">
       {/* Logo & Marka */}
       <div className="flex items-center gap-2">
-        {/* Logo örnek: */}
-        <div className="rounded-full bg-primary/80 text-white w-8 h-8 flex items-center justify-center font-bold text-lg">L</div>
-        <span className="text-2xl font-bold tracking-tight text-primary">listify.digital</span>
+        <NavLink to="/" className="flex items-center">
+          {/* Logo görsel */}
+          <div>
+            <img 
+              src="/images/logo.seffaf.webp" 
+              alt="Listify Logo" 
+              style={{ height: '80px', width: 'auto' }}
+            />
+          </div>
+        </NavLink>
       </div>
 
       {/* Orta Menü */}

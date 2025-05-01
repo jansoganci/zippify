@@ -14,8 +14,7 @@ import {
   Plus, 
   Image as ImageIcon, 
   Loader2,
-  Wand2,
-  Calendar
+  Wand2
 } from "lucide-react";
 import DashboardLayout from "@/components/DashboardLayout";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -24,9 +23,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 // Import batch processing components
 import BatchUploader from "./components/BatchUploader";
 import BatchResults, { BatchImageResult } from "./components/BatchResults";
-import { editImageWithPrompt, editMultipleImages, processSingleImageEdit, processBatchImageEdits } from "./editImageService";
+import { editImageWithPrompt, processSingleImageEdit } from "./editImageService";
 import PromptTemplateSelector from "./components/PromptTemplateSelector";
 import ExamplePromptLibrary from "./components/ExamplePromptLibrary";
+// Prompt enhancement will be handled through API calls
 
 const NewEditImagePage = () => {
   // Single image editing state
@@ -88,12 +88,24 @@ const NewEditImagePage = () => {
       return;
     }
     
-    if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
+    if (import.meta.env.MODE !== 'production') {
+      console.log(`Submitting image edit request with prompt: "${prompt}"`);
+    }
     setIsLoading(true);
     
     try {
-      // Process the image edit using the service function
-      const result = await processSingleImageEdit(selectedImage, prompt);
+      // Prompt enhancement will be handled by the backend API
+      // The editImageWithPrompt function already sends category and platform
+      // which will be used for prompt enhancement on the server side
+      const finalPrompt = prompt;
+      
+      // Log the prompt in development mode only
+      if (import.meta.env.MODE !== 'production') {
+        console.log("Using prompt:", finalPrompt);
+      }
+      
+      // Process the image edit using the service function with the final prompt
+      const result = await processSingleImageEdit(selectedImage, finalPrompt);
       
       if (result.image) {
         setGeneratedImage(result.image);
@@ -140,21 +152,16 @@ const NewEditImagePage = () => {
   // Process batch of images
   const handleBatchProcess = async () => {
     if (selectedFiles.length === 0 || !prompt.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please select images and provide editing instructions",
-      });
+      setError("Please select images and enter a prompt");
       return;
     }
     
     setIsBatchProcessing(true);
-    setBatchResults(selectedFiles.map((file, index) => ({
-      id: `img-${index}`,
-      fileName: file.name, // Changed 'name' to 'fileName' to match BatchImageResult type
-      status: 'pending',
+    setBatchResults(selectedFiles.map(file => ({
+      fileName: file.name,
       originalImage: URL.createObjectURL(file),
       editedImage: null,
+      status: 'pending',
       error: null
     })));
     
@@ -177,21 +184,79 @@ const NewEditImagePage = () => {
         });
       };
       
+      // Process each image sequentially with individual prompt enhancement
+      const results: BatchImageResult[] = [];
+      
       // Process each image sequentially
-      await processBatchImageEdits(
-        selectedFiles,
-        prompt,
-        handleProgressUpdate, // Correct parameter order - onProgress is the third parameter
-        category,
-        platform
-      );
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        
+        try {
+          // Update status to processing
+          handleProgressUpdate(i, 'processing');
+          
+          // Convert file to base64
+          const base64Image = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+          
+          // Prompt enhancement will be handled by the backend API
+          // The editImageWithPrompt function already sends category and platform
+          const finalPrompt = prompt;
+          
+          // Log the prompt in development mode only
+          if (import.meta.env.MODE !== 'production') {
+            console.log(`Image ${i + 1}/${selectedFiles.length} (${file.name}) - Using prompt:`, finalPrompt);
+          }
+          
+          // Process the image with the final prompt (enhanced or original)
+          if (import.meta.env.MODE !== 'production') {
+            console.log(`Processing image ${i + 1}/${selectedFiles.length}: ${file.name}`);
+          }
+          const result = await editImageWithPrompt(base64Image, finalPrompt, category, platform);
+          
+          // Update result
+          handleProgressUpdate(i, 'completed', result.image);
+          results.push({
+            fileName: file.name,
+            originalImage: base64Image,
+            editedImage: result.image,
+            status: 'completed',
+            promptEnhanced: result.promptEnhanced || false,
+            enhancedPrompt: result.enhancedPrompt || null
+          });
+          
+          // Add delay between requests to avoid rate limits
+          if (i < selectedFiles.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } catch (error) {
+          // Handle errors
+          if (import.meta.env.MODE !== 'production') {
+            console.error(`Error processing image ${i + 1}/${selectedFiles.length}:`, error);
+          }
+          handleProgressUpdate(i, 'error', undefined, error instanceof Error ? error.message : String(error));
+          results.push({
+            fileName: file.name,
+            originalImage: URL.createObjectURL(file),
+            editedImage: null,
+            status: 'error',
+            error: error instanceof Error ? error.message : String(error)
+          });
+        }
+      }
       
       toast({
         title: "Batch Processing Complete",
         description: `Processed ${selectedFiles.length} images`,
       });
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') console.error("Batch processing error:", error);
+      if (import.meta.env.MODE !== 'production') {
+        console.error("Batch processing error:", error);
+      }
       toast({
         title: "Processing Error",
         description: error instanceof Error ? error.message : "Failed to process images",

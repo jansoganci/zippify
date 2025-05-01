@@ -3,7 +3,7 @@
  * It will be removed in a future update.
  */
 
-import { apiClient, API_URL, MODEL, MAX_TOKENS } from '../../../backend/src/services/workflow/apiClient.js';
+import { apiClient, API_URL, MODEL, MAX_TOKENS } from '@/services/workflow/apiClient';
 
 export { apiClient, API_URL, MODEL, MAX_TOKENS };
 

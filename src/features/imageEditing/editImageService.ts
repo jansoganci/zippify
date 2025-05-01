@@ -1,16 +1,28 @@
 import axios from 'axios';
 import { BatchImageResult } from './components/BatchResults';
 
+// Extended BatchImageResult interface to include prompt enhancement info
+declare module './components/BatchResults' {
+  interface BatchImageResult {
+    promptEnhanced?: boolean;
+    enhancedPrompt?: string;
+  }
+}
+
 /**
  * Sends an image and prompt to the backend for editing using the Gemini API
  * @param {string} base64Image - The base64-encoded image to edit
  * @param {string} prompt - The text prompt describing the desired edits
  * @param {string} category - The product category (jewelry, clothing, etc.)
  * @param {string} platform - The target platform (etsy, amazon, ebay)
- * @returns {Promise<string>} - The edited image as a base64 string
+ * @returns {Promise<object>} - Object containing the edited image and enhancement info
  * @throws {Error} - If the API request fails or returns an unsuccessful response
  */
-export async function editImageWithPrompt(base64Image: string, prompt: string, category: string = 'jewelry', platform: string = 'etsy'): Promise<string> {
+export async function editImageWithPrompt(base64Image: string, prompt: string, category: string = 'jewelry', platform: string = 'etsy'): Promise<{
+  image: string;
+  promptEnhanced?: boolean;
+  enhancedPrompt?: string;
+}> {
   try {
     // Retrieve JWT token from localStorage
     const token = localStorage.getItem("zippify_token");
@@ -44,8 +56,12 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
       throw new Error("Image data missing from successful response");
     }
     
-    // Return the edited image
-    return response.data.result.image;
+    // Return the edited image and prompt enhancement info
+    return {
+      image: response.data.result.image,
+      promptEnhanced: response.data.promptEnhanced || false,
+      enhancedPrompt: response.data.enhancedPrompt || null
+    };
   } catch (error) {
     // Handle axios errors
     if (axios.isAxiosError(error)) {
@@ -74,27 +90,41 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
  * @param {string} prompt - The text prompt describing the desired edits
  * @param {string} category - The product category (jewelry, clothing, etc.)
  * @param {string} platform - The target platform (etsy, amazon, ebay)
- * @returns {Promise<{image: string, error: string | null}>} - The edited image or error
+ * @returns {Promise<{image: string | null, error: string | null, promptEnhanced?: boolean, enhancedPrompt?: string}>} - The edited image, error, and prompt enhancement info
  */
 export async function processSingleImageEdit(
   image: string, 
   prompt: string, 
   category: string = 'jewelry', 
   platform: string = 'etsy'
-): Promise<{image: string | null, error: string | null}> {
+): Promise<{
+  image: string | null; 
+  error: string | null;
+  promptEnhanced?: boolean;
+  enhancedPrompt?: string;
+}> {
   try {
     if (import.meta.env.MODE !== 'production') console.log("Sending request to backend API...");
     const requestStartTime = Date.now();
     
-    const editedImage = await editImageWithPrompt(image, prompt, category, platform);
+    const result = await editImageWithPrompt(image, prompt, category, platform);
     
     const requestDuration = Date.now() - requestStartTime;
     if (import.meta.env.MODE !== 'production') console.log(`Received response from backend after ${requestDuration}ms`);
     
-    if (editedImage) {
-      return { image: editedImage, error: null };
+    if (result.image) {
+      return { 
+        image: result.image, 
+        error: null,
+        promptEnhanced: result.promptEnhanced,
+        enhancedPrompt: result.enhancedPrompt
+      };
     } else {
-      return { image: null, error: "No image data received from the server" };
+      return { 
+        image: null, 
+        error: "No image data received from the server",
+        promptEnhanced: false
+      };
     }
   } catch (error) {
     if (import.meta.env.MODE !== 'production') console.error("Error editing image:", error);
@@ -168,13 +198,16 @@ export async function editMultipleImages(
       
       // Process the image
       if (import.meta.env.MODE !== 'production') console.log(`Processing image ${i + 1}/${images.length}: ${image.name}`);
-      const editedImage = await editImageWithPrompt(base64Image, prompt, category, platform);
+      const result = await editImageWithPrompt(base64Image, prompt, category, platform);
       
       // Update result
-      results[i].editedImage = editedImage;
+      results[i].editedImage = result.image;
       results[i].status = 'completed';
+      // Store enhancement info if available
+      results[i].promptEnhanced = result.promptEnhanced;
+      results[i].enhancedPrompt = result.enhancedPrompt;
       if (options.onProgress) {
-        options.onProgress(i, 'completed', editedImage);
+        options.onProgress(i, 'completed', result.image);
       }
       
       // Add delay between requests to avoid rate limits

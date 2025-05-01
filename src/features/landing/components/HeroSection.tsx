@@ -52,10 +52,10 @@ export const HeroSection = () => {
           <div className="flex flex-col justify-center space-y-4">
             <AnimateOnScroll animation="fade-right" duration={500} delay={300}>
               <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                <span className="text-primary">AI-Powered</span> Etsy Listings in 2 Minutes Flat
+                <span className="text-primary">AI-Powered</span> Marketplace Listings in 2 Minutes Flat
               </h1>
               <p className="text-muted-foreground md:text-xl max-w-[42rem]">
-                Stop struggling with bland descriptions and invisible listings. listify.digital transforms your product ideas into SEO-optimized Etsy listings that <span className="font-medium text-foreground">actually sell</span>.
+                Stop struggling with bland descriptions and invisible listings. listify.digital transforms your product ideas into SEO-optimized marketplace listings that <span className="font-medium text-foreground">actually sell</span>.
               </p>
             </AnimateOnScroll>
             
