@@ -91,7 +91,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isCollapsed={isCollapsed}
         />
         {/* New Feature sadece geliştirme ortamında gösterilir */}
-        {import.meta.env.DEV && (
+        {window.location.hostname.includes('localhost') && (
           <SidebarItem 
             icon={Sparkles} 
             label="New Feature" 
