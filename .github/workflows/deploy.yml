@@ -94,20 +94,24 @@ jobs:
           ${{ secrets.ENV_PRODUCTION_FILE }}
           EOF
 
-      - name: Restart Backend and Check Status
+      - name: Install Backend Dependencies
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            
-            echo "🔄 Restarting backend service"
+            echo "🔄 Preparing backend service"
             cd /root/zippify/backend
             
             # Eksik paketleri yükle
-            echo "📦 Installing backend dependencies"
+            echo "💶 Installing backend dependencies"
             npm install
-            
+          EOF
+
+      - name: Stop Previous Backend Service
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
             # Backend servisini tamamen durdurup yeniden başlat
-            echo "🚀 Stopping and restarting backend service"
+            echo "🚀 Stopping previous backend service"
             pm2 delete zippify-backend || true
             
             # 3001 portunu kullanan işlemleri kontrol et ve sonlandır
@@ -117,20 +121,43 @@ jobs:
               echo "🔥 Killing process using port 3001: $PORT_PID"
               kill -9 $PORT_PID || true
             fi
-            
+          EOF
+
+      - name: Start New Backend Service
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
             # Yeni servisi başlat
             echo "🌟 Starting new backend service"
             cd /root/zippify/backend
             pm2 start server.js --name zippify-backend
-            
+          EOF
+
+      - name: Check Backend Status
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
             # Backend servisinin durumunu kontrol et
             echo "🔍 Checking backend service status"
             pm2 status zippify-backend
-            
+          EOF
+
+      - name: View Backend Logs
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
             # Backend loglarını kontrol et
             echo "📋 Last 10 lines of backend logs:"
-            pm2 logs zippify-backend --lines 10 --raw
-            
+            echo "Output logs:"
+            tail -n 10 /root/.pm2/logs/zippify-backend-out.log
+            echo "Error logs:"
+            tail -n 10 /root/.pm2/logs/zippify-backend-error.log
+          EOF
+
+      - name: Perform Health Check
+        run: |
+          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+            set -e
             # Sağlık kontrolü
             echo "🩺 Performing health check"
             sleep 3
