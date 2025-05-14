@@ -129,7 +129,7 @@ jobs:
             
             # Backend loglarını kontrol et
             echo "📋 Last 10 lines of backend logs:"
-            pm2 logs zippify-backend --lines 10
+            pm2 logs zippify-backend --lines 10 --no-tail
             
             # Sağlık kontrolü
             echo "🩺 Performing health check"
