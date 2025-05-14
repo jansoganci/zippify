@@ -192,10 +192,20 @@ const CreateListing: React.FC = () => {
       
       // Check for 403 Quota Exceeded error
       if (err.response && err.response.status === 403) {
+        // Extract quota information from the response if available
+        const quotaData = err.response.data?.quota || {};
+        const feature = quotaData.feature || 'create-listing';
+        const limit = quotaData.limit || 5;
+        const plan = quotaData.plan || 'free';
+        
+        const errorMessage = `You have reached your daily limit of ${limit} listing creations for your ${plan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`;
+        
         setQuotaExceeded(true);
+        setError(errorMessage);
+        
         toast({
           title: "Quota Exceeded",
-          description: "You've reached your daily limit of 5 listings.",
+          description: errorMessage,
           variant: "destructive"
         });
       } else {

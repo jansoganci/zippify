@@ -67,7 +67,15 @@ export default function checkQuota(featureName) {
       // Check if quota is exceeded
       if (currentUsage >= DAILY_LIMIT) {
         return res.status(403).json({
-          error: 'Quota exceeded'
+          error: `Daily limit exceeded for ${featureName}`,
+          message: `You have reached your daily limit of ${DAILY_LIMIT} ${featureName} requests for your ${userPlan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`,
+          quota: {
+            limit: DAILY_LIMIT,
+            used: currentUsage,
+            remaining: 0,
+            feature: featureName,
+            plan: userPlan
+          }
         });
       }
       
@@ -82,8 +90,11 @@ export default function checkQuota(featureName) {
       next();
     } catch (error) {
       console.error(`Error checking quota:`, error);
-      // In case of error, allow the request to proceed but log the issue
-      next();
+      // Hata durumunda, güvenli tarafta kal ve isteği reddet
+      return res.status(500).json({
+        error: 'Quota check failed, please try again later',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   };
 }

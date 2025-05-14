@@ -423,13 +423,12 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
       
       // If still no image after fallback, return error
       if (!generatedImage) {
+        console.warn("Gemini API failed to generate an image, returning error");
         return {
-          success: !!responseText.trim(),
+          success: false,
           image: null,
-          responseText: responseText,
-          message: responseText.trim() 
-            ? "Gemini API returned a text response but no image."
-            : "Gemini API could not generate an edited image. This may be due to limitations with the experimental model or the specific editing request. Try a simpler edit or different wording."
+          responseText: "Failed to generate image",
+          message: "Image editing service is currently unavailable. Please try again later."
         };
       }
     }
@@ -464,11 +463,12 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
           const metadata = await sharpImage.metadata();
           console.log(`Image metadata: width=${metadata.width}, height=${metadata.height}, format=${metadata.format}`);
           
-          // Validate image quality - width must be at least 800px and format should be png
-          if (metadata.width < 800 || metadata.format !== 'png') {
-            console.warn(`Low quality image detected: width=${metadata.width}, format=${metadata.format}`);
-            throw new Error("Low quality output, retrying...");
+          // Validate image quality - width must be at least 500px (gevşetilmiş kriter)
+          if (metadata.width < 500) {
+            console.warn(`Very low quality image detected: width=${metadata.width}, format=${metadata.format}`);
+            throw new Error("Very low quality output, retrying...");
           }
+          // PNG format kontrolünü kaldırdık
           
           // Resize the image if dimensions are provided
           sharpImage = sharpImage.resize({

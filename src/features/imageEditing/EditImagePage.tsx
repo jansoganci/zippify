@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -130,12 +131,50 @@ const NewEditImagePage = () => {
         });
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      // Daha detaylı hata mesajı
+      let errorMessage = "Image editing failed";
+      
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 403 && error.response?.data?.error?.includes('limit exceeded')) {
+          // Kota aşımı durumu
+          const quotaData = error.response.data.quota || {};
+          const feature = quotaData.feature || 'edit-image';
+          const limit = quotaData.limit || 5;
+          const plan = quotaData.plan || 'free';
+          
+          errorMessage = `Daily limit exceeded: You have reached your daily limit of ${limit} image edits for your ${plan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`;
+          
+          // Kota aşımı için özel toast göster
+          toast({
+            variant: "destructive",
+            title: "Quota Exceeded",
+            description: errorMessage,
+          });
+          
+          // Hata mesajını ayarla ve fonksiyondan çık
+          setError(errorMessage);
+          setIsLoading(false);
+          return;
+        } else if (error.response?.data?.error) {
+          // Diğer API hataları
+          errorMessage = error.response.data.error;
+          
+          // Geliştirme modunda daha fazla detay göster
+          if (import.meta.env.MODE !== 'production' && error.response.data.details) {
+            console.error("Detailed error:", error.response.data.details);
+            errorMessage += ` (${error.response.data.details})`;
+          }
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
       
+      // Hata durumunu toast ile bildir
       toast({
         variant: "destructive",
-        title: "Error",
+        title: "Image Editing Failed",
         description: errorMessage,
       });
     } finally {

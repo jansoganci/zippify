@@ -434,6 +434,10 @@ app.post('/api/generate-pdf', async (req, res) => {
       
       log.info("✅ [save-listing] Listing saved with title:", title);
       
+      // Başarılı işlemden sonra kotayı artır
+      await incrementQuota(req.user.id, "create-listing");
+      log.info(`[quota] Incremented usage for user ${req.user.id} — Feature: create-listing`);
+      
       // Return success response
       return res.status(201).json({ 
         success: true,

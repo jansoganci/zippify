@@ -114,11 +114,22 @@ const SeoKeywordAnalysis = () => {
         // Handle quota exceeded responses
         if (response.status === 403) {
           if (import.meta.env.MODE !== 'production') console.warn("Quota exceeded: Displaying limit message.");
+          
+          // Extract quota information from the response if available
+          const quotaData = response.data?.quota || {};
+          const feature = quotaData.feature || 'seo-analysis';
+          const limit = quotaData.limit || 5;
+          const plan = quotaData.plan || 'free';
+          
+          const errorMessage = `You have reached your daily limit of ${limit} SEO keyword searches for your ${plan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`;
+          
           toast({
             title: "Quota Exceeded",
-            description: "You've reached your daily limit of 5 SEO keyword searches.",
+            description: errorMessage,
             variant: "destructive"
           });
+          
+          setError(errorMessage);
           return;
         }
         throw new Error(`API request failed with status ${response.status}`);
@@ -129,38 +140,59 @@ const SeoKeywordAnalysis = () => {
       if (import.meta.env.MODE !== 'production') console.log('API Response:', responseData); // Log full response for debugging
       
       // Extract keywords from the response
-      if (responseData && responseData.data && responseData.data.keywords && responseData.data.keywords.length > 0) {
-        // Add unique IDs to each keyword if they don't have one
-        const keywordsWithIds = responseData.data.keywords.map((keyword, index) => {
-          // If keyword already has an id, use it; otherwise generate one
-          if (!keyword.id) {
-            return {
-              ...keyword,
-              id: `kw-${Date.now()}-${index}`,
-              selected: false
-            };
-          }
-          return keyword;
-        });
-        
-        if (import.meta.env.MODE !== 'production') console.log('Keywords with IDs:', keywordsWithIds);
-        setKeywords(keywordsWithIds);
-        setNoKeywordsFound(false);
-        setIsPlaceholder(responseData.data.error === true);
-      } else {
-        // Log detailed error for debugging
-        if (import.meta.env.MODE !== 'production') console.error('Invalid API response format or no keywords returned:', {
-          responseReceived: responseData,
-          hasData: Boolean(responseData?.data),
-          hasKeywords: Boolean(responseData?.data?.keywords),
-          keywordsLength: responseData?.data?.keywords?.length || 0,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Set state to show no keywords found message
-        setNoKeywordsFound(true);
-        setKeywords([]);
+      if (import.meta.env.MODE !== 'production') {
+        console.log('API response:', responseData);
       }
+      
+      // Daha detaylı API yanıtı incelemesi
+      if (!responseData || !responseData.data) {
+        if (import.meta.env.MODE !== 'production') {
+          console.error('API response missing data object:', responseData);
+        }
+        setNoKeywordsFound(true);
+        setError("No keywords found for this input. Try changing your filters or using more general terms.");
+        setKeywords([]);
+        return;
+      }
+      
+      if (!responseData.data.keywords || !Array.isArray(responseData.data.keywords)) {
+        if (import.meta.env.MODE !== 'production') {
+          console.error('API response missing keywords array:', responseData.data);
+        }
+        setNoKeywordsFound(true);
+        setError("No keywords found for this input. Try changing your filters or using more general terms.");
+        setKeywords([]);
+        return;
+      }
+      
+      if (responseData.data.keywords.length === 0) {
+        if (import.meta.env.MODE !== 'production') {
+          console.error('API returned empty keywords array:', responseData.data);
+        }
+        setNoKeywordsFound(true);
+        setError("No keywords found for this input. Try changing your filters or using more general terms.");
+        setKeywords([]);
+        return;
+      }
+      
+      // Keywords bulundu, işlemeye devam et
+      // Add unique IDs to each keyword if they don't have one
+      const keywordsWithIds = responseData.data.keywords.map((keyword, index) => {
+        // If keyword already has an id, use it; otherwise generate one
+        if (!keyword.id) {
+          return {
+            ...keyword,
+            id: `kw-${Date.now()}-${index}`,
+            selected: false
+          };
+        }
+        return keyword;
+      });
+      
+      if (import.meta.env.MODE !== 'production') console.log('Keywords with IDs:', keywordsWithIds);
+      setKeywords(keywordsWithIds);
+      setNoKeywordsFound(false);
+      setIsPlaceholder(responseData.data.error === true);
     } catch (error: any) {
       // Log detailed error with stack trace
       if (import.meta.env.MODE !== 'production') console.error('Error fetching keyword data:', {

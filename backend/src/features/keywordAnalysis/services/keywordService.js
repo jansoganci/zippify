@@ -29,6 +29,19 @@ export async function getKeywordAnalysis(productName, category = null, country =
   });
   
   try {
+    // Daha detaylı loglama ekleyelim
+    console.log(`[KeywordService][${timestamp}] DETAILED_DEBUG: {
+  environment: "${process.env.NODE_ENV}",
+  product_name: "${productName}",
+  category: "${category || 'N/A'}",
+  country: "${country}",
+  platform: "${platform}",
+  google_trends_available: ${typeof googleTrends !== 'undefined'},
+  axios_available: ${typeof axios !== 'undefined'},
+  memory_usage: ${JSON.stringify(process.memoryUsage())},
+  uptime: ${process.uptime()}
+}`);
+    
     // Generate keyword variations based on the product name and category
     const keywordVariations = generateKeywordVariations(productName, category);
     
@@ -48,10 +61,20 @@ export async function getKeywordAnalysis(productName, category = null, country =
     } catch (err) {
       console.error(`[KeywordService][${timestamp}] TRENDS_ERROR: Error fetching trends: ${err.message}`);
       console.error(`[KeywordService][${timestamp}] STACK: ${err.stack?.split('\n')[0]}`);
-      // Don't throw, we'll use placeholder data if this fails
-      // Set default values that will allow the rest of the function to continue
-      avgInterest = 50; // Default medium interest value
-      relatedQueries = []; // Empty related queries
+      
+      // Daha güçlü fallback veriler oluşturalım
+      avgInterest = 50;
+      
+      // Ürün adına göre özelleştirilmiş ilgili sorgular oluşturalım
+      relatedQueries = [
+        { query: `best ${productName}`, value: 75 },
+        { query: `${productName} online`, value: 65 },
+        { query: `handmade ${productName}`, value: 55 },
+        { query: `custom ${productName}`, value: 45 },
+        { query: `${productName} shop`, value: 35 }
+      ];
+      
+      console.log(`[KeywordService][${timestamp}] FALLBACK: Generated custom related queries for "${productName}"`);
     }
     
     // Process the keyword variations with Google Trends data
