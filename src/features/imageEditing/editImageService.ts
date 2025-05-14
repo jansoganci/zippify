@@ -52,7 +52,7 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
     
     // Verify that the result and image data exist
     if (!response.data.result || !response.data.result.image) {
-      if (import.meta.env.MODE !== 'production') console.error("API response missing image data:", response.data);
+      console.error("API response missing image data:", response.data);
       throw new Error("Image data missing from successful response");
     }
     
@@ -79,7 +79,7 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
     }
     
     // For non-axios errors
-    if (import.meta.env.MODE !== 'production') console.error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
     throw new Error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -104,13 +104,13 @@ export async function processSingleImageEdit(
   enhancedPrompt?: string;
 }> {
   try {
-    if (import.meta.env.MODE !== 'production') console.log("Sending request to backend API...");
+    console.log("Sending request to backend API...");
     const requestStartTime = Date.now();
     
     const result = await editImageWithPrompt(image, prompt, category, platform);
     
     const requestDuration = Date.now() - requestStartTime;
-    if (import.meta.env.MODE !== 'production') console.log(`Received response from backend after ${requestDuration}ms`);
+    console.log(`Received response from backend after ${requestDuration}ms`);
     
     if (result.image) {
       return { 
@@ -127,7 +127,7 @@ export async function processSingleImageEdit(
       };
     }
   } catch (error) {
-    if (import.meta.env.MODE !== 'production') console.error("Error editing image:", error);
+    console.error("Error editing image:", error);
     return { 
       image: null, 
       error: error instanceof Error ? error.message : "Failed to edit image. Please try again." 
@@ -197,7 +197,7 @@ export async function editMultipleImages(
       const base64Image = await fileToBase64(image);
       
       // Process the image
-      if (import.meta.env.MODE !== 'production') console.log(`Processing image ${i + 1}/${images.length}: ${image.name}`);
+      console.log(`Processing image ${i + 1}/${images.length}: ${image.name}`);
       const result = await editImageWithPrompt(base64Image, prompt, category, platform);
       
       // Update result
@@ -216,7 +216,7 @@ export async function editMultipleImages(
       }
     } catch (error) {
       // Handle errors
-      if (import.meta.env.MODE !== 'production') console.error(`Error processing image ${i + 1}/${images.length}:`, error);
+      console.error(`Error processing image ${i + 1}/${images.length}:`, error);
       results[i].status = 'error';
       results[i].error = error instanceof Error ? error.message : String(error);
       if (options.onProgress) {
