@@ -65,21 +65,43 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
   } catch (error) {
     // Handle axios errors
     if (axios.isAxiosError(error)) {
+      // Log detailed error information for debugging
+      console.error("Axios Error Details:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        requestData: error.config?.data,
+        timestamp: new Date().toISOString()
+      });
+      
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        throw new Error(`Image editing failed: ${error.response.data.message || error.response.statusText}`);
+        const errorMessage = error.response.data?.message || error.response.data?.error || error.response.statusText;
+        const errorDetails = error.response.data?.details || '';
+        throw new Error(`Image editing API error (${error.response.status}): ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
       } else if (error.request) {
         // The request was made but no response was received
-        throw new Error("No response received from server. Please check your connection.");
+        console.error("Request made but no response received:", error.request);
+        throw new Error("No response received from server. The server might be down or unreachable.");
       } else {
         // Something happened in setting up the request
+        console.error("Error setting up request:", error.message);
         throw new Error(`Error setting up request: ${error.message}`);
       }
     }
     
     // For non-axios errors
-    console.error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("Non-Axios Error Details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : 'No stack trace',
+      type: error instanceof Error ? error.constructor.name : typeof error,
+      timestamp: new Date().toISOString()
+    });
+    
     throw new Error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
