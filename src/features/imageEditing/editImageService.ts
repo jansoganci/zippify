@@ -74,7 +74,14 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
         method: error.config?.method,
         headers: error.config?.headers,
         requestData: error.config?.data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestInfo: {
+          hasImage: !!base64Image,
+          imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
+          promptLength: prompt ? prompt.length : 0,
+          category: category || 'not specified',
+          platform: platform || 'not specified'
+        }
       });
       
       if (error.response) {
@@ -82,7 +89,24 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
         // that falls out of the range of 2xx
         const errorMessage = error.response.data?.message || error.response.data?.error || error.response.statusText;
         const errorDetails = error.response.data?.details || '';
-        throw new Error(`Image editing API error (${error.response.status}): ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`);
+        
+        // Kullanıcı dostu hata mesajı
+        let userFriendlyMessage = `Image editing API error (${error.response.status})`;
+        
+        // Hata türüne göre özelleştirilmiş mesajlar
+        if (error.response.status === 403) {
+          userFriendlyMessage = "Daily limit reached: You have reached your daily limit for image editing. Please try again tomorrow or upgrade your plan.";
+        } else if (error.response.status === 404) {
+          userFriendlyMessage = "API endpoint not found: The image editing service is currently unavailable. Please try again later.";
+        } else if (error.response.status === 429) {
+          userFriendlyMessage = "Too many requests: Please wait a moment before trying again.";
+        } else if (error.response.status === 500) {
+          userFriendlyMessage = "Server error: The image editing service encountered an error. Please try again later.";
+        } else {
+          userFriendlyMessage = `${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`;
+        }
+        
+        throw new Error(userFriendlyMessage);
       } else if (error.request) {
         // The request was made but no response was received
         console.error("Request made but no response received:", error.request);
@@ -99,10 +123,38 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
       message: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : 'No stack trace',
       type: error instanceof Error ? error.constructor.name : typeof error,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      requestInfo: {
+        hasImage: !!base64Image,
+        imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
+        promptLength: prompt ? prompt.length : 0,
+        category: category || 'not specified',
+        platform: platform || 'not specified'
+      }
     });
     
-    throw new Error(`Image editing failed: ${error instanceof Error ? error.message : String(error)}`);
+    // Daha açıklayıcı hata mesajı oluştur
+    if (error instanceof Error) {
+      const errorMessage = error.message || "Unknown error occurred";
+      
+      // Hata türüne göre özelleştirilmiş mesajlar
+      let userFriendlyMessage = "Image editing failed";
+      
+      if (errorMessage.includes("timeout") || errorMessage.includes("ERR_CANCELED")) {
+        userFriendlyMessage = "Request timed out. Please try with a simpler prompt or try again later.";
+      } else if (errorMessage.includes("Network Error")) {
+        userFriendlyMessage = "Network error: Please check your internet connection and try again.";
+      } else if (errorMessage.includes("Invalid response") || errorMessage.includes("missing")) {
+        userFriendlyMessage = "Invalid response from server: The image editing service returned an invalid response.";
+      } else {
+        userFriendlyMessage = errorMessage;
+      }
+      
+      throw new Error(userFriendlyMessage);
+    }
+    
+    // Rethrow the error
+    throw error;
   }
 }
 

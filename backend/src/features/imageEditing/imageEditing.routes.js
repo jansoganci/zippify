@@ -20,8 +20,12 @@ router.get('/test-image-editing', (req, res) => {
  * @desc    Edit an image using Gemini API
  * @access  Private
  */
-router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, res) => {
+router.post('/edit-image', verifyToken, checkQuota("edit-image"), upload.single('image'), async (req, res) => {
+  const startTime = Date.now();
+  console.log(`[${new Date().toISOString()}] Image editing request received`);
   const { image, prompt, category, platform, featureKey, generationOptions, outputOptions } = req.body;
+  
+  console.log(`Request details: prompt length=${prompt?.length || 0}, hasImage=${!!image}, category=${category || 'none'}, platform=${platform || 'none'}`);
   try {
     const result = await callGeminiApi(image, prompt, {
       category,
@@ -35,7 +39,19 @@ router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, re
     await incrementQuota(req.user.id, "edit-image");
     console.log(`[quota] Incremented usage for user ${req.user.id} — Feature: edit-image`);
     
-    res.json({ success: result.success, result });
+    const processingTime = Date.now() - startTime;
+    console.log(`Processing completed in ${processingTime}ms`);
+    
+    // Detaylı başarılı yanıt
+    res.json({ 
+      success: result.success, 
+      result: {
+        ...result,
+        processingTime,
+        imageSize: result.image ? Math.round(result.image.length / 1024) : 0,
+        timestamp: new Date().toISOString()
+      }
+    });
   } catch (err) {
     // Log detailed error information
     console.error("Image editing error:", {
