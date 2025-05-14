@@ -59,11 +59,14 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import bodyParser from 'body-parser';
 
-// Disable SSL certificate validation for development
-// NOT: Bu ayar sadece geliştirme ortamında kullanılmalıdır, production'da kaldırılmalıdır
-if (process.env.NODE_ENV === 'development') {
+// SSL certificate validation is always enabled in production
+if (false) {
   process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   log.warn('WARNING: SSL certificate validation is disabled for development');
+} else {
+  // Ensure SSL certificate validation is enabled
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = '1';
+  log.info('✅ SSL certificate validation is enabled');
 }
 
 // Debug: Log API key presence and format
