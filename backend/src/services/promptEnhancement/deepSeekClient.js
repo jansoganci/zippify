@@ -9,7 +9,7 @@ import log from '../../../utils/logger.js';
 import https from 'https';
 
 // Load configuration from environment variables with fallbacks
-const DEFAULT_TIMEOUT = parseInt(process.env.DEEPSEEK_TIMEOUT || '10000');
+const DEFAULT_TIMEOUT = 30000; // Fixed timeout value (30 seconds)
 const MAX_RETRIES = parseInt(process.env.DEEPSEEK_MAX_RETRIES || '3');
 const RETRY_DELAY = parseInt(process.env.DEEPSEEK_RETRY_DELAY || '1000');
 const DEFAULT_MODEL = process.env.DEEPSEEK_MODEL || 'deepseek-chat';
@@ -61,7 +61,8 @@ const createDeepSeekClient = () => {
     //   port: 8080
     // }
     // Disable SSL verification in development (not recommended for production)
-    ...(process.env.NODE_ENV === 'development' ? { httpsAgent: new https.Agent({ rejectUnauthorized: false }) } : {})
+    // SSL verification is always enabled in production
+    ...(false ? { httpsAgent: new https.Agent({ rejectUnauthorized: false }) } : {})
   });
   
   return client;
