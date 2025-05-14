@@ -24,17 +24,17 @@ jobs:
             set -e
             
             echo "📁 Setting up environment files"
-            # Root .env dosyasını oluştur
+            # Create root .env file
             cat > /root/zippify/.env << 'ENVFILE'
           EOF
           
           echo "${{ secrets.ENV_FILE }}" | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env"
           
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            # Backend .env dosyasını oluştur
+            # Create backend .env file
             cp /root/zippify/.env /root/zippify/backend/.env
             
-            # Production .env dosyasını oluştur
+            # Create production .env file
             cat > /root/zippify/.env.production << 'ENVPRODFILE'
           EOF
           
@@ -45,7 +45,7 @@ jobs:
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
             
-            # Log dosyası oluştur
+            # Create log file
             DEPLOY_LOG="/root/zippify/deploy_$(date +%Y%m%d_%H%M%S).log"
             exec > >(tee -a "$DEPLOY_LOG") 2>&1
             
@@ -101,7 +101,7 @@ jobs:
             echo "🔄 Preparing backend service"
             cd /root/zippify/backend
             
-            # Eksik paketleri yükle
+            # Install missing packages
             echo "💶 Installing backend dependencies"
             npm install
           EOF
@@ -110,11 +110,11 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Backend servisini tamamen durdurup yeniden başlat
+            # Stop and restart backend service completely
             echo "🚀 Stopping previous backend service"
             pm2 delete zippify-backend || true
             
-            # 3001 portunu kullanan işlemleri kontrol et ve sonlandır
+            # Check and terminate processes using port 3001
             echo "🔍 Checking for processes using port 3001"
             PORT_PID=$(lsof -t -i:3001 || echo "")
             if [ ! -z "$PORT_PID" ]; then
@@ -127,7 +127,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Yeni servisi başlat
+            # Start new service
             echo "🌟 Starting new backend service"
             cd /root/zippify/backend
             pm2 start server.js --name zippify-backend
@@ -137,7 +137,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Backend servisinin durumunu kontrol et
+            # Check backend service status
             echo "🔍 Checking backend service status"
             pm2 status zippify-backend
           EOF
@@ -146,7 +146,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Backend loglarını kontrol et
+            # Check backend logs
             echo "📋 Last 10 lines of backend logs:"
             echo "Output logs:"
             tail -n 10 /root/.pm2/logs/zippify-backend-out.log
@@ -158,14 +158,14 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Sağlık kontrolü
+            # Health check
             echo "🩺 Performing health check"
             sleep 3
             if curl -s http://localhost:3001/api/health | grep -q "ok"; then
               echo "✅ Backend health check passed"
             else
               echo "⚠️ Backend health check warning - service might not be fully ready"
-              # Hata durumunda çıkış yapmıyoruz, sadece uyarı veriyoruz
+              # Not exiting on error, just providing a warning
             fi
             
             echo "📊 Deployment completed at $(date)"
