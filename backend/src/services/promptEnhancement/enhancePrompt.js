@@ -46,7 +46,7 @@ Respond ONLY with the enhanced prompt. Do not include explanations, introduction
 export async function enhanceImagePrompt(originalPrompt, options = {}) {
   const { 
     requestId = `prompt-${Date.now()}`, 
-    timeout = 10000, // 10 seconds timeout
+    timeout = 30000, // 30 seconds timeout (increased from 10 seconds)
     category = 'general',
     platform = 'ecommerce' 
   } = options;

@@ -89,17 +89,25 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
       // Use the enhanced prompt if available, otherwise use the original
       if (enhanced) {
         finalPrompt = enhancedPrompt;
-        console.log(`Original prompt: "${prompt}"`);  
-        console.log(`Enhanced prompt: "${enhancedPrompt}"`);  
+        console.log("Using enhanced prompt for Gemini API");
+        console.log("Original prompt: " + prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''));
+        console.log("Enhanced prompt: " + enhancedPrompt.substring(0, 100) + (enhancedPrompt.length > 100 ? '...' : ''));
+      } else {
+        console.log("Enhancement did not modify the prompt or was skipped, using original prompt");
       }
     } catch (enhancementError) {
-      // Log the error but continue with the original prompt
-      console.error(`Prompt enhancement failed: ${enhancementError.message}`);
-      console.log(`Using original prompt: "${prompt}"`);  
+      // Log error but continue with original prompt
+      console.error('Error enhancing prompt:', enhancementError);
+      console.log("Using original prompt due to enhancement error");
       
-      // Ensure we use the original prompt
-      finalPrompt = prompt;
-      enhanced = false;
+      // Development-only logging of the full error stack
+      if (process.env.NODE_ENV !== 'production') {
+        console.error(`Prompt enhancement error details:`, {
+          message: enhancementError.message,
+          stack: enhancementError.stack,
+          code: enhancementError.code || 'UNKNOWN_ERROR'
+        });
+      }
       enhancedPrompt = null;
     }
 
@@ -191,6 +199,9 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     // Get the category-specific prompt or use the base prompt
     const categoryPrompt = categoryPrompts[category] || basePrompt;
     
+    // Define the fallback prompt for when the primary attempt fails
+    const fallbackPrompt = `Enhance this product image with professional lighting and clean background. Maintain the product's original details and colors while improving overall image quality.\n\nEdit this image by: ${finalPrompt}`;
+    
     // Combine the category prompt with the enhanced user prompt
     const systemPrompt = `${categoryPrompt}\n\nEdit this image by: ${finalPrompt}`;
     
@@ -216,10 +227,9 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     
     // Generate content using the SDK with retry logic
     console.log("Calling Gemini API with SDK and retry logic...");
-    console.log(`Prompt used: "${systemPrompt}"`);
-    
-    // Define the fallback prompt for when the primary attempt fails
-    const fallbackPrompt = `${systemPrompt}\n\nAlternative instructions: Keep the subject unchanged. Do NOT touch the person or the product. Only remove the background.`;
+    console.log(`Fallback prompt used: "Enhance this product image with professional lighting and clean background. Maintain the product's original details and colors while improving overall image quality.
+
+Edit this image by: ${finalPrompt}"`);
     
     // Extract responses from the Gemini API
     let responseText = '';
@@ -376,7 +386,7 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
         console.log("Attempting fallback approach with alternative prompt...");
         
         // Alternative prompt that's more direct about image generation
-        const fallbackPrompt = `Generate a new version of this image with ${prompt}. The output MUST be an image.`;
+        const fallbackPrompt = `Enhance this product image with professional lighting and clean background. Maintain the product's original details and colors while improving overall image quality. The output MUST be an image.`;
         console.log(`Fallback prompt: "${fallbackPrompt}"`);
         
         // Keep the same ordering (text first, then image) for consistency
