@@ -37,7 +37,20 @@ router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, re
     
     res.json({ success: result.success, result });
   } catch (err) {
-    console.error("Image editing error:", err);
+    // Log detailed error information
+    console.error("Image editing error:", {
+      message: err.message || "Unknown error",
+      code: err.code || "UNKNOWN_ERROR",
+      stack: err.stack,
+      timestamp: new Date().toISOString(),
+      requestData: {
+        hasImage: !!image,
+        imageSize: image ? Math.round(image.length / 1024) : 0,
+        promptLength: prompt ? prompt.length : 0,
+        category: category || 'not specified',
+        platform: platform || 'not specified'
+      }
+    });
     
     // Daha detaylı hata mesajı oluştur
     const errorMessage = err.message || "Unknown error occurred";
@@ -55,13 +68,19 @@ router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, re
       userFriendlyMessage = "Image quality issue: Please try a different image or a simpler edit request.";
     } else if (errorMessage.includes("API key")) {
       userFriendlyMessage = "Service configuration error. Please contact support.";
+    } else if (errorMessage.includes("did not return an image") || errorMessage.includes("hasImage: false")) {
+      userFriendlyMessage = "The AI was unable to generate an image. Please try a different prompt or image.";
+    } else if (errorMessage.includes("safety") || errorMessage.includes("content policy")) {
+      userFriendlyMessage = "Your request was flagged by content safety filters. Please try a different prompt or image.";
     }
     
+    // Always include detailed error information in production for debugging
     res.status(500).json({ 
       success: false, 
       error: userFriendlyMessage,
-      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      code: errorCode
+      details: errorMessage, // Always include details for better debugging
+      code: errorCode,
+      timestamp: new Date().toISOString()
     });
   }
 });
