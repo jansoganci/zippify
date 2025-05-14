@@ -70,9 +70,9 @@ const SeoKeywordAnalysis = () => {
   useEffect(() => {
     const token = localStorage.getItem('zippify_token');
     if (!token) {
-      if (import.meta.env.MODE !== 'production') console.warn('⚠️ Authentication Warning: No zippify_token found in localStorage. API requests may fail with 401 Unauthorized.');
+      console.warn('⚠️ Authentication Warning: No zippify_token found in localStorage. API requests may fail with 401 Unauthorized.');
     } else {
-      if (import.meta.env.MODE !== 'production') console.log('✅ Auth token found in localStorage');
+      console.log('✅ Auth token found in localStorage');
     }
   }, []);
 
@@ -107,13 +107,13 @@ const SeoKeywordAnalysis = () => {
       if (response.status !== 200) {
         // Handle unauthorized responses specifically
         if (response.status === 401) {
-          if (import.meta.env.MODE !== 'production') console.warn("Unauthorized: Displaying login error message.");
+          console.warn("Unauthorized: Displaying login error message.");
           setError("Your session has expired or you're not logged in. Please log in again.");
           return;
         }
         // Handle quota exceeded responses
         if (response.status === 403) {
-          if (import.meta.env.MODE !== 'production') console.warn("Quota exceeded: Displaying limit message.");
+          console.warn("Quota exceeded: Displaying limit message.");
           
           // Extract quota information from the response if available
           const quotaData = response.data?.quota || {};
@@ -137,7 +137,7 @@ const SeoKeywordAnalysis = () => {
       
       // With axios, response.data is already parsed JSON
       const responseData = response.data;
-      if (import.meta.env.MODE !== 'production') console.log('API Response:', responseData); // Log full response for debugging
+      console.log('API Response:', responseData); // Log full response for debugging
       
       // Extract keywords from the response
       if (import.meta.env.MODE !== 'production') {
@@ -189,13 +189,13 @@ const SeoKeywordAnalysis = () => {
         return keyword;
       });
       
-      if (import.meta.env.MODE !== 'production') console.log('Keywords with IDs:', keywordsWithIds);
+      console.log('Keywords with IDs:', keywordsWithIds);
       setKeywords(keywordsWithIds);
       setNoKeywordsFound(false);
       setIsPlaceholder(responseData.data.error === true);
     } catch (error: any) {
       // Log detailed error with stack trace
-      if (import.meta.env.MODE !== 'production') console.error('Error fetching keyword data:', {
+      console.error('Error fetching keyword data:', {
         message: error.message,
         stack: error.stack,
         timestamp: new Date().toISOString()
@@ -216,17 +216,17 @@ const SeoKeywordAnalysis = () => {
   const handleToggleKeyword = useCallback((keywordId: string, isSelected?: boolean) => {
     // Validate keywordId
     if (!keywordId) {
-      if (import.meta.env.MODE !== 'production') console.error('Invalid keywordId: undefined or empty');
+      console.error('Invalid keywordId: undefined or empty');
       return;
     }
     
     // Log for debugging
-    if (import.meta.env.MODE !== 'production') console.log(`Toggle request for keyword ID: ${keywordId}, set to: ${isSelected}`);
+    console.log(`Toggle request for keyword ID: ${keywordId}, set to: ${isSelected}`);
     
     // Find the target keyword by ID
     const targetKeyword = keywords.find(k => k.id === keywordId);
     if (!targetKeyword) {
-      if (import.meta.env.MODE !== 'production') console.warn(`Keyword with ID ${keywordId} not found`);
+      console.warn(`Keyword with ID ${keywordId} not found`);
       return;
     }
 
@@ -235,11 +235,11 @@ const SeoKeywordAnalysis = () => {
     
     // Skip if no change
     if (targetKeyword.selected === newSelectedState) {
-      if (import.meta.env.MODE !== 'production') console.log(`No change needed for ${targetKeyword.keyword}, already ${newSelectedState ? 'selected' : 'unselected'}`);
+      console.log(`No change needed for ${targetKeyword.keyword}, already ${newSelectedState ? 'selected' : 'unselected'}`);
       return;
     }
 
-    if (import.meta.env.MODE !== 'production') console.log(`Setting keyword "${targetKeyword.keyword}" (${keywordId}) to ${newSelectedState ? 'selected' : 'unselected'}`);
+    console.log(`Setting keyword "${targetKeyword.keyword}" (${keywordId}) to ${newSelectedState ? 'selected' : 'unselected'}`);
     
     // Create a new keywords array with the updated selection state
     const updatedKeywords = keywords.map(k => {
@@ -506,7 +506,7 @@ const SeoKeywordAnalysis = () => {
                               const isChecked = e.target.checked;
                               // Ensure we have a valid ID
                               if (!keyword.id) {
-                                if (import.meta.env.MODE !== 'production') console.error('Missing keyword ID in checkbox change handler');
+                                console.error('Missing keyword ID in checkbox change handler');
                                 return;
                               }
                               // Call the toggle handler with the keyword ID and new state
@@ -574,13 +574,13 @@ const SeoKeywordAnalysis = () => {
                 onClick={() => {
                   // Check if selectedKeywords is empty
                   if (selectedKeywords.length === 0) {
-                    if (import.meta.env.MODE !== 'production') console.warn("[WARNING] No keywords selected for transfer to CreateListing");
+                    console.warn("[WARNING] No keywords selected for transfer to CreateListing");
                     return;
                   }
                   
                   // Log selectedKeywords before context update
-                  if (import.meta.env.MODE !== 'production') console.log("[DEBUG] selectedKeywords before setContextKeywords:", selectedKeywords);
-                  if (import.meta.env.MODE !== 'production') console.log("[DEBUG] sending to context:", JSON.stringify(selectedKeywords));
+                  console.log("[DEBUG] selectedKeywords before setContextKeywords:", selectedKeywords);
+                  console.log("[DEBUG] sending to context:", JSON.stringify(selectedKeywords));
                   
                   // First clear any existing keywords, then set the selected keywords
                   setContextKeywords([]);
@@ -589,7 +589,7 @@ const SeoKeywordAnalysis = () => {
                     setContextKeywords(selectedKeywords);
                     
                     // Try to verify context was updated
-                    if (import.meta.env.MODE !== 'production') console.log("[DEBUG] Context update triggered with", selectedKeywords.length, "keywords");
+                    console.log("[DEBUG] Context update triggered with", selectedKeywords.length, "keywords");
                     
                     // Navigate to create page
                     navigate("/create");
@@ -618,7 +618,7 @@ const SeoKeywordAnalysis = () => {
                     onClick={() => {
                       try {
                         // Log for debugging
-                        if (import.meta.env.MODE !== 'production') console.log('Transferring keywords to Create Listing page:', selectedKeywords);
+                        console.log('Transferring keywords to Create Listing page:', selectedKeywords);
                         
                         // First clear any existing keywords to prevent state conflicts
                         setContextKeywords([]);
@@ -633,7 +633,7 @@ const SeoKeywordAnalysis = () => {
                           navigate("/create");
                         }, 50);
                       } catch (error) {
-                        if (import.meta.env.MODE !== 'production') console.error('Error transferring keywords:', error);
+                        console.error('Error transferring keywords:', error);
                         // Navigate anyway
                         navigate("/create");
                       }
