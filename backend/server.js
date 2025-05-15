@@ -15,6 +15,9 @@ dotenv.config({ path: envPath });
 
 log.info(`Attempting to load environment from: ${envPath}`);
 
+console.log("🔍 ENV CHECK → NODE_ENV =", process.env.NODE_ENV);
+console.log("🔍 ENV CHECK → GEMINI_MODEL =", process.env.GEMINI_MODEL);
+
 // If JWT_SECRET is not defined, try to load from parent directory as fallback
 if (!process.env.JWT_SECRET) {
   log.info('JWT_SECRET not found in backend/.env, trying parent directory...');
