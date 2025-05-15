@@ -73,6 +73,9 @@ export const updateProfile = async (req, res) => {
   const requestId = req.headers['x-request-id'] || `profile-${Date.now()}`;
   log.info(`[${requestId}] Updating user profile`);
   
+  // PUT /profile BODY loglama
+  console.log("PUT /profile BODY:", req.body);
+  
   try {
     const db = await dbPromise;
     // Get user ID from the token (added by auth middleware)
