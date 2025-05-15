@@ -41,7 +41,7 @@ export async function generateTitle({
   }
   
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/${aiProvider}`, {
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/${aiProvider}`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",

@@ -101,7 +101,16 @@ const SeoKeywordAnalysis = () => {
       });
       
       // Make API request using backendApi (JWT token will be added by interceptor)
-      const response = await backendApi.get(`/keywords?${queryParams.toString()}`);
+      // API rotaları /api ile başlıyor, bu nedenle /api/keywords olmalı
+      // Endpoint'i oluştur
+      let endpoint = `/api/keywords?${queryParams.toString()}`;
+      
+      // Canlı sistemde URL'yi kontrol et ve gerekirse düzelt
+      if (import.meta.env.PROD) {
+        console.log('🔧 Production environment detected, using /api prefix');
+      }
+      
+      const response = await backendApi.get(endpoint);
       
       // Axios wraps the response differently than fetch
       if (response.status !== 200) {

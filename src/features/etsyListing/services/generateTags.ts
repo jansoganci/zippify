@@ -30,7 +30,7 @@ export async function generateTags(promptInput: string, selectedKeywords: string
 
   // Return AI call structure (adjust model/provider if needed)
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/ai/${aiProvider}`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
