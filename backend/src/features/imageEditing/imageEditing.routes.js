@@ -20,7 +20,7 @@ router.get('/test-image-editing', (req, res) => {
  * @desc    Edit an image using Gemini API
  * @access  Private
  */
-router.post('/edit-image', verifyToken, checkQuota("edit-image"), upload.single('image'), async (req, res) => {
+router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, res) => {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Image editing request received`);
   const { image, prompt, category, platform, featureKey, generationOptions, outputOptions } = req.body;
