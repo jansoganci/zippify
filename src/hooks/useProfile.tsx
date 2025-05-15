@@ -17,7 +17,17 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
+  // URL'nin sonunda /api var mı kontrol et
+  let baseUrl = import.meta.env.VITE_API_URL || '';
+  // URL sonunda / varsa kaldır
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+  
+  // URL'de /api var mı kontrol et
+  const apiPath = baseUrl.includes('/api') ? '/profile' : '/api/profile';
+  
+  const response = await fetch(`${baseUrl}${apiPath}`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -41,7 +51,17 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
+  // URL'nin sonunda /api var mı kontrol et
+  let baseUrl = import.meta.env.VITE_API_URL || '';
+  // URL sonunda / varsa kaldır
+  if (baseUrl.endsWith('/')) {
+    baseUrl = baseUrl.slice(0, -1);
+  }
+  
+  // URL'de /api var mı kontrol et
+  const apiPath = baseUrl.includes('/api') ? '/profile' : '/api/profile';
+  
+  const response = await fetch(`${baseUrl}${apiPath}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
