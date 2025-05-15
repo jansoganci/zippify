@@ -7,3 +7,4 @@ export const platformPrompts = {
   amazon: "Follow Amazon's listing rules. White background, centered product, 85% image coverage.",
   ebay: "Optimize for thumbnail clarity. Clear product outline and minimal background distractions."
 };
+

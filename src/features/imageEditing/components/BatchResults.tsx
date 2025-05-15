@@ -165,3 +165,4 @@ const BatchResults: React.FC<BatchResultsProps> = ({ results, isProcessing }) =>
 };
 
 export default BatchResults;
+

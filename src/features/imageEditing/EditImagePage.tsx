@@ -649,3 +649,4 @@ const NewEditImagePage = () => {
 };
 
 export default NewEditImagePage;
+

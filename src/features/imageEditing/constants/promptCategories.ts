@@ -86,3 +86,4 @@ const promptCategories: PromptCategory[] = [
 ];
 
 export default promptCategories;
+

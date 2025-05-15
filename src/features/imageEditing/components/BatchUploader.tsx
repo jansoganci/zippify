@@ -140,3 +140,4 @@ const BatchUploader: React.FC<BatchUploaderProps> = ({ onImagesSelected, isProce
 };
 
 export default BatchUploader;
+

@@ -16,3 +16,4 @@ export const categoryPrompts = {
   
   accessories: "Showcase functional aspects while maintaining aesthetic appeal. Ensure proper lighting to highlight details and materials."
 };
+
