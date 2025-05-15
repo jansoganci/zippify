@@ -17,7 +17,7 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL}${window.location.hostname.includes("localhost") ? "/api" : ""}/profile`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
@@ -41,7 +41,7 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  const response = await fetch(`${import.meta.env.VITE_API_URL}${window.location.hostname.includes("localhost") ? "/api" : ""}/profile`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}/api/profile`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
