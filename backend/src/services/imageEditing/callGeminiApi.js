@@ -166,7 +166,7 @@ export async function callGeminiApi(imageBase64, prompt, options = {}) {
     
     
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash-exp-image-generation",
+      model: modelName,
       generationConfig: {
         temperature: 0.0,    // Set to 0.0 to fully disable creative variation
         topP,                // Configurable topP for creative outputs
