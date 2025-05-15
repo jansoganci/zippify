@@ -1,12 +1,8 @@
 import express from 'express';
-import multer from 'multer';
 import { callGeminiApi } from '../../services/imageEditing/callGeminiApi.js';
 import { verifyToken } from '../../../middleware/auth.js';
 import checkQuota from '../../../middleware/checkQuota.js';
 import incrementQuota from '../../../utils/incrementQuota.js';
-
-// Initialize multer for memory storage (no disk storage)
-const upload = multer();
 
 const router = express.Router();
 
@@ -24,7 +20,7 @@ router.get('/test-image-editing', (req, res) => {
  * @desc    Edit an image using Gemini API
  * @access  Private
  */
-router.post('/edit-image', verifyToken, checkQuota("edit-image"), upload.single('image'), async (req, res) => {
+router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, res) => {
   const startTime = Date.now();
   console.log(`[${new Date().toISOString()}] Image editing request received`);
   const { image, prompt, category, platform, featureKey, generationOptions, outputOptions } = req.body;

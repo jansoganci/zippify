@@ -1,30 +1,19 @@
-// Import dotenv first to load environment variables before other imports
 import log from './utils/logger.js';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import fs from 'fs';
 
 // Get the current file path and directory (ES Module compatible way)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Calculate the absolute path to the .env file
-const envPath = path.resolve(__dirname, '.env');
-log.info(`Attempting to load .env from: ${envPath}`);
+// Determine which .env file to load based on NODE_ENV
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+const envPath = path.resolve(process.cwd(), 'backend', envFile);
+dotenv.config({ path: envPath });
 
-// Load environment variables from the backend directory
-try {
-  const result = dotenv.config({ path: envPath });
-  
-  if (result.error) {
-    log.error(`Error loading .env file: ${result.error.message}`);
-  } else {
-    log.info(`Successfully loaded environment variables from ${envPath}`);
-  }
-} catch (error) {
-  log.error(`Exception loading .env file: ${error.message}`);
-}
+log.info(`Attempting to load environment from: ${envPath}`);
 
 // If JWT_SECRET is not defined, try to load from parent directory as fallback
 if (!process.env.JWT_SECRET) {
