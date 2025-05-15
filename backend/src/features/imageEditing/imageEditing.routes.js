@@ -1,8 +1,11 @@
 import express from 'express';
+import multer from 'multer';
 import { callGeminiApi } from '../../services/imageEditing/callGeminiApi.js';
 import { verifyToken } from '../../../middleware/auth.js';
 import checkQuota from '../../../middleware/checkQuota.js';
 import incrementQuota from '../../../utils/incrementQuota.js';
+
+const upload = multer();
 
 const router = express.Router();
 
