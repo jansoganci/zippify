@@ -90,16 +90,13 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isActive={activeRoute === '/edit-image'} 
           isCollapsed={isCollapsed}
         />
-        {/* New Feature sadece geliştirme ortamında gösterilir */}
-        {window.location.hostname.includes('localhost') && (
-          <SidebarItem 
-            icon={Sparkles} 
-            label="New Feature" 
-            href="/edit-image-gpt" 
-            isActive={activeRoute === '/edit-image-gpt'} 
-            isCollapsed={isCollapsed}
-          />
-        )}
+        <SidebarItem 
+          icon={Sparkles} 
+          label="New Feature" 
+          href="/edit-image-gpt" 
+          isActive={activeRoute === '/edit-image-gpt'} 
+          isCollapsed={isCollapsed}
+        />
         <SidebarItem 
           icon={ListChecks} 
           label="My Listings" 
