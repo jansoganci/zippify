@@ -26,7 +26,7 @@ jobs:
         run: |
           echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/backend/.env.production"
 
-      - name: Deploy and Restart
+      - name: Deploy and Restart Frontend
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
@@ -77,12 +77,12 @@ jobs:
             fi
           EOF
 
-      - name: Start New Backend Service
+      - name: Start New Backend Service (with production env)
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
             cd /root/zippify/backend
-            pm2 start server.js --name zippify-backend
+            NODE_ENV=production pm2 start server.js --name zippify-backend --update-env
           EOF
 
       - name: Check Backend Status
