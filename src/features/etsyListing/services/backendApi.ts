@@ -14,7 +14,9 @@ export async function createListing(listingData: {
 }) {
   try {
     if (import.meta.env.MODE !== 'production') console.log("💶 [createListing] Payload being sent:", listingData);
-    const response = await apiClient.post("/api/save-listing", listingData);
+    // Çift /api/api sorununu önlemek için başındaki /api önekini kaldırıyoruz
+    // apiClient'ın baseURL'i zaten /api içeriyor olabilir
+    const response = await apiClient.post("save-listing", listingData);
     return response.data;
   } catch (error) {
     console.error("❌ [createListing] Failed to save listing:", error);

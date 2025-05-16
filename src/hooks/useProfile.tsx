@@ -157,7 +157,12 @@ export function useProfile() {
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    const safeData = {
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      storeName: formData.storeName || ''
+    };
+    mutation.mutate(safeData);
   };
 
   return {
