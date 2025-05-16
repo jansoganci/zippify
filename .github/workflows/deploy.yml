@@ -17,92 +17,51 @@ jobs:
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
-          
-      - name: Copy .env Files First
+
+      - name: Copy .env to Server
         run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            set -e
-            
-            echo "📁 Setting up environment files"
-            # Create root .env file
-            cat > /root/zippify/.env << 'ENVFILE'
-          EOF
-          
-          echo "${{ secrets.ENV_FILE }}" | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env"
-          
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            # Create backend .env file
-            cp /root/zippify/.env /root/zippify/backend/.env
-            
-            # Create production .env file
-            cat > /root/zippify/.env.production << 'ENVPRODFILE'
-          EOF
-          
-          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env.production"
+          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/backend/.env"
+
+      - name: Copy .env.production to Server
+        run: |
+          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/backend/.env.production"
 
       - name: Deploy and Restart
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            
-            # Create log file
+
             DEPLOY_LOG="/root/zippify/deploy_$(date +%Y%m%d_%H%M%S).log"
             exec > >(tee -a "$DEPLOY_LOG") 2>&1
-            
+
             echo "📝 Logging deployment to: $DEPLOY_LOG"
             echo "⏱️ Deployment started at $(date)"
-            
-            echo "📁 Navigating to: ~/zippify"
-            cd ~/zippify
 
-            echo "📥 Checking for local changes"
-            if git status --porcelain | grep -q "."; then
-              echo "🔄 Stashing local changes"
-              git stash
-            fi
-            
+            cd /root/zippify
+
             echo "📥 Pulling latest code"
             git fetch origin
             git reset --hard origin/master
 
-            echo "📦 Installing dependencies"
+            echo "📦 Installing frontend deps"
             npm install
 
-            echo "🏗️ Building project"
+            echo "🏗️ Building frontend"
             npm run build
 
-            echo "🧹 Cleaning old files in /var/www/zippify"
+            echo "🧹 Cleaning /var/www/zippify"
             rm -rf /var/www/zippify/*
-            echo "🚚 Copying dist folder to /var/www/zippify"
             cp -r dist/* /var/www/zippify/
 
             echo "🔁 Restarting Nginx"
             systemctl restart nginx
-
-            echo "✅ Deployment successful"
-          EOF
-
-      - name: Copy .env to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env" << 'EOF'
-          ${{ secrets.ENV_FILE }}
-          EOF
-
-      - name: Copy .env.production to Server
-        run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/.env.production" << 'EOF'
-          ${{ secrets.ENV_PRODUCTION_FILE }}
           EOF
 
       - name: Install Backend Dependencies
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            echo "🔄 Preparing backend service"
             cd /root/zippify/backend
-            
-            # Install missing packages
-            echo "💶 Installing backend dependencies"
             npm install
           EOF
 
@@ -110,15 +69,10 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Stop and restart backend service completely
-            echo "🚀 Stopping previous backend service"
             pm2 delete zippify-backend || true
-            
-            # Check and terminate processes using port 3001
-            echo "🔍 Checking for processes using port 3001"
+
             PORT_PID=$(lsof -t -i:3001 || echo "")
             if [ ! -z "$PORT_PID" ]; then
-              echo "🔥 Killing process using port 3001: $PORT_PID"
               kill -9 $PORT_PID || true
             fi
           EOF
@@ -127,8 +81,6 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
             set -e
-            # Start new service
-            echo "🌟 Starting new backend service"
             cd /root/zippify/backend
             pm2 start server.js --name zippify-backend
           EOF
@@ -136,18 +88,12 @@ jobs:
       - name: Check Backend Status
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            set -e
-            # Check backend service status
-            echo "🔍 Checking backend service status"
             pm2 status zippify-backend
           EOF
 
       - name: View Backend Logs
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            set -e
-            # Check backend logs
-            echo "📋 Last 10 lines of backend logs:"
             echo "Output logs:"
             tail -n 10 /root/.pm2/logs/zippify-backend-out.log
             echo "Error logs:"
@@ -157,17 +103,10 @@ jobs:
       - name: Perform Health Check
         run: |
           ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            set -e
-            # Health check
-            echo "🩺 Performing health check"
             sleep 3
             if curl -s http://localhost:3001/api/health | grep -q "ok"; then
               echo "✅ Backend health check passed"
             else
-              echo "⚠️ Backend health check warning - service might not be fully ready"
-              # Not exiting on error, just providing a warning
+              echo "⚠️ Backend health check warning"
             fi
-            
-            echo "📊 Deployment completed at $(date)"
-            echo "📝 Full logs available at: /root/zippify/deploy_*.log"
           EOF
