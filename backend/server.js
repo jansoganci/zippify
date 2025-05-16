@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 // Determine which .env file to load based on NODE_ENV
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-const envPath = path.resolve(process.cwd(), 'backend', envFile);
+const envPath = path.resolve(__dirname, envFile);
 dotenv.config({ path: envPath });
 
 log.info(`Attempting to load environment from: ${envPath}`);
