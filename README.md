@@ -2,7 +2,7 @@
 
 ## Project Description
 
-Zippify is a comprehensive e-commerce seller tool designed to automate and optimize product listing creation across multiple platforms. The application leverages AI to generate SEO-optimized product descriptions, enhance product images, and create downloadable assets ready for immediate use on platforms like Etsy..
+Zippify is a comprehensive e-commerce seller tool designed to automate and optimize product listing creation across multiple platforms. The application leverages AI to generate SEO-optimized product descriptions, enhance product images, and create downloadable assets ready for immediate use on platforms like Etsy.
 
 ## Key Features
 
