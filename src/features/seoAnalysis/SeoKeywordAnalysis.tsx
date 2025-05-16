@@ -101,13 +101,13 @@ const SeoKeywordAnalysis = () => {
       });
       
       // Make API request using backendApi (JWT token will be added by interceptor)
-      // API rotaları /api ile başlıyor, bu nedenle /api/keywords olmalı
-      // Endpoint'i oluştur
-      let endpoint = `/api/keywords?${queryParams.toString()}`;
+      // Endpoint'i baseURL'e göre oluştur (baseURL zaten /api içeriyor)
+      // Çift /api/api sorununu önlemek için başında / olmadan endpoint oluştur
+      let endpoint = `keywords?${queryParams.toString()}`;
       
-      // Canlı sistemde URL'yi kontrol et ve gerekirse düzelt
+      // Endpoint formatını logla
       if (import.meta.env.PROD) {
-        console.log('🔧 Production environment detected, using /api prefix');
+        console.log('🔧 Production environment detected, using relative endpoint path');
       }
       
       const response = await backendApi.get(endpoint);
