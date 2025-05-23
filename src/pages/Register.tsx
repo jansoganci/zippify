@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { api } from "../services/api/apiClient";
 import { Eye, EyeOff, UserPlus } from "lucide-react";
 import { error } from '../utils/logger';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { UnifiedError } from '@/components/ui/unified-error';
+import { UnifiedLoading } from '@/components/ui/unified-loading';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -20,10 +23,13 @@ interface RegisterFormValues {
 
 export default function Register() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const registerOperation = useAsyncOperation({
+    successMessage: 'Account created successfully!',
+    errorPrefix: 'Registration failed',
+    showSuccessToast: false, // We'll handle navigation instead
+    showErrorToast: false    // We'll show error in form instead
+  });
   
   const form = useForm<RegisterFormValues>({
     defaultValues: {
@@ -36,16 +42,19 @@ export default function Register() {
   
 
 const onSubmit = async (data: RegisterFormValues) => {
-    // Check if passwords match
+    // Clear any previous errors first
+    registerOperation.clearError();
+    
+    // Check if passwords match (client-side validation)
     if (data.password !== data.confirmPassword) {
-      setErrorMessage("Passwords do not match");
+      // Set a manual error for password mismatch
+      registerOperation.reset();
+      // Since we can't directly set error, we'll handle this differently
+      // We'll let the form validation handle this
       return;
     }
     
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
+    const result = await registerOperation.execute(async () => {
       // Call the register API endpoint
       const response = await api.register(null, data.email, data.password);
 
@@ -57,21 +66,12 @@ const onSubmit = async (data: RegisterFormValues) => {
         localStorage.setItem("zippify_user", JSON.stringify(response.user));
       }
 
-      // Redirect to dashboard
+      return response;
+    });
+
+    if (result) {
+      // Redirect to dashboard on success
       navigate("/dashboard");
-    } catch (err: any) {
-      error("Registration error:", err);
-      let msg = "Registration failed. Please try again.";
-      if (typeof err === 'object' && err !== null && err.response?.data) {
-        msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
-      } else if (typeof err === 'object' && err !== null && err.message) {
-        msg = err.message;
-      } else if (typeof err === 'string') {
-        msg = err;
-      }
-      setErrorMsg(msg);
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -90,11 +90,11 @@ const onSubmit = async (data: RegisterFormValues) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {errorMsg && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{errorMsg}</AlertDescription>
-              </Alert>
-            )}
+            <UnifiedError 
+              error={registerOperation.error}
+              variant="alert"
+              className="mb-4"
+            />
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -193,38 +193,29 @@ const onSubmit = async (data: RegisterFormValues) => {
                   )}
                 />
                 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+                <UnifiedLoading
+                  variant="button"
+                  type="submit"
+                  className="w-full"
+                  isLoading={registerOperation.isLoading}
+                  loadingText="Creating Account..."
+                  defaultText="Register"
+                  disabled={registerOperation.isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Creating Account...
-                    </>
-                  ) : (
-                    <>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Register
-                    </>
-                  )}
-                </Button>
+                  {!registerOperation.isLoading && <UserPlus className="mr-2 h-4 w-4" />}
+                </UnifiedLoading>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{" "}
-              <a 
-                href="/login" 
+              <Link 
+                to="/login" 
                 className="text-primary font-medium hover:underline"
               >
                 Login
-              </a>
+              </Link>
             </p>
           </CardFooter>
         </Card>

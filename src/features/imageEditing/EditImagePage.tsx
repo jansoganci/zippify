@@ -1,5 +1,9 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { createLogger } from '@/utils/logger';
+
+// Create logger for this component
+const logger = createLogger('EditImagePage');
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,7 +21,7 @@ import {
   Loader2,
   Wand2
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayoutFixed from "@/components/DashboardLayoutFixed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -54,7 +58,11 @@ const NewEditImagePage = () => {
     
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (import.meta.env.MODE !== 'production') console.log(`Image selected: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
+      logger.debug('Image selected for editing', { 
+        fileName: file.name, 
+        sizeKB: (file.size / 1024).toFixed(2), 
+        type: file.type 
+      });
       
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size exceeds 5MB limit. Please select a smaller image.");
@@ -64,12 +72,12 @@ const NewEditImagePage = () => {
       const reader = new FileReader();
       
       reader.onload = () => {
-        if (import.meta.env.MODE !== 'production') console.log("Image successfully loaded and converted to base64");
+        logger.debug('Image successfully loaded and converted to base64');
         setSelectedImage(reader.result as string);
       };
       
       reader.onerror = () => {
-        if (import.meta.env.MODE !== 'production') console.error("Error reading file:", reader.error);
+        logger.error('Failed to read image file', { error: reader.error });
         setError("Failed to read the image file. Please try another image.");
       };
       
@@ -89,9 +97,7 @@ const NewEditImagePage = () => {
       return;
     }
     
-    if (import.meta.env.MODE !== 'production') {
-      console.log(`Submitting image edit request with prompt: "${prompt}"`);
-    }
+    logger.debug('Submitting image edit request', { prompt: prompt.substring(0, 50) + '...' });
     setIsLoading(true);
     
     try {
@@ -101,9 +107,7 @@ const NewEditImagePage = () => {
       const finalPrompt = prompt;
       
       // Log the prompt in development mode only
-      if (import.meta.env.MODE !== 'production') {
-        console.log("Using prompt:", finalPrompt);
-      }
+      logger.debug('Processing image with enhanced prompt', { finalPrompt: finalPrompt.substring(0, 100) + '...' });
       
       // Process the image edit using the service function with the final prompt
       const result = await processSingleImageEdit(selectedImage, finalPrompt);
@@ -159,9 +163,9 @@ const NewEditImagePage = () => {
           // Diğer API hataları
           errorMessage = error.response.data.error;
           
-          // Geliştirme modunda daha fazla detay göster
-          if (import.meta.env.MODE !== 'production' && error.response.data.details) {
-            console.error("Detailed error:", error.response.data.details);
+          // Log detailed error information
+          if (error.response.data.details) {
+            logger.error('Detailed image editing error', { details: error.response.data.details });
             errorMessage += ` (${error.response.data.details})`;
           }
         }
@@ -247,14 +251,13 @@ const NewEditImagePage = () => {
           const finalPrompt = prompt;
           
           // Log the prompt in development mode only
-          if (import.meta.env.MODE !== 'production') {
-            console.log(`Image ${i + 1}/${selectedFiles.length} (${file.name}) - Using prompt:`, finalPrompt);
-          }
+          logger.debug(`Processing batch image ${i + 1}/${selectedFiles.length}`, { 
+            fileName: file.name, 
+            promptPreview: finalPrompt.substring(0, 50) + '...' 
+          });
           
           // Process the image with the final prompt (enhanced or original)
-          if (import.meta.env.MODE !== 'production') {
-            console.log(`Processing image ${i + 1}/${selectedFiles.length}: ${file.name}`);
-          }
+          logger.debug(`Starting image processing ${i + 1}/${selectedFiles.length}`, { fileName: file.name });
           const result = await editImageWithPrompt(base64Image, finalPrompt, category, platform);
           
           // Update result
@@ -274,9 +277,10 @@ const NewEditImagePage = () => {
           }
         } catch (error) {
           // Handle errors
-          if (import.meta.env.MODE !== 'production') {
-            console.error(`Error processing image ${i + 1}/${selectedFiles.length}:`, error);
-          }
+          logger.error(`Failed to process batch image ${i + 1}/${selectedFiles.length}`, { 
+            fileName: file.name,
+            error: error instanceof Error ? error.message : String(error) 
+          });
           handleProgressUpdate(i, 'error', undefined, error instanceof Error ? error.message : String(error));
           results.push({
             fileName: file.name,
@@ -293,9 +297,9 @@ const NewEditImagePage = () => {
         description: `Processed ${selectedFiles.length} images`,
       });
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') {
-        console.error("Batch processing error:", error);
-      }
+      logger.error('Batch processing failed', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       toast({
         title: "Processing Error",
         description: error instanceof Error ? error.message : "Failed to process images",
@@ -307,7 +311,7 @@ const NewEditImagePage = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-6 space-y-6">
         {/* Page Header Section */}
         <div className="space-y-4">
@@ -644,7 +648,7 @@ const NewEditImagePage = () => {
           </Tabs>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

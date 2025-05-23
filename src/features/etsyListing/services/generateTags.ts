@@ -48,9 +48,7 @@ export async function generateTags(promptInput: string, selectedKeywords: string
     if (!response.ok) {
       // HTTP hata durumlarını işle
       if (import.meta.env.MODE !== 'production') {
-        console.error(`❌ [generateTags] HTTP Error: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error(`❌ [generateTags] Error details:`, errorText);
+            // HTTP error handled by caller
       }
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
@@ -58,20 +56,13 @@ export async function generateTags(promptInput: string, selectedKeywords: string
     const data = await response.json();
     
     if (import.meta.env.MODE !== 'production') {
-      console.log(`✅ [generateTags] API Response:`, {
-        content: data?.content?.substring(0, 50) + '...',
-        status: 'success'
-      });
+          // Tags generated successfully
     }
     
     return data;
   } catch (error) {
     if (import.meta.env.MODE !== 'production') {
-      console.error(`❌ [generateTags] Fetch Error:`, error);
-      console.error(`❌ [generateTags] Error details:`, {
-        message: error.message,
-        stack: error.stack
-      });
+          // Error details logged by caller
     }
     throw error; // Hata fırlatımını devam ettir
   }

@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+import React, { useState, useEffect } from 'react';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, Save, User, Store, AlertCircle, Mail, Building, Sun, Moon } from 'lucide-react';
-import { useProfile } from '@/hooks/useProfile';
+import { useProfile } from '@/contexts/ProfileContext';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useTheme } from 'next-themes';
 
@@ -26,20 +26,59 @@ function getUserFriendlyError(error: unknown): string {
 }
 
 const Profile = () => {
-  const {
-    formData,
-    handleChange,
-    handleThemeChange,
-    handleSubmit,
-    isLoading,
-    isUpdating,
-    error
-  } = useProfile();
+  const { profileData, isLoading, isUpdating, error, updateProfile } = useProfile();
+  
+  // Local form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    storeName: '',
+    email: '',
+    theme: 'light',
+  });
+  
+  // Update form data when profile data changes
+  useEffect(() => {
+    if (profileData) {
+      setFormData({
+        firstName: profileData.firstName || '',
+        lastName: profileData.lastName || '',
+        storeName: profileData.storeName || '',
+        email: profileData.email || '',
+        theme: profileData.theme || 'light'
+      });
+    }
+  }, [profileData]);
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleThemeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      theme: value
+    }));
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      storeName: formData.storeName,
+      theme: formData.theme
+    });
+  };
   
   const { setTheme } = useTheme();
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-6 space-y-6 page-transition">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
@@ -219,7 +258,7 @@ const Profile = () => {
           </form>
         )}
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

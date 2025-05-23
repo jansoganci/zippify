@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { api } from "../services/api/apiClient";
 import { Eye, EyeOff, LogIn } from "lucide-react";
 import { error } from '../utils/logger';
+import { useAsyncOperation } from '@/hooks/useAsyncOperation';
+import { UnifiedError } from '@/components/ui/unified-error';
+import { UnifiedLoading } from '@/components/ui/unified-loading';
 
 // UI Components
 import { Button } from "@/components/ui/button";
@@ -19,10 +22,13 @@ interface LoginFormValues {
 
 export default function Login() {
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const loginOperation = useAsyncOperation({
+    successMessage: 'Login successful!',
+    errorPrefix: 'Login failed',
+    showSuccessToast: false, // We'll handle navigation instead
+    showErrorToast: false    // We'll show error in form instead
+  });
   
   const form = useForm<LoginFormValues>({
     defaultValues: {
@@ -34,10 +40,7 @@ export default function Login() {
   
 
 const onSubmit = async (data: LoginFormValues) => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
+    const result = await loginOperation.execute(async () => {
       // Call the login API endpoint
       const response = await api.login(data.email, data.password);
       
@@ -49,21 +52,12 @@ const onSubmit = async (data: LoginFormValues) => {
         localStorage.setItem("zippify_user", JSON.stringify(response.user));
       }
       
-      // Redirect to dashboard
+      return response;
+    });
+
+    if (result) {
+      // Redirect to dashboard on success
       navigate("/dashboard");
-    } catch (err: any) {
-      error("Login error:", err);
-      let msg = "Login failed. Please check your credentials and try again.";
-      if (typeof err === 'object' && err !== null && err.response?.data) {
-        msg = err.response.data.userMessage || err.response.data.message || err.message || msg;
-      } else if (typeof err === 'object' && err !== null && err.message) {
-        msg = err.message;
-      } else if (typeof err === 'string') {
-        msg = err;
-      }
-      setErrorMsg(msg);
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -82,11 +76,11 @@ const onSubmit = async (data: LoginFormValues) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {errorMsg && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>{errorMsg}</AlertDescription>
-              </Alert>
-            )}
+            <UnifiedError 
+              error={loginOperation.error}
+              variant="alert"
+              className="mb-4"
+            />
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -151,38 +145,29 @@ const onSubmit = async (data: LoginFormValues) => {
                   )}
                 />
                 
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isLoading}
+                <UnifiedLoading
+                  variant="button"
+                  type="submit"
+                  className="w-full"
+                  isLoading={loginOperation.isLoading}
+                  loadingText="Logging in..."
+                  defaultText="Login"
+                  disabled={loginOperation.isLoading}
                 >
-                  {isLoading ? (
-                    <>
-                      <svg className="mr-2 h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Logging in...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="mr-2 h-4 w-4" />
-                      Login
-                    </>
-                  )}
-                </Button>
+                  {!loginOperation.isLoading && <LogIn className="mr-2 h-4 w-4" />}
+                </UnifiedLoading>
               </form>
             </Form>
           </CardContent>
           <CardFooter className="flex justify-center">
             <p className="text-sm text-muted-foreground">
               Don't have an account?{" "}
-              <a 
-                href="/register" 
+              <Link 
+                to="/register" 
                 className="text-primary font-medium hover:underline"
               >
                 Register
-              </a>
+              </Link>
             </p>
           </CardFooter>
         </Card>

@@ -1,5 +1,9 @@
 import { etsyRules } from "@/platformRules/etsyRules";
 import { DEFAULT_AI_PROVIDER } from '@/config/ai';
+import { createLogger } from '@/utils/logger';
+
+// Create logger for this service
+const logger = createLogger('generateTitle');
 
 /**
  * Generates an optimized Etsy title based on user input and platform rules.
@@ -29,17 +33,6 @@ export async function generateTitle({
   // Return AI call structure (adjust model/provider if needed)
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
   
-  // Geliştirme ortamında daha detaylı loglama
-  if (import.meta.env.MODE !== 'production') {
-    console.log(`📡 [generateTitle] API Request to: ${import.meta.env.VITE_API_URL}/ai/${aiProvider}`);
-    console.log(`📡 [generateTitle] Token present: ${!!token}`);
-    console.log(`📡 [generateTitle] Request payload:`, {
-      system: systemPrompt.substring(0, 50) + '...',
-      prompt: finalPrompt.substring(0, 50) + '...',
-      featureKey: "create-listing"
-    });
-  }
-  
   try {
     // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
     let baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
@@ -48,6 +41,8 @@ export async function generateTitle({
     if (!baseUrl.endsWith('/api') && !import.meta.env.PROD) {
       baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
     }
+    
+    logger.debug('Requesting title generation', { provider: aiProvider, keywordCount: targetKeywords.length });
     
     const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
       method: "POST",
@@ -63,33 +58,22 @@ export async function generateTitle({
     });
     
     if (!response.ok) {
-      // HTTP hata durumlarını işle
-      if (import.meta.env.MODE !== 'production') {
-        console.error(`❌ [generateTitle] HTTP Error: ${response.status} ${response.statusText}`);
-        const errorText = await response.text();
-        console.error(`❌ [generateTitle] Error details:`, errorText);
-      }
+      logger.error(`HTTP error during title generation`, { 
+        status: response.status, 
+        statusText: response.statusText 
+      });
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
     
     const data = await response.json();
-    
-    if (import.meta.env.MODE !== 'production') {
-      console.log(`✅ [generateTitle] API Response:`, {
-        content: data?.content?.substring(0, 50) + '...',
-        status: 'success'
-      });
-    }
+    logger.info('Title generated successfully');
     
     return data;
   } catch (error) {
-    if (import.meta.env.MODE !== 'production') {
-      console.error(`❌ [generateTitle] Fetch Error:`, error);
-      console.error(`❌ [generateTitle] Error details:`, {
-        message: error.message,
-        stack: error.stack
-      });
-    }
-    throw error; // Hata fırlatımını devam ettir
+    logger.error('Failed to generate title', { 
+      error: error.message,
+      provider: aiProvider 
+    });
+    throw error;
   }
 }

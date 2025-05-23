@@ -2,7 +2,7 @@ import { error } from '../utils/logger';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generatePDF } from '@/services/workflow/generatePDF';
 import { useState, useEffect } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -93,7 +93,7 @@ const formatContent = async () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-6 space-y-6 page-transition">
         {/* Progress indicator */}
         <div className="space-y-2">
@@ -161,7 +161,7 @@ const formatContent = async () => {
           </Button>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

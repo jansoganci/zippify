@@ -3,7 +3,7 @@ import { format } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import { Tag, ArrowLeft, Loader2, Calendar, Copy, Check, FileText, Hash, Image, MessageSquare } from 'lucide-react';
 import { log, error } from '../utils/logger';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -106,7 +106,7 @@ const ListingDetailPage = () => {
   }, [id]);
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-8 px-4 max-w-4xl mx-auto">
         <div className="mb-4">
           <Button
@@ -278,7 +278,7 @@ const ListingDetailPage = () => {
         </div>
         )}
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

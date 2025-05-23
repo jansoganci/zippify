@@ -1,4 +1,8 @@
 import { Request, Response } from 'express';
+import { createLogger } from '@/utils/logger';
+
+// Create logger for image editing controller
+const logger = createLogger('ImageEditingController');
 
 
 /**
@@ -57,7 +61,9 @@ export const editImageController = async (req: Request, res: Response) => {
     });
   } catch (error) {
     // Log the error
-    console.error('Image editing error:', error);
+    logger.error('Image editing controller error', { 
+      error: error instanceof Error ? error.message : String(error) 
+    });
     
     // Return error response
     return res.status(500).json({

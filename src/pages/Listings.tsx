@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import ListingCard from '@/components/ListingCard';
 import { api } from '@/services/api/apiClient';
 import { log, info, warn, error } from '../utils/logger';
@@ -91,7 +91,7 @@ const Listings = () => {
   // No need for additional state logging here
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-8">
         <h1 className="text-3xl font-bold mb-6">My Listings</h1>
         
@@ -109,7 +109,7 @@ const Listings = () => {
           ))}
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

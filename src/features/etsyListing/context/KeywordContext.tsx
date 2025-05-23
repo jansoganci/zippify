@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createLogger } from '@/utils/logger';
 
 // Define the Keyword interface
 interface Keyword {
@@ -22,6 +23,9 @@ type KeywordContextType = {
 // Local storage key
 const STORAGE_KEY = 'zippify_selected_keywords';
 
+// Create logger for this context
+const logger = createLogger('KeywordContext');
+
 // Create the context with default values
 const KeywordContext = createContext<KeywordContextType>({
   keywords: [],
@@ -44,7 +48,7 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       const storedKeywords = localStorage.getItem(STORAGE_KEY);
       return storedKeywords ? JSON.parse(storedKeywords) : [];
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') console.error('Error loading keywords from localStorage:', error);
+      logger.error('Failed to load keywords from localStorage', { error });
       return [];
     }
   });
@@ -60,9 +64,9 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
       // Immediately save to localStorage
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedKeywords));
-        if (import.meta.env.MODE !== 'production') console.log(`Saved ${updatedKeywords.length} keywords to localStorage`);
+        logger.debug(`Saved ${updatedKeywords.length} keywords to localStorage`);
       } catch (error) {
-        if (import.meta.env.MODE !== 'production') console.error('Error saving keywords to localStorage:', error);
+        logger.error('Failed to save keywords to localStorage', { error });
       }
       
       return updatedKeywords;
@@ -77,11 +81,11 @@ export const KeywordProvider: React.FC<KeywordProviderProps> = ({ children }) =>
         const parsedKeywords = JSON.parse(storedKeywords);
         if (Array.isArray(parsedKeywords) && parsedKeywords.length > 0) {
           setKeywordsWithStorage(parsedKeywords);
-          if (import.meta.env.MODE !== 'production') console.log(`Loaded ${parsedKeywords.length} keywords from localStorage on mount`);
+          logger.debug(`Loaded ${parsedKeywords.length} keywords on mount`);
         }
       }
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') console.error('Error loading keywords from localStorage on mount:', error);
+      logger.error('Failed to load keywords on mount', { error });
     }
   }, []);
 

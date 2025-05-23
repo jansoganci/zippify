@@ -4,6 +4,10 @@ import { Button } from "@/components/ui/button";
 import { AnimateOnScroll } from "@/features/landing/components/AnimateOnScroll";
 import { Card, CardContent } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { createLogger } from "@/utils/logger";
+
+// Create logger for this component
+const logger = createLogger('LiveDemoPreview');
 
 // Feature content data
 const featureContent = [
@@ -62,8 +66,7 @@ export const LiveDemoPreview = () => {
       if (playPromise !== undefined) {
         playPromise
           .catch(error => {
-            // Auto-play was prevented, try again after user interaction
-            console.log('Video autoplay prevented:', error);
+            logger.debug('Video autoplay prevented', { error: error.message });
           });
       }
     }

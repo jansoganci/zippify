@@ -1,5 +1,9 @@
 import { BatchImageResult } from './components/BatchResults';
 import { backendApi } from '@/services/workflow/apiClient';
+import { createLogger } from '@/utils/logger';
+
+// Create logger for image editing service
+const logger = createLogger('EditImageService');
 
 // Extended BatchImageResult interface to include prompt enhancement info
 declare module './components/BatchResults' {
@@ -43,7 +47,7 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
     
     // Verify that the result and image data exist
     if (!response.data.result || !response.data.result.image) {
-      console.error("API response missing image data:", response.data);
+      logger.error("API response missing image data");
       throw new Error("Image data missing from successful response");
     }
     
@@ -57,22 +61,15 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
     // Handle axios errors
     if (error && typeof error === 'object' && 'isAxiosError' in error && error.isAxiosError) {
       // Log detailed error information for debugging
-      console.error("Axios Error Details:", {
+      logger.error('Image editing API error', {
         status: error.response?.status,
         statusText: error.response?.statusText,
-        data: error.response?.data,
         url: error.config?.url,
         method: error.config?.method,
-        headers: error.config?.headers,
-        requestData: error.config?.data,
-        timestamp: new Date().toISOString(),
-        requestInfo: {
-          hasImage: !!base64Image,
-          imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
-          promptLength: prompt ? prompt.length : 0,
-          category: category || 'not specified',
-          platform: platform || 'not specified'
-        }
+        imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
+        promptLength: prompt ? prompt.length : 0,
+        category: category || 'not specified',
+        platform: platform || 'not specified'
       });
       
       if (error.response) {
@@ -100,28 +97,23 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
         throw new Error(userFriendlyMessage);
       } else if (error.request) {
         // The request was made but no response was received
-        console.error("Request made but no response received:", error.request);
+        logger.error('No response received from image editing API');
         throw new Error("No response received from server. The server might be down or unreachable.");
       } else {
         // Something happened in setting up the request
-        console.error("Error setting up request:", error.message);
+        logger.error('Error setting up image editing request', { message: error.message });
         throw new Error(`Error setting up request: ${error.message}`);
       }
     }
     
     // For non-axios errors
-    console.error("Non-Axios Error Details:", {
+    logger.error('Non-Axios image editing error', {
       message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : 'No stack trace',
       type: error instanceof Error ? error.constructor.name : typeof error,
-      timestamp: new Date().toISOString(),
-      requestInfo: {
-        hasImage: !!base64Image,
-        imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
-        promptLength: prompt ? prompt.length : 0,
-        category: category || 'not specified',
-        platform: platform || 'not specified'
-      }
+      imageSize: base64Image ? Math.round(base64Image.length / 1024) : 0,
+      promptLength: prompt ? prompt.length : 0,
+      category: category || 'not specified',
+      platform: platform || 'not specified'
     });
     
     // Daha açıklayıcı hata mesajı oluştur
@@ -169,13 +161,13 @@ export async function processSingleImageEdit(
   enhancedPrompt?: string;
 }> {
   try {
-    console.log("Sending request to backend API...");
+    logger.debug('Sending image edit request to backend API');
     const requestStartTime = Date.now();
     
     const result = await editImageWithPrompt(image, prompt, category, platform);
     
     const requestDuration = Date.now() - requestStartTime;
-    console.log(`Received response from backend after ${requestDuration}ms`);
+    logger.debug('Image edit response received', { duration: requestDuration });
     
     if (result.image) {
       return { 
@@ -192,7 +184,7 @@ export async function processSingleImageEdit(
       };
     }
   } catch (error) {
-    console.error("Error editing image:", error);
+    logger.error('Failed to process single image edit', { error: error instanceof Error ? error.message : String(error) });
     return { 
       image: null, 
       error: error instanceof Error ? error.message : "Failed to edit image. Please try again." 
@@ -262,7 +254,7 @@ export async function editMultipleImages(
       const base64Image = await fileToBase64(image);
       
       // Process the image
-      console.log(`Processing image ${i + 1}/${images.length}: ${image.name}`);
+      logger.debug(`Processing batch image ${i + 1}/${images.length}`, { fileName: image.name });
       const result = await editImageWithPrompt(base64Image, prompt, category, platform);
       
       // Update result
@@ -281,7 +273,10 @@ export async function editMultipleImages(
       }
     } catch (error) {
       // Handle errors
-      console.error(`Error processing image ${i + 1}/${images.length}:`, error);
+      logger.error(`Failed to process batch image ${i + 1}/${images.length}`, { 
+        fileName: image.name,
+        error: error instanceof Error ? error.message : String(error)
+      });
       results[i].status = 'error';
       results[i].error = error instanceof Error ? error.message : String(error);
       if (options.onProgress) {

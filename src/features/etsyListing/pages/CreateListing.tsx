@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayoutFixed from "@/components/DashboardLayoutFixed";
 import { useSeoKeywords } from "../context/KeywordContext";
+import { createLogger } from "@/utils/logger";
 import PromptInput from "../components/PromptInput";
 import KeywordSelector from "../components/KeywordSelector";
 import GeneratedListingOutput from "../components/GeneratedListingOutput";
@@ -19,6 +20,9 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Plus, FileText, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 
+// Create component-specific logger
+const logger = createLogger('CreateListing');
+
 interface ListingResult {
   title: string;
   description: string;
@@ -34,9 +38,9 @@ const CreateListing: React.FC = () => {
   // We no longer clear keywords on mount to preserve keywords selected in the SeoKeywordAnalysis page
   // Instead, we'll rely on the context to maintain the selected keywords between pages
   
-  // Debug log to verify keywords are loaded correctly
+  // Log keywords for debugging
   React.useEffect(() => {
-    if (import.meta.env.MODE !== 'production') console.log('[DEBUG] Keywords in CreateListing:', keywords);
+    logger.debug(`Keywords loaded: ${keywords.length} items`);
   }, [keywords]);
   const [newKeyword, setNewKeyword] = useState<string>("");
   const [result, setResult] = useState<ListingResult>({
@@ -110,8 +114,12 @@ const CreateListing: React.FC = () => {
         keywords.map(k => k.keyword)
       );
 
-      if (import.meta.env.MODE !== 'production') console.log("🟡 Tags result:", tagsResponse?.content);
-      if (import.meta.env.MODE !== 'production') console.log("🟠 Alt Texts result:", altTextResponse?.content);
+      logger.info('Generated listing components', {
+        hasTitle: !!titleResponse?.content,
+        hasDescription: !!descriptionResponse?.content,
+        hasTags: !!tagsResponse?.content,
+        hasAltText: !!altTextResponse?.content
+      });
 
       // Check if all responses have valid content
       if (titleResponse?.content && descriptionResponse?.content && 
@@ -120,25 +128,21 @@ const CreateListing: React.FC = () => {
         // If all API calls were successful, increment quota
         try {
           await backendApi.post('increment-quota', { featureKey: 'create-listing' });
-          if (import.meta.env.MODE !== 'production') console.log('Successfully incremented quota for create-listing');
+          logger.debug('Successfully incremented quota for create-listing');
         } catch (quotaError) {
-          // Log error but don't show to user
-          if (import.meta.env.MODE !== 'production') console.error('Failed to increment quota:', quotaError);
+          logger.error('Failed to increment quota', { error: quotaError });
         }
       }
       
       let tags = [];
       try {
         tags = JSON.parse(tagsResponse?.content || "[]");
-        if (import.meta.env.MODE !== 'production') console.log("✅ Tags parsed successfully:", tags);
+        logger.debug(`Successfully parsed ${tags.length} tags`);
       } catch (e) {
-        if (import.meta.env.MODE !== 'production') console.error("❌ Failed to parse tags JSON:", tagsResponse?.content);
+        logger.error('Failed to parse tags JSON', { content: tagsResponse?.content });
         tags = [];
       }
       const altTexts = altTextResponse?.content || "";
-      
-      if (import.meta.env.MODE !== 'production') console.log("🟡 Tags array after processing:", tags);
-      if (import.meta.env.MODE !== 'production') console.log("🟠 Alt Texts after processing:", altTexts);
       
       setResult({
         title: titleResponse?.content || "",
@@ -173,8 +177,7 @@ const CreateListing: React.FC = () => {
           ? altTextsArray 
           : [altTexts.trim()];
         
-        if (import.meta.env.MODE !== 'production') console.log("🟢 Processed altTexts array:", finalAltTextsArray);
-        if (import.meta.env.MODE !== 'production') console.log("🟢 Final altTexts array:", finalAltTextsArray);
+        logger.debug(`Processed ${finalAltTextsArray.length} alt text entries`);
         
         await createListing({
           title: titleResponse?.content || "",
@@ -183,12 +186,12 @@ const CreateListing: React.FC = () => {
           altTexts: finalAltTextsArray,
           originalPrompt: prompt
         });
-        if (import.meta.env.MODE !== 'production') console.log("✅ [CreateListing] Listing saved successfully to DB");
+        logger.info('Listing saved successfully to database');
       } catch (err) {
-        if (import.meta.env.MODE !== 'production') console.error("❌ [CreateListing] Failed to save listing to DB:", err.message);
+        logger.error('Failed to save listing to database', { error: err.message });
       }
     } catch (err) {
-      if (import.meta.env.MODE !== 'production') console.error("Error generating listing:", err);
+      logger.error('Error generating listing', { error: err.message || err });
       
       // Check for 403 Quota Exceeded error
       if (err.response && err.response.status === 403) {
@@ -217,7 +220,7 @@ const CreateListing: React.FC = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="container mx-auto py-6 px-4 max-w-7xl">
         <div className="flex flex-col space-y-8 pb-8">
           {/* Page Header */}
@@ -351,7 +354,7 @@ const CreateListing: React.FC = () => {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

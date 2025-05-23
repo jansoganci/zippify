@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { KeywordProvider } from "./features/etsyListing/context/KeywordContext";
+import { ProfileProvider } from "./contexts/ProfileContext";
 
 // Auth components
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -41,8 +42,9 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <KeywordProvider>
-          <BrowserRouter>
+        <BrowserRouter>
+          <ProfileProvider>
+            <KeywordProvider>
             <Routes>
               {/* Authentication Routes */}
               <Route
@@ -171,8 +173,9 @@ const App = () => (
               {/* Catch‑all 404 */}
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
-        </KeywordProvider>
+            </KeywordProvider>
+          </ProfileProvider>
+        </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
   </ThemeProvider>

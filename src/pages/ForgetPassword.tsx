@@ -39,8 +39,7 @@ export default function ForgetPassword() {
       setIsSuccess(true);
       form.reset(); // Clear the form
     } catch (error: any) {
-      if (import.meta.env.MODE !== 'production') console.error("Forgot password error:", error);
-      if (import.meta.env.MODE !== 'production') console.warn("Forgot password error:", error);
+      // Log error appropriately - these duplicate logs were redundant
       // Enhanced error handling for backend messages
       let msg = "Failed to process your request. Please try again.";
       if (error?.response?.data) {

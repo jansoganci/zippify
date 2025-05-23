@@ -1,5 +1,9 @@
 import { etsyRules } from "@/platformRules/etsyRules";
 import { DEFAULT_AI_PROVIDER } from '@/config/ai';
+import { createLogger } from '@/utils/logger';
+
+// Create logger for this service
+const logger = createLogger('generateDescription');
 
 /**
  * Generates an optimized Etsy description based on user input and platform rules.
@@ -73,23 +77,15 @@ export async function generateDescription({
   });
 
   if (!response.ok) {
-    // HTTP hata durumlarını işle
-    if (import.meta.env.MODE !== 'production') {
-      console.error(`❌ [generateDescription] HTTP Error: ${response.status} ${response.statusText}`);
-      const errorText = await response.text();
-      console.error(`❌ [generateDescription] Error details:`, errorText);
-    }
+    logger.error('HTTP error during description generation', { 
+      status: response.status, 
+      statusText: response.statusText 
+    });
     throw new Error(`HTTP error! Status: ${response.status}`);
   }
   
   const data = await response.json();
-  
-  if (import.meta.env.MODE !== 'production') {
-    console.log(`✅ [generateDescription] API Response:`, {
-      content: data?.content?.substring(0, 50) + '...',
-      status: 'success'
-    });
-  }
+  logger.info('Description generated successfully');
   
   return data;
 }

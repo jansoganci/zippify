@@ -62,7 +62,7 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
         altTexts = imageMatches.join('\n');
         
         if (import.meta.env.MODE !== 'production') {
-          console.log('🟢 [generateAltText] Successfully extracted alt texts with regex');
+          // Alt texts extracted successfully
         }
         
         // Açıklama metinlerini temizle
@@ -90,7 +90,7 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
           altTexts = imageLines.join('\n');
           
           if (import.meta.env.MODE !== 'production') {
-            console.log('🟢 [generateAltText] Successfully extracted alt texts from section');
+            // Alt texts extracted from section
           }
           
           return { content: altTexts };
@@ -109,17 +109,13 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
       if (imageLines.length > 0) {
         altTexts = imageLines.join('\n');
         
-        if (import.meta.env.MODE !== 'production') {
-          console.log('🟢 [generateAltText] Found image lines as fallback');
-        }
+        // Image lines found as fallback
         
         return { content: altTexts };
       }
       
       // Alt metin bulunamazsa, tüm içeriği döndür
-      if (import.meta.env.MODE !== 'production') {
-        console.log('🟡 [generateAltText] Could not extract alt texts, returning full content');
-      }
+      // Could not extract specific alt texts, using full content
       
       // Son çare: Açıklama satırlarını temizle
       const cleanedContent = content
@@ -134,7 +130,7 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
     
     return data;
   } catch (error) {
-    console.error("[generateAltText] Error:", error);
+    // Error handled by caller
     return { content: "" };
   }
 }

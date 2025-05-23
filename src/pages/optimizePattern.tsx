@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { optimizePattern } from '@/services/workflow/optimizePattern';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -39,7 +39,7 @@ const OptimizePattern = () => {
         setOptimizedContent(`Error: ${result.error || 'Failed to optimize content'}`);
       }
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') console.error('Optimization error:', error);
+      // Error details logged elsewhere
       setOptimizedContent(`Error: ${error.message || 'An unexpected error occurred'}`);
     } finally {
       setIsOptimizing(false);
@@ -57,7 +57,7 @@ const OptimizePattern = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="py-6 space-y-6 page-transition">
         {/* Progress indicator */}
         <div className="space-y-2">
@@ -144,7 +144,7 @@ const OptimizePattern = () => {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

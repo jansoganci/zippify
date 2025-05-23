@@ -4,6 +4,10 @@
  */
 
 import axios from 'axios';
+import { createLogger } from '@/utils/logger';
+
+// Create logger for API client
+const logger = createLogger('ApiClient');
 
 // Constants for API configuration
 export const API_URL = import.meta.env.VITE_DEEPSEEK_API_URL || '';
@@ -24,13 +28,11 @@ export const apiClient = axios.create({
 apiClient.interceptors.response.use(
   response => response,
   err => {
-    if (import.meta.env.MODE !== 'production') {
-      console.error('API Error:', {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data
-      });
-    }
+    logger.error('API request failed', {
+      message: err.message,
+      status: err.response?.status,
+      url: err.config?.url
+    });
     return Promise.reject(err);
   }
 );
@@ -59,6 +61,6 @@ backendApi.interceptors.request.use(config => {
  * Frontend code should not directly call DeepSeek API
  */
 export const makeRequest = async (endpoint: string, data: any) => {
-  console.warn('Frontend code attempted to call DeepSeek API directly. This is not supported.');
+  logger.warn('Direct DeepSeek API call attempted from frontend - blocking request');
   throw new Error('Direct DeepSeek API calls are not supported in the frontend. Use backend endpoints instead.');
 };

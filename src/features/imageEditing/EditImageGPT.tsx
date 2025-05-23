@@ -1,5 +1,9 @@
 import React, { useState } from "react";
+import { createLogger } from '@/utils/logger';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+
+// Create logger for this component
+const logger = createLogger('EditImageGPT');
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,7 +20,7 @@ import {
   Loader2,
   Wand2
 } from "lucide-react";
-import DashboardLayout from "@/components/DashboardLayout";
+import DashboardLayoutFixed from "@/components/DashboardLayoutFixed";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -28,7 +32,10 @@ import ExamplePromptLibrary from "./components/ExamplePromptLibrary";
 
 // Function to call the OpenAI GPT Image API through our backend endpoint
 const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
-  console.log("Calling OpenAI GPT Image API with:", { imageLength: base64Image.length, prompt: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '') });
+  logger.debug('Calling OpenAI GPT Image API', { 
+    imageLength: base64Image.length, 
+    promptPreview: prompt.substring(0, 50) + (prompt.length > 50 ? '...' : '') 
+  });
   
   try {
     // Send POST request to our backend endpoint
@@ -45,7 +52,7 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
     
     // Parse the JSON response first, regardless of HTTP status
     const data = await response.json();
-    console.log("Received response from OpenAI GPT Image API:", data);
+    logger.debug('Received response from OpenAI GPT Image API', { success: data.success });
     
     // Check the success field in the response data
     if (!data.success) {
@@ -54,8 +61,10 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
     
     // Log if the prompt was enhanced
     if (data.promptEnhanced && data.enhancedPrompt) {
-      console.log("Original prompt:", prompt);
-      console.log("Enhanced prompt:", data.enhancedPrompt);
+      logger.debug('OpenAI GPT prompt enhanced', { 
+        originalPrompt: prompt.substring(0, 50) + '...', 
+        enhancedPrompt: data.enhancedPrompt.substring(0, 50) + '...' 
+      });
     }
     
     // Process the successful response
@@ -84,7 +93,7 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
             promptEnhanced: data.promptEnhanced
           };
         } catch (fetchError) {
-          console.error("Error fetching image from URL:", fetchError);
+          logger.error('Failed to fetch image from OpenAI URL', { error: fetchError instanceof Error ? fetchError.message : String(fetchError) });
           // Return the URL directly if we can't fetch it
           return {
             success: true,
@@ -112,7 +121,7 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
       throw new Error("Invalid response format from server: missing image data");
     }
   } catch (error) {
-    console.error("Error calling OpenAI GPT Image API:", error);
+    logger.error('OpenAI GPT Image API call failed', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 };
@@ -120,7 +129,7 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
 // Process a single image edit using the OpenAI GPT API
 const processSingleImageEdit = async (image: string, prompt: string) => {
   try {
-    console.log("Processing single image edit with OpenAI GPT");
+    logger.debug('Processing single image edit with OpenAI GPT');
     const result = await callOpenAIGptImageApi(image, prompt);
     
     if (result.success) {
@@ -135,7 +144,7 @@ const processSingleImageEdit = async (image: string, prompt: string) => {
       throw new Error("Failed to process image with OpenAI GPT");
     }
   } catch (error) {
-    console.error("Error processing image with OpenAI GPT:", error);
+    logger.error('Single image processing failed with OpenAI GPT', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   }
 };
@@ -176,7 +185,7 @@ const processBatchImageEdits = async (
         throw new Error("Failed to process image");
       }
     } catch (error) {
-      console.error(`Error processing image ${i}:`, error);
+      logger.error(`Batch image processing failed for image ${i}`, { error: error instanceof Error ? error.message : String(error) });
       onProgress(i, 'error', undefined, error instanceof Error ? error.message : 'Unknown error');
       results.push({
         fileName: images[i].name,
@@ -216,7 +225,11 @@ const EditImageGPT = () => {
     
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (import.meta.env.MODE !== 'production') console.log(`Image selected: ${file.name}, size: ${(file.size / 1024).toFixed(2)}KB, type: ${file.type}`);
+      logger.debug('Image selected for GPT editing', { 
+        fileName: file.name, 
+        sizeKB: (file.size / 1024).toFixed(2), 
+        type: file.type 
+      });
       
       if (file.size > 5 * 1024 * 1024) {
         setError("Image size exceeds 5MB limit. Please select a smaller image.");
@@ -226,12 +239,12 @@ const EditImageGPT = () => {
       const reader = new FileReader();
       
       reader.onload = () => {
-        if (import.meta.env.MODE !== 'production') console.log("Image successfully loaded and converted to base64");
+        logger.debug('Image successfully loaded and converted to base64 for GPT editing');
         setSelectedImage(reader.result as string);
       };
       
       reader.onerror = () => {
-        if (import.meta.env.MODE !== 'production') console.error("Error reading file:", reader.error);
+        logger.error('Failed to read image file for GPT editing', { error: reader.error });
         setError("Failed to read the image file. Please try another image.");
       };
       
@@ -251,7 +264,7 @@ const EditImageGPT = () => {
       return;
     }
     
-    if (import.meta.env.MODE !== 'production') console.log(`Submitting image edit request with prompt: "${prompt}"`);
+    logger.debug('Submitting GPT image edit request', { prompt: prompt.substring(0, 50) + '...' });
     setIsLoading(true);
     
     try {
@@ -275,13 +288,13 @@ const EditImageGPT = () => {
           });
           
           // Log the original and enhanced prompts for debugging
-          if (import.meta.env.MODE !== 'production') {
-            console.log("Original prompt:", prompt);
-            console.log("Enhanced prompt:", result.enhancedPrompt);
-          }
+          logger.debug('GPT prompt enhancement applied', { 
+            originalPrompt: prompt.substring(0, 50) + '...', 
+            enhancedPrompt: result.enhancedPrompt.substring(0, 50) + '...' 
+          });
         }
         
-        if (import.meta.env.MODE !== 'production') console.log("Image successfully processed with OpenAI GPT");
+        logger.debug('Image successfully processed with OpenAI GPT');
         toast({
           title: "Image Edited Successfully",
           description: "Your image has been processed with OpenAI GPT.",
@@ -290,7 +303,7 @@ const EditImageGPT = () => {
         throw new Error("No image returned from OpenAI GPT");
       }
     } catch (error) {
-      if (import.meta.env.MODE !== 'production') console.error("Error processing image:", error);
+      logger.error('GPT image processing failed', { error: error instanceof Error ? error.message : String(error) });
       setError(error instanceof Error ? error.message : "Failed to process image with OpenAI GPT");
       toast({
         variant: "destructive",
@@ -351,7 +364,7 @@ const EditImageGPT = () => {
         description: `Processed ${selectedFiles.length} images with OpenAI GPT.`,
       });
     } catch (error) {
-      console.error("Error in batch processing:", error);
+      logger.error('GPT batch processing failed', { error: error instanceof Error ? error.message : String(error) });
       toast({
         variant: "destructive",
         title: "Batch Processing Error",
@@ -363,7 +376,7 @@ const EditImageGPT = () => {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayoutFixed>
       <div className="container max-w-screen-xl mx-auto py-6">
         <div className="space-y-6">
           <div className="flex flex-col space-y-2">
@@ -685,7 +698,7 @@ const EditImageGPT = () => {
           </Tabs>
         </div>
       </div>
-    </DashboardLayout>
+    </DashboardLayoutFixed>
   );
 };
 

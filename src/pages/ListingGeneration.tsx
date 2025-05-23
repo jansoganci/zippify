@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { generateEtsyListing } from '@/services/workflow/generateEtsyListing';
 import { error } from '../utils/logger';
-import DashboardLayout from '@/components/DashboardLayout';
+import DashboardLayoutFixed from '@/components/DashboardLayoutFixed';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -105,7 +105,7 @@ const ListingGeneration = () => {
   };
 
   return (
-    <DashboardLayout>
+          <DashboardLayoutFixed>
       <div className="py-6 space-y-6 page-transition">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -166,7 +166,7 @@ const ListingGeneration = () => {
           <Button size="lg" onClick={handleFinish}>Finish</Button>
         </div>
       </div>
-    </DashboardLayout>
+          </DashboardLayoutFixed>
   );
 };
 

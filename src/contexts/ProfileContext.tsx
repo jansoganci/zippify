@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import React, { createContext, useContext, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { createLogger } from "@/utils/logger";
 
 interface ProfileData {
   firstName: string;
@@ -11,7 +12,20 @@ interface ProfileData {
   theme?: string;
 }
 
-// API functions with authentication
+interface ProfileContextType {
+  profileData: ProfileData | undefined;
+  isLoading: boolean;
+  error: Error | null;
+  updateProfile: (data: ProfileData) => void;
+  isUpdating: boolean;
+}
+
+const ProfileContext = createContext<ProfileContextType | undefined>(undefined);
+
+// Create logger for this context
+const logger = createLogger('ProfileContext');
+
+// API functions
 const fetchProfile = async (): Promise<ProfileData> => {
   const token = localStorage.getItem('zippify_token');
   
@@ -19,14 +33,11 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
-  // URL'nin sonunda /api var mı kontrol et
   let baseUrl = import.meta.env.VITE_API_URL || '';
-  // URL sonunda / varsa kaldır
   if (baseUrl.endsWith('/')) {
     baseUrl = baseUrl.slice(0, -1);
   }
   
-  // URL'de /api var mı kontrol et
   const apiPath = baseUrl.includes('/api') ? '/profile' : '/api/profile';
   
   const response = await fetch(`${baseUrl}${apiPath}`, {
@@ -46,21 +57,18 @@ const fetchProfile = async (): Promise<ProfileData> => {
   return response.json();
 };
 
-const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
+const updateProfileAPI = async (data: ProfileData): Promise<ProfileData> => {
   const token = localStorage.getItem('zippify_token');
   
   if (!token) {
     throw new Error('No authentication token found');
   }
   
-  // URL'nin sonunda /api var mı kontrol et
   let baseUrl = import.meta.env.VITE_API_URL || '';
-  // URL sonunda / varsa kaldır
   if (baseUrl.endsWith('/')) {
     baseUrl = baseUrl.slice(0, -1);
   }
   
-  // URL'de /api var mı kontrol et
   const apiPath = baseUrl.includes('/api') ? '/profile' : '/api/profile';
   
   const response = await fetch(`${baseUrl}${apiPath}`, {
@@ -83,38 +91,20 @@ const updateProfile = async (data: ProfileData): Promise<ProfileData> => {
   return response.json();
 };
 
-export function useProfile() {
-  // Get QueryClient from the context
+export function ProfileProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   
-  // Check for token on component mount
-  useEffect(() => {
-    const token = localStorage.getItem('zippify_token');
-    if (!token) {
-      if (import.meta.env.MODE !== 'production') console.warn('No authentication token found, redirecting to login');
-      navigate('/login');
-    }
-  }, [navigate]);
-  
-  // Default values while loading
-  const [formData, setFormData] = useState<ProfileData>({
-    firstName: '',
-    lastName: '',
-    storeName: '',
-    email: '',
-    theme: 'light',
-  });
-
-  // Check if token exists
   const token = localStorage.getItem('zippify_token');
 
-  // Fetch profile data - only if token exists
+  // Single profile query for the entire app
   const { isLoading, error, data } = useQuery({
     queryKey: ['profile'],
     queryFn: fetchProfile,
-    enabled: !!token, // Only run query if token exists
-    retry: false, // Don't retry if authentication fails
+    enabled: !!token,
+    retry: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     initialData: {
       firstName: 'John',
       lastName: 'Smith',
@@ -124,10 +114,10 @@ export function useProfile() {
     },
   });
   
-  // Handle query errors
-  useEffect(() => {
+  // Handle auth errors globally
+  React.useEffect(() => {
     if (error) {
-      if (import.meta.env.MODE !== 'production') console.error('Profile fetch error:', error);
+      logger.error('Profile fetch failed', { message: error.message });
       if (error instanceof Error && 
           (error.message.includes('Unauthorized') || 
            error.message.includes('No authentication token'))) {
@@ -136,24 +126,10 @@ export function useProfile() {
     }
   }, [error, navigate]);
 
-  // Update form data when query data changes
-  useEffect(() => {
-    if (data) {
-      setFormData({
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        storeName: data.storeName || '',
-        email: data.email || '',
-        theme: data.theme || 'light'
-      });
-    }
-  }, [data]);
-
   // Update profile mutation
   const mutation = useMutation({
-    mutationFn: updateProfile,
+    mutationFn: updateProfileAPI,
     onSuccess: (data) => {
-      // Update cache with the new data
       queryClient.setQueryData(['profile'], data);
       toast.success('Profile updated successfully');
     },
@@ -162,43 +138,25 @@ export function useProfile() {
     },
   });
 
-  // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-  
-  // Handle theme change specifically
-  const handleThemeChange = (value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      theme: value
-    }));
-  };
-
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const safeData = {
-      firstName: formData.firstName || '',
-      lastName: formData.lastName || '',
-      storeName: formData.storeName || '',
-      theme: formData.theme || 'light'
-    };
-    mutation.mutate(safeData);
-  };
-
-  return {
+  const contextValue: ProfileContextType = {
     profileData: data,
-    formData,
-    handleChange,
-    handleThemeChange,
-    handleSubmit,
     isLoading,
+    error,
+    updateProfile: mutation.mutate,
     isUpdating: mutation.isPending,
-    error
   };
+
+  return (
+    <ProfileContext.Provider value={contextValue}>
+      {children}
+    </ProfileContext.Provider>
+  );
 }
+
+export function useProfile() {
+  const context = useContext(ProfileContext);
+  if (context === undefined) {
+    throw new Error('useProfile must be used within a ProfileProvider');
+  }
+  return context;
+} 
