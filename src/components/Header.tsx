@@ -10,10 +10,12 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { NavLink, useNavigate } from "react-router-dom";
+import { useProfile } from '@/hooks/useProfile';
 
 const Header = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
+  const { profileData, isLoading } = useProfile();
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
@@ -31,6 +33,30 @@ const Header = () => {
     setIsDarkMode(next);
     document.documentElement.classList.toggle('dark', next);
     localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  // Kullanıcı adının ilk harfini al
+  const getUserInitial = () => {
+    if (isLoading) return '...';
+    if (profileData?.firstName) {
+      return profileData.firstName.charAt(0).toUpperCase();
+    }
+    return 'U'; // fallback
+  };
+
+  // Tam kullanıcı adını al
+  const getFullName = () => {
+    if (isLoading) return 'Loading...';
+    if (profileData?.firstName && profileData?.lastName) {
+      return `${profileData.firstName} ${profileData.lastName}`;
+    }
+    return 'User'; // fallback
+  };
+
+  // Email'i al
+  const getUserEmail = () => {
+    if (isLoading) return 'Loading...';
+    return profileData?.email || 'user@example.com'; // fallback
   };
   
   return (
@@ -58,14 +84,14 @@ const Header = () => {
         </div>
       </nav>
 
-      {/* Profil Dropdown (Aynen kalacak) */}
+      {/* Profil Dropdown (Güncellenmiş) */}
       <div className="flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg" alt="User" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{getUserInitial()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
@@ -73,11 +99,11 @@ const Header = () => {
             <div className="flex items-center justify-start gap-2 p-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg" alt="User" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{getUserInitial()}</AvatarFallback>
               </Avatar>
               <div className="flex flex-col space-y-0.5">
-                <p className="text-sm font-medium">John Doe</p>
-                <p className="text-xs text-muted-foreground">john@example.com</p>
+                <p className="text-sm font-medium">{getFullName()}</p>
+                <p className="text-xs text-muted-foreground">{getUserEmail()}</p>
               </div>
             </div>
             

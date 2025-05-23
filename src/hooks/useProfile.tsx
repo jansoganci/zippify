@@ -7,6 +7,8 @@ interface ProfileData {
   firstName: string;
   lastName: string;
   storeName: string;
+  email?: string;
+  theme?: string;
 }
 
 // API functions with authentication
@@ -100,16 +102,25 @@ export function useProfile() {
     firstName: '',
     lastName: '',
     storeName: '',
+    email: '',
+    theme: 'light',
   });
 
-  // Fetch profile data
+  // Check if token exists
+  const token = localStorage.getItem('zippify_token');
+
+  // Fetch profile data - only if token exists
   const { isLoading, error, data } = useQuery({
     queryKey: ['profile'],
     queryFn: fetchProfile,
+    enabled: !!token, // Only run query if token exists
+    retry: false, // Don't retry if authentication fails
     initialData: {
       firstName: 'John',
       lastName: 'Smith',
       storeName: 'Handcrafted Treasures',
+      email: '',
+      theme: 'light',
     },
   });
   
@@ -128,7 +139,13 @@ export function useProfile() {
   // Update form data when query data changes
   useEffect(() => {
     if (data) {
-      setFormData(data);
+      setFormData({
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        storeName: data.storeName || '',
+        email: data.email || '',
+        theme: data.theme || 'light'
+      });
     }
   }, [data]);
 
@@ -146,11 +163,19 @@ export function useProfile() {
   });
 
   // Handle form input changes
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+  
+  // Handle theme change specifically
+  const handleThemeChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      theme: value
     }));
   };
 
@@ -160,7 +185,8 @@ export function useProfile() {
     const safeData = {
       firstName: formData.firstName || '',
       lastName: formData.lastName || '',
-      storeName: formData.storeName || ''
+      storeName: formData.storeName || '',
+      theme: formData.theme || 'light'
     };
     mutation.mutate(safeData);
   };
@@ -169,6 +195,7 @@ export function useProfile() {
     profileData: data,
     formData,
     handleChange,
+    handleThemeChange,
     handleSubmit,
     isLoading,
     isUpdating: mutation.isPending,

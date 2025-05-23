@@ -1,5 +1,141 @@
 # Zippify API Documentation
 
+## ⚡ Endpoint Standards & Best Practices
+
+### 🎯 Overview
+
+Zippify follows industry-standard API practices to ensure consistent behavior across development and production environments. This section documents the proper endpoint configuration that ensures reliability and maintainability.
+
+### 🏗️ Architecture Pattern
+
+**Unified Endpoint Structure**: All API calls use the same path structure regardless of environment
+
+```javascript
+// ✅ CORRECT: Same endpoint structure everywhere
+frontend -> /api/auth/login -> backend /api/auth/login
+frontend -> /api/profile    -> backend /api/profile  
+frontend -> /api/listings   -> backend /api/listings
+```
+
+### 🔧 Configuration
+
+#### Frontend Configuration (`src/services/api/apiClient.js`)
+
+```javascript
+// ✅ STANDARD CONFIGURATION
+const API_BASE_URL = import.meta.env.DEV 
+  ? '/api'  // Development: Use Vite proxy
+  : import.meta.env.VITE_API_URL || '/api';  // Production: Use env variable
+```
+
+#### Development Environment
+
+```bash
+# Frontend
+http://localhost:8080
+
+# API Calls (Frontend → Backend via Proxy)
+GET /api/health       → http://localhost:3001/api/health
+POST /api/auth/login  → http://localhost:3001/api/auth/login
+GET /api/profile      → http://localhost:3001/api/profile
+```
+
+**Vite Proxy Configuration** (`vite.config.ts`):
+```javascript
+server: {
+  proxy: {
+    '/api': {
+      target: 'http://localhost:3001',
+      changeOrigin: true,
+      secure: false,
+    },
+  },
+}
+```
+
+#### Production Environment
+
+```bash
+# Frontend & API
+https://yourdomain.com
+
+# API Calls (Direct)
+GET /api/health       → https://yourdomain.com/api/health
+POST /api/auth/login  → https://yourdomain.com/api/auth/login
+GET /api/profile      → https://yourdomain.com/api/profile
+```
+
+### 🛡️ Security Standards
+
+1. **HTTPS Enforcement**: All production endpoints must use HTTPS
+2. **CORS Configuration**: Properly configured for all environments
+3. **Authentication**: JWT tokens in Authorization header
+4. **Rate Limiting**: Implemented per user plan
+
+### 📦 Environment Variables
+
+#### Development (.env)
+```bash
+VITE_API_URL=/api  # Not used in dev (proxy handles routing)
+NODE_ENV=development
+```
+
+#### Production (.env.production)
+```bash
+VITE_API_URL=/api  # Direct API calls to same domain
+NODE_ENV=production
+```
+
+### 🔍 Debugging & Monitoring
+
+#### Request Logging (Development Only)
+```javascript
+// Logs format: [API] METHOD baseURL+endpoint
+// Example: [API] POST /api/auth/login
+devLog(`${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+```
+
+#### Health Check Endpoint
+```bash
+# Development
+curl http://localhost:8080/api/health
+
+# Production  
+curl https://yourdomain.com/api/health
+```
+
+### ✅ Benefits of This Standard
+
+1. **Consistency**: Same code works in dev and production
+2. **Maintainability**: Single source of truth for endpoints
+3. **Scalability**: Easy to add new endpoints
+4. **Debugging**: Clear request logging and error handling
+5. **Security**: Proper CORS and HTTPS configuration
+
+### 🚨 Common Pitfalls to Avoid
+
+❌ **WRONG**: Hardcoded URLs
+```javascript
+const response = await axios.post('http://localhost:3001/auth/login');
+```
+
+❌ **WRONG**: Different endpoints for dev/prod
+```javascript
+const endpoint = isDev ? '/auth/login' : '/api/auth/login';
+```
+
+❌ **WRONG**: Manual URL concatenation
+```javascript
+const url = baseURL + '/api' + endpoint;
+```
+
+✅ **CORRECT**: Standardized configuration
+```javascript
+const response = await apiClient.post('/auth/login');
+```
+
+---
+
 ## Overview
 
 This document provides detailed information about the Zippify API endpoints, request/response formats, and authentication requirements. Zippify's API allows you to programmatically create product listings, analyze SEO keywords, and edit product images.

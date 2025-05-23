@@ -43,6 +43,7 @@ db/*.db
 *.bak
 *.backup
 zippify_backup_*
+backups/
 
 # Editor directories and files
 .vscode/*

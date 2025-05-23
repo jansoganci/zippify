@@ -31,7 +31,7 @@ export const getCurrentUser = async (req, res) => {
     
     // Get profile from database
     const profile = await db.get(
-      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
+      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
       [id]
     );
     
@@ -91,7 +91,7 @@ export const updateProfile = async (req, res) => {
     }
     
     // Extract profile data from request body
-    const { firstName, lastName, storeName } = req.body;
+    const { firstName, lastName, storeName, theme } = req.body;
     
     // Validate required fields
     if (!firstName || !lastName) {
@@ -109,22 +109,22 @@ export const updateProfile = async (req, res) => {
     if (existingProfile) {
       // Update existing profile
       await db.run(
-        'UPDATE profiles SET first_name = ?, last_name = ?, store_name = ? WHERE user_id = ?',
-        [firstName, lastName, storeName || '', id]
+        'UPDATE profiles SET first_name = ?, last_name = ?, store_name = ?, theme = ? WHERE user_id = ?',
+        [firstName, lastName, storeName || '', theme || 'light', id]
       );
       log.info(`[${requestId}] Profile updated successfully for user: ${id}`);
     } else {
       // Create new profile if it doesn't exist
       await db.run(
-        'INSERT INTO profiles (user_id, first_name, last_name, store_name) VALUES (?, ?, ?, ?)',
-        [id, firstName, lastName, storeName || '']
+        'INSERT INTO profiles (user_id, first_name, last_name, store_name, theme) VALUES (?, ?, ?, ?, ?)',
+        [id, firstName, lastName, storeName || '', theme || 'light']
       );
       log.info(`[${requestId}] New profile created for user: ${id}`);
     }
     
     // Get the updated profile
     const updatedProfile = await db.get(
-      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
+      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
       [id]
     );
     

@@ -42,8 +42,14 @@ export async function generateTitle({
   
   try {
     // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
-    const response = await fetch(`${baseUrl}/api/ai/${aiProvider}`, {
+    let baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
+    
+    // Eğer baseUrl zaten /api ile bitmiyorsa ve production'da değilsek, /api ekle
+    if (!baseUrl.endsWith('/api') && !import.meta.env.PROD) {
+      baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
+    }
+    
+    const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",

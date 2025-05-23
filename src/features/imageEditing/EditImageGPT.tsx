@@ -32,7 +32,7 @@ const callOpenAIGptImageApi = async (base64Image: string, prompt: string) => {
   
   try {
     // Send POST request to our backend endpoint
-    const response = await fetch('/api/image/edit/gpt', {
+    const response = await fetch('/image/edit/gpt', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,6 +1,5 @@
 import { useState, ReactNode } from 'react';
 import AppSidebar from './AppSidebar';
-import Header from './Header';
 import Footer from '@/components/layout/Footer';
 
 type DashboardLayoutProps = {
@@ -15,24 +14,24 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
   
   return (
-  <div className="min-h-screen w-full bg-background dark:bg-background flex flex-col">
-    <Header />
-    <div className="flex flex-1 w-full h-full min-h-screen">
-      <AppSidebar isCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
-      <main 
-        className="flex-1 pt-4 pb-6 px-6 transition-all duration-300"
-        style={{ width: '100%' }}
-      >
-        <div className="max-w-7xl mx-auto w-full page-transition flex flex-col min-h-[calc(100%-2rem)]">
-          <div className="flex-1">
-            {children}
-          </div>
+  <div className="min-h-screen w-full bg-background dark:bg-background flex">
+    <AppSidebar isCollapsed={sidebarCollapsed} toggleSidebar={toggleSidebar} />
+    <div 
+      className="flex flex-col flex-1 transition-all duration-300"
+      style={{ 
+        marginLeft: sidebarCollapsed ? '72px' : '260px',
+        width: `calc(100% - ${sidebarCollapsed ? '72px' : '260px'})`
+      }}
+    >
+      <main className="flex-1 pt-6 pb-6 px-6">
+        <div className="max-w-7xl mx-auto w-full page-transition">
+          {children}
         </div>
       </main>
+      <footer className="w-full h-8 bg-background border-t border-border/60 dark:border-border/30 py-1">
+        <Footer variant="compact" />
+      </footer>
     </div>
-    <footer className="w-full h-8 bg-background border-t border-border/60 dark:border-border/30 py-1">
-      <Footer variant="compact" />
-    </footer>
   </div>
 );
 };

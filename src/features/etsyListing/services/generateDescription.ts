@@ -52,8 +52,14 @@ export async function generateDescription({
   // Return AI call structure (adjust model/provider if needed)
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
   // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
-  const response = await fetch(`${baseUrl}/api/ai/${aiProvider}`, {
+  let baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
+  
+  // Eğer baseUrl zaten /api ile bitmiyorsa ve production'da değilsek, /api ekle
+  if (!baseUrl.endsWith('/api') && !import.meta.env.PROD) {
+    baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
+  }
+  
+  const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
@@ -66,6 +72,24 @@ export async function generateDescription({
     }),
   });
 
+  if (!response.ok) {
+    // HTTP hata durumlarını işle
+    if (import.meta.env.MODE !== 'production') {
+      console.error(`❌ [generateDescription] HTTP Error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ [generateDescription] Error details:`, errorText);
+    }
+    throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+  
   const data = await response.json();
+  
+  if (import.meta.env.MODE !== 'production') {
+    console.log(`✅ [generateDescription] API Response:`, {
+      content: data?.content?.substring(0, 50) + '...',
+      status: 'success'
+    });
+  }
+  
   return data;
 }

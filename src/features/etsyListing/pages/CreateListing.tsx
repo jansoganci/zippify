@@ -119,7 +119,7 @@ const CreateListing: React.FC = () => {
         
         // If all API calls were successful, increment quota
         try {
-          await backendApi.post('/api/increment-quota', { featureKey: 'create-listing' });
+          await backendApi.post('increment-quota', { featureKey: 'create-listing' });
           if (import.meta.env.MODE !== 'production') console.log('Successfully incremented quota for create-listing');
         } catch (quotaError) {
           // Log error but don't show to user

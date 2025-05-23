@@ -30,7 +30,13 @@ const LandingPage = () => {
     <div className="min-h-screen flex flex-col">
       <header className="w-full h-16 border-b bg-background z-10 flex items-center">
         <div className="container flex items-center justify-between">
-          <div className="text-xl font-bold">Listify</div>
+          <div className="flex items-center">
+            <img 
+              src="/images/logo.svg" 
+              alt="Listify" 
+              className="h-8 w-auto"
+            />
+          </div>
           <nav className="hidden md:flex items-center gap-6">
             <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>

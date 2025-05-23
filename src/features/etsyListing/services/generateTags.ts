@@ -32,7 +32,7 @@ export async function generateTags(promptInput: string, selectedKeywords: string
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
   // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
   const baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
-  const response = await fetch(`${baseUrl}/api/ai/${aiProvider}`, {
+  const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",
@@ -45,10 +45,34 @@ export async function generateTags(promptInput: string, selectedKeywords: string
     }),
   });
 
+    if (!response.ok) {
+      // HTTP hata durumlarını işle
+      if (import.meta.env.MODE !== 'production') {
+        console.error(`❌ [generateTags] HTTP Error: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`❌ [generateTags] Error details:`, errorText);
+      }
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+    
     const data = await response.json();
+    
+    if (import.meta.env.MODE !== 'production') {
+      console.log(`✅ [generateTags] API Response:`, {
+        content: data?.content?.substring(0, 50) + '...',
+        status: 'success'
+      });
+    }
+    
     return data;
   } catch (error) {
-    console.error("[generateTags] Error:", error);
-    return { content: "" };
+    if (import.meta.env.MODE !== 'production') {
+      console.error(`❌ [generateTags] Fetch Error:`, error);
+      console.error(`❌ [generateTags] Error details:`, {
+        message: error.message,
+        stack: error.stack
+      });
+    }
+    throw error; // Hata fırlatımını devam ettir
   }
 }

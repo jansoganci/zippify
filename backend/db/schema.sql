@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   first_name TEXT NOT NULL DEFAULT '',
   last_name TEXT NOT NULL DEFAULT '',
   store_name TEXT NOT NULL DEFAULT '',
+  theme TEXT NOT NULL DEFAULT 'light',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

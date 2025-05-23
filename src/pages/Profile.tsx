@@ -5,8 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Loader2, Save, User, Store, AlertCircle, Mail, Building } from 'lucide-react';
+import { Loader2, Save, User, Store, AlertCircle, Mail, Building, Sun, Moon } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { useTheme } from 'next-themes';
 
 // Helper to extract user-friendly error messages
 function getUserFriendlyError(error: unknown): string {
@@ -27,11 +29,14 @@ const Profile = () => {
   const {
     formData,
     handleChange,
+    handleThemeChange,
     handleSubmit,
     isLoading,
     isUpdating,
     error
   } = useProfile();
+  
+  const { setTheme } = useTheme();
 
   return (
     <DashboardLayout>
@@ -108,6 +113,25 @@ const Profile = () => {
                   </div>
                 </div>
 
+                <div className="space-y-2 group">
+                  <Label htmlFor="email" className="flex items-center gap-2 text-foreground">
+                    <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors">
+                      <Mail className="h-4 w-4 text-primary" />
+                    </div>
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="your-email@example.com"
+                    value={formData.email ?? ""}
+                    disabled
+                    className="border-input/60 bg-muted/50 text-muted-foreground cursor-not-allowed"
+                  />
+                  <p className="text-xs text-muted-foreground">Your email address cannot be changed here.</p>
+                </div>
+
                 <div className="h-px w-full my-4 bg-border/60 dark:bg-border/40" />
                 
                 <div className="space-y-2 group">
@@ -125,6 +149,49 @@ const Profile = () => {
                     onChange={handleChange}
                     className="border-input/60 focus-visible:ring-primary/20 bg-background"
                   />
+                </div>
+                
+                <div className="h-px w-full my-4 bg-border/60 dark:bg-border/40" />
+                
+                <div className="space-y-2 group">
+                  <Label htmlFor="theme" className="flex items-center gap-2 text-foreground">
+                    <div className="p-1.5 rounded-md bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-colors">
+                      {formData.theme === 'dark' ? (
+                        <Moon className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Sun className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    Theme Preference
+                  </Label>
+                  
+                  <div className="mt-2">
+                    <RadioGroup 
+                      id="theme"
+                      value={formData.theme || 'light'} 
+                      onValueChange={(value) => {
+                        handleThemeChange(value);
+                        setTheme(value); // Apply theme immediately
+                      }}
+                      className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-4"
+                    >
+                      <div className="flex items-center space-x-2 rounded-md border border-input/60 px-3 py-2 bg-background">
+                        <RadioGroupItem value="light" id="theme-light" />
+                        <Label htmlFor="theme-light" className="flex items-center gap-2 cursor-pointer">
+                          <Sun className="h-4 w-4" />
+                          Light Theme
+                        </Label>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2 rounded-md border border-input/60 px-3 py-2 bg-background">
+                        <RadioGroupItem value="dark" id="theme-dark" />
+                        <Label htmlFor="theme-dark" className="flex items-center gap-2 cursor-pointer">
+                          <Moon className="h-4 w-4" />
+                          Dark Theme
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                 </div>
               </CardContent>
 

@@ -27,7 +27,7 @@ export async function generatePDF(pattern, options = {}) {
     };
     
     // Send the request to the backend API
-    const response = await backendApi.post('/api/workflow/generate-pdf', payload, {
+    const response = await backendApi.post('workflow/generate-pdf', payload, {
       headers: {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId

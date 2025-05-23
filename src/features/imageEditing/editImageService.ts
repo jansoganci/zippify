@@ -1,5 +1,5 @@
-import axios from 'axios';
 import { BatchImageResult } from './components/BatchResults';
+import { backendApi } from '@/services/workflow/apiClient';
 
 // Extended BatchImageResult interface to include prompt enhancement info
 declare module './components/BatchResults' {
@@ -24,24 +24,15 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
   enhancedPrompt?: string;
 }> {
   try {
-    // Retrieve JWT token from localStorage
-    const token = localStorage.getItem("zippify_token");
-    
-    // Make the API request to the backend
-    const response = await axios.post(
-      "/api/edit-image", 
+    // Make the API request using backendApi (handles auth via interceptors)
+    const response = await backendApi.post(
+      'edit-image',
       {
         image: base64Image,
         prompt: prompt,
         category: category,
         platform: platform,
         featureKey: "edit-image"
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": token ? `Bearer ${token}` : ""
-        }
       }
     );
     
@@ -64,7 +55,7 @@ export async function editImageWithPrompt(base64Image: string, prompt: string, c
     };
   } catch (error) {
     // Handle axios errors
-    if (axios.isAxiosError(error)) {
+    if (error && typeof error === 'object' && 'isAxiosError' in error && error.isAxiosError) {
       // Log detailed error information for debugging
       console.error("Axios Error Details:", {
         status: error.response?.status,

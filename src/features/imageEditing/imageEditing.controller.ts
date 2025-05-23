@@ -32,7 +32,7 @@ export const editImageController = async (req: Request, res: Response) => {
     const token = localStorage.getItem('zippify_token');
     
     // Call the backend API endpoint
-    const response = await fetch('/api/edit-image', {
+    const response = await fetch('/edit-image', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

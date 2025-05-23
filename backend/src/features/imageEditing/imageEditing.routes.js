@@ -1,5 +1,6 @@
 import express from 'express';
 import { callGeminiApi } from '../../services/imageEditing/callGeminiApi.js';
+import { callGeminiViaProxy } from '../../services/imageEditing/callGeminiViaProxy.js';
 import { verifyToken } from '../../../middleware/auth.js';
 import checkQuota from '../../../middleware/checkQuota.js';
 import incrementQuota from '../../../utils/incrementQuota.js';
@@ -27,13 +28,64 @@ router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, re
   
   console.log(`Request details: prompt length=${prompt?.length || 0}, hasImage=${!!image}, category=${category || 'none'}, platform=${platform || 'none'}`);
   try {
-    const result = await callGeminiApi(image, prompt, {
-      category,
-      platform,
-      featureKey,
-      generationOptions,
-      outputOptions
-    });
+    // Extract base64 data and mime type from the data URL
+    let base64Data, mimeType;
+    if (image.startsWith('data:')) {
+      const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+      if (matches && matches.length === 3) {
+        mimeType = matches[1];
+        base64Data = matches[2];
+      } else {
+        throw new Error('Invalid data URL format');
+      }
+    } else {
+      // Assume it's already base64 without the data URL prefix
+      base64Data = image;
+      mimeType = 'image/jpeg'; // Default to JPEG if not specified
+    }
+
+    console.log(`Calling Gemini API via proxy with image type: ${mimeType}`);
+    
+    let apiResponse;
+    let usedFallback = false;
+    
+    try {
+      // Try proxy first
+      console.log('🔄 Attempting proxy API...');
+      apiResponse = await callGeminiViaProxy(base64Data, mimeType, prompt);
+      
+      // Check if proxy response was successful
+      if (!apiResponse || !apiResponse.success) {
+        throw new Error(`Proxy API failed: ${apiResponse?.message || 'No successful response'}`);
+      }
+      
+      console.log('✅ Proxy API successful');
+    } catch (proxyError) {
+      console.warn(`❌ Proxy failed: ${proxyError.message}`);
+      console.log('🔄 Attempting fallback to direct Gemini API...');
+      
+      try {
+        // Fallback to direct API
+        usedFallback = true;
+        apiResponse = await callGeminiApi(base64Data, mimeType, prompt);
+        console.log('✅ Fallback to direct API successful');
+      } catch (fallbackError) {
+        console.error(`❌ Both proxy and direct API failed. Proxy: ${proxyError.message}, Direct: ${fallbackError.message}`);
+        throw new Error(`Image processing service unavailable. Please try again later.`);
+      }
+    }
+    
+    // Process the response to maintain compatibility with existing code
+    const result = processGeminiResponse(apiResponse, prompt);
+    
+    // Add fallback info to result
+    if (usedFallback) {
+      result.fallback = true;
+      result.method = 'direct';
+    } else {
+      result.fallback = false;
+      result.method = 'proxy';
+    }
     
     // Başarılı işlemden sonra kotayı artır
     await incrementQuota(req.user.id, "edit-image");
@@ -100,6 +152,81 @@ router.post('/edit-image', verifyToken, checkQuota("edit-image"), async (req, re
     });
   }
 });
+
+/**
+ * Process the raw Gemini API response into a format compatible with the existing code
+ * Handles both proxy and direct API response formats
+ * @param {Object} apiResponse - Raw response from the Gemini API (proxy or direct)
+ * @param {string} originalPrompt - The original prompt sent to the API
+ * @returns {Object} - Processed response in the format expected by the client
+ */
+function processGeminiResponse(apiResponse, originalPrompt) {
+  console.log("Processing Gemini API response");
+  
+  // Initialize variables for response processing
+  let responseText = "";
+  let generatedImage = null;
+  
+  try {
+    // Check if this is a direct API response (has success field)
+    if (apiResponse.hasOwnProperty('success')) {
+      console.log("Processing direct API response format");
+      return {
+        success: apiResponse.success,
+        image: apiResponse.image,
+        responseText: apiResponse.responseText || "Direct API response",
+        message: apiResponse.message || (apiResponse.success 
+          ? "Image edited successfully using direct Gemini API."
+          : "Failed to generate image from direct Gemini API."),
+        originalPrompt
+      };
+    }
+    
+    // Otherwise, process as proxy response format
+    console.log("Processing proxy API response format");
+    
+    // Check if the response contains candidates
+    if (apiResponse.candidates && apiResponse.candidates.length > 0) {
+      const candidate = apiResponse.candidates[0];
+      
+      // Extract text and image from the response
+      if (candidate.content && candidate.content.parts) {
+        for (const part of candidate.content.parts) {
+          // Extract text content
+          if (part.text) {
+            responseText += part.text;
+          }
+          
+          // Extract image content
+          if (part.inlineData) {
+            generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+          }
+        }
+      }
+      
+      // Check if we have an image
+      if (!generatedImage) {
+        console.warn("Proxy API response did not contain an image");
+      }
+    } else {
+      console.warn("Proxy API response did not contain any candidates");
+    }
+    
+    // Return the processed response
+    return {
+      success: !!generatedImage,
+      image: generatedImage,
+      responseText: responseText || "No text response provided",
+      message: generatedImage 
+        ? "Image edited successfully using Gemini API proxy."
+        : "Failed to generate image from Gemini API proxy.",
+      originalPrompt
+    };
+  } catch (error) {
+    console.error("Error processing Gemini API response:", error);
+    throw new Error(`Error processing Gemini API response: ${error.message}`);
+  }
+}
 
 export default router;
 

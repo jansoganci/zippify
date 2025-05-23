@@ -27,7 +27,7 @@ export async function optimizePattern(pattern, options = {}) {
     };
     
     // Send the request to the backend API
-    const response = await backendApi.post('/api/workflow/optimize-pattern', payload, {
+    const response = await backendApi.post('workflow/optimize-pattern', payload, {
       headers: {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId

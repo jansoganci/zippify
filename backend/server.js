@@ -18,29 +18,15 @@ log.info(`Attempting to load environment from: ${envPath}`);
 console.log("🔍 ENV CHECK → NODE_ENV =", process.env.NODE_ENV);
 console.log("🔍 ENV CHECK → GEMINI_MODEL =", process.env.GEMINI_MODEL);
 
-// If JWT_SECRET is not defined, try to load from parent directory as fallback
+// Check if JWT_SECRET is defined
 if (!process.env.JWT_SECRET) {
-  log.info('JWT_SECRET not found in backend/.env, trying parent directory...');
-  const parentEnvPath = path.resolve(__dirname, '..', '.env');
-  try {
-    const result = dotenv.config({ path: parentEnvPath, override: true });
-    log.info(`Attempted to load from parent directory: ${parentEnvPath}`);
-  } catch (error) {
-    log.error(`Failed to load from parent directory: ${error.message}`);
-  }
+  const errorMsg = 'JWT_SECRET is not defined in environment variables';
+  log.error(errorMsg);
+  throw new Error(errorMsg);
 }
 
-// Log environment variables for debugging
-log.info('JWT_SECRET status:', process.env.JWT_SECRET ? 'Defined ✅' : 'Not defined ❌');
-log.info('JWT_EXPIRY status:', process.env.JWT_EXPIRY ? 'Defined ✅' : 'Not defined ❌');
-
-// If JWT_SECRET is still not defined, set a default for development only
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'development') {
-  log.warn('⚠️ WARNING: Setting default JWT_SECRET for development. DO NOT USE IN PRODUCTION!');
-  process.env.JWT_SECRET = 'zippify-super-secret-key';
-  process.env.JWT_EXPIRY = '24h';
-  log.info('JWT_SECRET status after default:', process.env.JWT_SECRET ? 'Defined ' : 'Not defined ');
-}
+// Log environment status for debugging
+log.info('JWT configuration loaded successfully');
 
 // Now import other dependencies after environment variables are loaded
 import express from 'express';
@@ -49,6 +35,7 @@ import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { callGeminiApi } from './src/services/imageEditing/callGeminiApi.js';
 import bodyParser from 'body-parser';
 
 // SSL certificate validation is always enabled in production
@@ -72,8 +59,8 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health Check Route
 app.get('/api/health', (req, res) => {
@@ -191,40 +178,7 @@ const initializeDb = async () => {
 };
 
 // **AUTHENTICATION ROUTES**
-
-// **Register User**
-// (Removed direct route to prevent conflict with router-based /api/auth/register)
-
-// **Login User**
-app.post('/api/auth/login', async (req, res) => {
-    const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
-    }
-
-    const db = await initializeDb();
-    try {
-        const user = await db.get('SELECT * FROM users WHERE email = ?', [email]);
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        // Set a default JWT secret if not provided in env
-        const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-here';
-
-        const token = jwt.sign({ id: user.id, email: user.email }, jwtSecret, { expiresIn: '1h' });
-
-        res.json({ token, id: user.id, email: user.email, username: user.username });
-    } catch (error) {
-        log.error('Login error:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
-    }
-});
+// Authentication routes are handled by authRoutes.js via app.use('/api/auth', authRoutes)
 
 // **Server Start**
 // Yönlendirme: /api/deepseek -> /api/ai/deepseek
@@ -448,6 +402,63 @@ app.post('/api/generate-pdf', async (req, res) => {
     }
   });
 
+  /**
+   * Process the raw Gemini API response into a format compatible with the existing code
+   * @param {Object} apiResponse - Raw response from the Gemini API
+   * @param {string} originalPrompt - The original prompt sent to the API
+   * @returns {Object} - Processed response in the format expected by the client
+   */
+  function processGeminiResponse(apiResponse, originalPrompt) {
+    log.info("Processing Gemini API response");
+    
+    // Initialize variables for response processing
+    let responseText = "";
+    let generatedImage = null;
+    
+    try {
+      // Check if the response contains candidates
+      if (apiResponse.candidates && apiResponse.candidates.length > 0) {
+        const candidate = apiResponse.candidates[0];
+        
+        // Extract text and image from the response
+        if (candidate.content && candidate.content.parts) {
+          for (const part of candidate.content.parts) {
+            // Extract text content
+            if (part.text) {
+              responseText += part.text;
+            }
+            
+            // Extract image content
+            if (part.inlineData) {
+              generatedImage = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            }
+          }
+        }
+        
+        // Check if we have an image
+        if (!generatedImage) {
+          log.warn("Gemini API response did not contain an image");
+        }
+      } else {
+        log.warn("Gemini API response did not contain any candidates");
+      }
+      
+      // Return the processed response
+      return {
+        success: !!generatedImage,
+        image: generatedImage,
+        responseText: responseText || "No text response provided",
+        message: generatedImage 
+          ? "Image edited successfully using Gemini API."
+          : "Failed to generate image from Gemini API.",
+        originalPrompt
+      };
+    } catch (error) {
+      log.error("Error processing Gemini API response:", error);
+      throw new Error(`Error processing Gemini API response: ${error.message}`);
+    }
+  }
+  
   // Image Editing Route - Gemini API implementation
   app.post('/api/edit-image', verifyToken, checkQuota("edit-image"), async (req, res) => {
     const requestId = req.headers['x-request-id'] || `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -496,7 +507,40 @@ app.post('/api/generate-pdf', async (req, res) => {
       const apiCallStartTime = Date.now();
       
       try {
-        const geminiResponse = await callGeminiApi(image, prompt);
+        // Extract base64 data and mime type from the data URL
+        let base64Data, mimeType;
+        if (image.startsWith('data:')) {
+          const matches = image.match(/^data:([^;]+);base64,(.+)$/);
+          if (matches && matches.length === 3) {
+            mimeType = matches[1];
+            base64Data = matches[2];
+          } else {
+            throw new Error('Invalid data URL format');
+          }
+        } else {
+          // Assume it's already base64 without the data URL prefix
+          base64Data = image;
+          mimeType = 'image/jpeg'; // Default to JPEG if not specified
+        }
+
+        log.info(`[${requestId}] Desteklenen formatları ve varsayılan değerleri ayarla`);
+        const supportedFormats = (process.env.GEMINI_OUTPUT_FORMAT || 'jpeg').split(',');
+        const defaultFormat = supportedFormats[0];
+        const outputFormat = supportedFormats.includes('jpeg') ? 'jpeg' : defaultFormat;
+
+        // Gemini API'sini doğrudan çağır
+        const geminiResponse = await callGeminiApi(image, prompt, {
+          outputFormat: outputFormat,
+          outputQuality: parseInt(process.env.GEMINI_OUTPUT_QUALITY || '85', 10),
+          category: process.env.GEMINI_CATEGORY || 'general',
+          generationOptions: {
+            temperature: parseFloat(process.env.GEMINI_TEMPERATURE || '0.1'),
+            topP: parseFloat(process.env.GEMINI_TOP_P || '0.3'),
+            topK: parseInt(process.env.GEMINI_TOP_K || '20', 10),
+            maxOutputTokens: parseInt(process.env.GEMINI_MAX_TOKENS || '2048', 10),
+            stopSequences: [process.env.GEMINI_STOP_SEQUENCES.replace(/\\\\n/g, '\n') || '\n\n']
+          }
+        });
         const apiCallDuration = Date.now() - apiCallStartTime;
         
         log.info(`[${requestId}] Gemini API call successful - Duration: ${apiCallDuration}ms`);

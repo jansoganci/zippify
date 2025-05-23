@@ -27,7 +27,7 @@ export async function generateEtsyListing(input, options = {}) {
     };
     
     // Send the request to the backend API
-    const response = await backendApi.post('/api/workflow/etsy-listing', payload, {
+    const response = await backendApi.post('workflow/etsy-listing', payload, {
       headers: {
         'Content-Type': 'application/json',
         'X-Request-ID': requestId
