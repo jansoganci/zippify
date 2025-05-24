@@ -169,10 +169,10 @@ const DashboardLayoutFixed = ({ children }: DashboardLayoutProps) => {
           </SidebarContent>
           
           <SidebarFooter>
-            <div className="flex items-center justify-between p-2">
+            <div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors">
+                  <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:hidden">
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src="/placeholder.svg" alt="User" />
                       <AvatarFallback className="rounded-lg">

@@ -2,8 +2,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tag, Clock, ArrowRight, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Clock, ArrowRight } from 'lucide-react';
 
 interface ListingCardProps {
   id: string;
@@ -39,64 +38,54 @@ const ListingCard = ({
   
   return (
     <Card 
-      className="overflow-hidden group hover:shadow-lg dark:hover:shadow-primary/10 transition-all duration-300 border-muted/40 dark:border-muted/20 h-full flex flex-col"
+      className="overflow-hidden group hover:shadow-lg dark:hover:shadow-primary/10 transition-all duration-300 border-muted/40 dark:border-muted/20 h-full flex flex-col cursor-pointer"
+      onClick={handleClick}
     >
-      {/* Card header with gradient accent */}
-      <div className="h-2 bg-gradient-to-r from-primary to-primary/60 dark:from-primary dark:to-primary/40"></div>
-      
-      <CardContent className="p-5 flex-1 flex flex-col">
-        {/* Date badge */}
-        <div className="flex justify-between items-center mb-3">
-          <Badge variant="outline" className="flex items-center gap-1 px-2 py-1 text-xs font-normal text-muted-foreground border-muted/30 dark:border-muted/10">
-            <Calendar className="w-3 h-3" />
-            {formattedDate}
-          </Badge>
-        </div>
-        
-        {/* Title with hover effect */}
-        <h3 className="text-lg font-semibold mb-3 line-clamp-1 group-hover:text-primary transition-colors">
+      <CardContent className="p-6 flex-1 flex flex-col">
+        {/* Title */}
+        <h3 className="text-base font-semibold line-clamp-2 group-hover:text-primary transition-colors mb-4">
           {title}
         </h3>
         
-        {/* Description with proper spacing */}
-        <p className="text-muted-foreground mb-4 line-clamp-2 text-sm">
+        {/* Description with better spacing */}
+        <p className="text-muted-foreground mb-4 line-clamp-2 text-sm leading-relaxed">
           {description}
         </p>
         
-        {/* Tags with improved styling */}
-        <div className="flex flex-wrap gap-1.5 mt-auto">
+        {/* Tags with horizontal layout - improved for modern look */}
+        <div className="flex flex-wrap gap-2 mb-3">
           {displayTags.map((tag) => (
             <Badge
               key={tag}
               variant="secondary"
-              className="flex items-center gap-1 text-xs py-1 px-2 bg-secondary/50 dark:bg-secondary/30"
+              className="text-xs py-1.5 px-3 bg-secondary/60 dark:bg-secondary/40 hover:bg-secondary/80 transition-colors border-0"
             >
-              <Tag className="w-3 h-3" />
               {tag}
             </Badge>
           ))}
           {remainingTags > 0 && (
             <Badge 
               variant="outline" 
-              className="text-xs py-1 px-2 border-muted/30 dark:border-muted/10"
+              className="text-xs py-1.5 px-3 border-muted/40 dark:border-muted/20 text-muted-foreground"
             >
               +{remainingTags} more
             </Badge>
           )}
         </div>
+        
+        {/* Date - small and subtle */}
+        <div className="flex items-center gap-1 text-xs text-muted-foreground/70 mt-auto">
+          <Clock className="w-3 h-3" />
+          {formattedDate}
+        </div>
       </CardContent>
       
-      {/* Card Footer with View Details button */}
-      <CardFooter className="px-5 py-3 bg-muted/5 dark:bg-muted/10 border-t border-muted/10 dark:border-muted/20">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="w-full justify-between hover:bg-background dark:hover:bg-background/10 text-sm font-medium"
-          onClick={handleClick}
-        >
-          View Details
-          <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
-        </Button>
+      {/* Footer with subtle action indicator */}
+      <CardFooter className="px-6 py-4 bg-muted/3 dark:bg-muted/5 border-t-2 border-primary/20 dark:border-primary/30">
+        <div className="w-full flex items-center justify-between text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+          <span className="font-medium">View Details</span>
+          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+        </div>
       </CardFooter>
     </Card>
   );

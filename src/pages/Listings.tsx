@@ -44,16 +44,13 @@ const Listings = () => {
         if (import.meta.env.DEV) {
           log(`[Listings] Fetched ${listings.length} items`);
         }
+        
         // Transform listings with proper date handling
         const transformedListings = listings.map((listing) => {
           let createdAt: Date;
           
-          // Handle missing or invalid createdAt
+          // Handle missing or invalid createdAt (silently fallback to current date)
           if (!listing.createdAt || listing.createdAt === 'undefined') {
-            // Only log in development, not in production
-            if (import.meta.env.DEV) {
-              warn(`[Listings] Missing createdAt for listing ${listing.id}`);
-            }
             createdAt = new Date();
           } else {
             try {
