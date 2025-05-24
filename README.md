@@ -274,4 +274,4 @@ The application uses a dual environment setup:
 Key variables include:
 - `DEEPSEEK_API_KEY`: For text generation
 - `GOOGLE_API_KEY`: For image processing
-- `JWT_SECRET`: For authentication
+- `JWT_SECRET`: For authentication# SSH connection fixed
