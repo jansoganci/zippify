@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import DashboardLayoutFixed from "@/components/DashboardLayoutFixed";
 import { useSeoKeywords } from "../context/KeywordContext";
 import { createLogger } from "@/utils/logger";
@@ -54,6 +54,34 @@ const CreateListing: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
+  
+  // Quota states
+  const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 5, plan: 'free' });
+  const [quotaLoading, setQuotaLoading] = useState(true);
+
+  // Load quota information
+  const loadQuotaInfo = useCallback(async () => {
+    try {
+      setQuotaLoading(true);
+      const response = await backendApi.get('create-listing/quota');
+      if (response.data && response.data.success) {
+        setQuotaInfo({
+          used: response.data.used || 0,
+          limit: response.data.limit || 5,
+          plan: response.data.plan || 'free'
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to load quota info', error);
+    } finally {
+      setQuotaLoading(false);
+    }
+  }, []);
+
+  // Load quota on component mount
+  useEffect(() => {
+    loadQuotaInfo();
+  }, [loadQuotaInfo]);
   
   // Handle adding a new keyword manually
   const handleAddKeyword = () => {
@@ -131,6 +159,8 @@ const CreateListing: React.FC = () => {
         try {
           await backendApi.post('increment-quota', { featureKey: 'create-listing' });
           logger.debug('Successfully incremented quota for create-listing');
+          // Reload quota info after successful generation
+          loadQuotaInfo();
         } catch (quotaError) {
           logger.error('Failed to increment quota', { error: quotaError });
         }
@@ -238,24 +268,32 @@ const CreateListing: React.FC = () => {
                 </p>
               </div>
               
-              {/* Daily Usage Card - Placeholder for Create Listing */}
-              <Card className="w-64 border-muted/40 dark:border-muted/20 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Daily Usage</span>
-                    <Badge variant="outline" className="text-xs">
-                      Free
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <Progress value={60} className="h-2" />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>3/5 used</span>
-                      <span>2 remaining</span>
+              {quotaInfo && (
+                <Card className="w-64 border-muted/40 dark:border-muted/20 shadow-sm">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Daily Usage</span>
+                      <Badge variant="outline" className="text-xs">
+                        {quotaLoading ? '...' : quotaInfo.plan.charAt(0).toUpperCase() + quotaInfo.plan.slice(1)}
+                      </Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <div className="space-y-2">
+                      <Progress 
+                        value={quotaLoading ? 0 : (quotaInfo.used / quotaInfo.limit) * 100} 
+                        className="h-2" 
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>
+                          {quotaLoading ? '...' : `${quotaInfo.used}/${quotaInfo.limit} used`}
+                        </span>
+                        <span>
+                          {quotaLoading ? '...' : `${quotaInfo.limit - quotaInfo.used} remaining`}
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
 

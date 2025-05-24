@@ -215,6 +215,95 @@ app.post('/api/increment-quota', verifyToken, async (req, res) => {
   }
 });
 
+// Quota Check Endpoints for each feature
+async function getDb() {
+  return open({
+    filename: './db/zippify.db',
+    driver: sqlite3.Database
+  });
+}
+
+async function getUserQuotaInfo(userId, featureName, userPlan) {
+  const db = await getDb();
+  const today = new Date().toISOString().split('T')[0];
+  
+  try {
+    const result = await db.get(
+      'SELECT request_count FROM user_quota WHERE user_id = ? AND feature = ? AND date = ?',
+      [userId, featureName, today]
+    );
+    
+    const currentUsage = result ? result.request_count : 0;
+    const limit = userPlan === 'premium' ? 50 : 5;
+    
+    return {
+      used: currentUsage,
+      limit: limit,
+      plan: userPlan
+    };
+  } catch (error) {
+    console.error('Error getting quota info:', error);
+    return {
+      used: 0,
+      limit: userPlan === 'premium' ? 50 : 5,
+      plan: userPlan
+    };
+  } finally {
+    await db.close();
+  }
+}
+
+// SEO Analysis Quota Check
+app.get('/api/seo-analysis/quota', verifyToken, async (req, res) => {
+  try {
+    const quotaInfo = await getUserQuotaInfo(req.user.id, 'seo-analysis', req.user.plan);
+    res.json({
+      success: true,
+      ...quotaInfo
+    });
+  } catch (error) {
+    console.error('Error checking SEO quota:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to check quota' 
+    });
+  }
+});
+
+// Create Listing Quota Check  
+app.get('/api/create-listing/quota', verifyToken, async (req, res) => {
+  try {
+    const quotaInfo = await getUserQuotaInfo(req.user.id, 'create-listing', req.user.plan);
+    res.json({
+      success: true,
+      ...quotaInfo
+    });
+  } catch (error) {
+    console.error('Error checking Create Listing quota:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to check quota' 
+    });
+  }
+});
+
+// Edit Image Quota Check
+app.get('/api/edit-image/quota', verifyToken, async (req, res) => {
+  try {
+    const quotaInfo = await getUserQuotaInfo(req.user.id, 'edit-image', req.user.plan);
+    res.json({
+      success: true,
+      ...quotaInfo
+    });
+  } catch (error) {
+    console.error('Error checking Edit Image quota:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to check quota' 
+    });
+  }
+});
+
 // Initialize the SQLite database with schema before starting the server
 async function initializeDatabaseWithSchema() {
     try {
