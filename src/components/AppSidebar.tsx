@@ -25,7 +25,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { useProfile } from '@/hooks/useProfile';
 
 type SidebarItemProps = {
   icon: React.ElementType;
@@ -62,7 +61,9 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
   const activeRoute = window.location.pathname;
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const { profileData, isLoading } = useProfile();
+  // Mock profile data (replace with real data later)
+  const profileData = { firstName: 'User', lastName: '', email: 'user@example.com' };
+  const isLoading = false;
 
   // Theme functionality from Header
   useEffect(() => {
@@ -158,13 +159,16 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isActive={activeRoute === '/edit-image'} 
           isCollapsed={isCollapsed}
         />
-        <SidebarItem 
-          icon={Sparkles} 
-          label="New Feature" 
-          href="/edit-image-gpt" 
-          isActive={activeRoute === '/edit-image-gpt'} 
-          isCollapsed={isCollapsed}
-        />
+        {/* New Feature - Only show in development */}
+        {import.meta.env.DEV && (
+          <SidebarItem 
+            icon={Sparkles} 
+            label="New Feature" 
+            href="/edit-image-gpt" 
+            isActive={activeRoute === '/edit-image-gpt'} 
+            isCollapsed={isCollapsed}
+          />
+        )}
         <SidebarItem 
           icon={ListChecks} 
           label="My Listings" 
