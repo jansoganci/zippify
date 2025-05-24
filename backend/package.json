@@ -6,7 +6,13 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node server.js",
-    "dev:backend": "NODE_ENV=development node server.js"
+    "dev:backend": "NODE_ENV=development node server.js",
+    "backup-db": "node ../scripts/backup-db.js",
+    "backup-db:list": "node ../scripts/backup-db.js list",
+    "backup-db:help": "node ../scripts/backup-db.js help",
+    "rollback": "node ../scripts/rollback.js",
+    "rollback:list": "node ../scripts/rollback.js list",
+    "rollback:help": "node ../scripts/rollback.js help"
   },
   "keywords": [],
   "author": "",

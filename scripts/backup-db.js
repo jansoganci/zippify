@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
  * Usage: npm run backup-db
  */
 
-const DB_PATH = path.join(__dirname, '../db/zippify.db');
+const DB_PATH = path.join(__dirname, '../backend/db/zippify.db');
 const BACKUP_DIR = path.join(__dirname, '../backups');
 const MAX_BACKUPS = 10; // Keep only last 10 backups
 

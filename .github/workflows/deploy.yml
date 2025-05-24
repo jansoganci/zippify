@@ -27,11 +27,12 @@ jobs:
             
             cd /root/zippify
             
-            # Create backup using the existing backup script
+            # Create backup using the existing backup script (run from root directory)
             npm run backup-db
             
-            # Also create a pre-deployment backup with timestamp
+            # Also create a pre-deployment backup with timestamp  
             BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            mkdir -p backups
             cp -f backend/db/zippify.db "backups/pre_deploy_backup_${BACKUP_TIMESTAMP}.db" || true
             
             echo "✅ Database backup completed"
