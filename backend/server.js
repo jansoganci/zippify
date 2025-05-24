@@ -76,6 +76,9 @@ app.use('/api/profile', profileRoutes);
 // Keyword Analysis Route
 app.use('/api/keywords', keywordAnalysisRoutes);
 
+// Advanced Keyword Analysis Route (Google Trends)
+app.use('/api/advanced-keywords', advancedKeywordRoutes);
+
 // Listings Route
 app.use('/api/listings', listingRoutes);
 
@@ -102,6 +105,7 @@ import { gptImageRoutes } from './src/features/imageEditing/index.js';
 import authRoutes from './routes/authRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import advancedKeywordRoutes from './src/features/advancedKeywordAnalysis/routes/advancedKeywordRoutes.js';
 
 // DeepSeek API proxy function with improved error handling and logging
 // Bu fonksiyon aiRoutes.js dosyasına taşındı

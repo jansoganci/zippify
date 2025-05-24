@@ -16,6 +16,8 @@ import { backendApi } from "@/services/workflow/apiClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle, Plus, FileText, Sparkles } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
@@ -225,13 +227,36 @@ const CreateListing: React.FC = () => {
         <div className="flex flex-col space-y-8 pb-8">
           {/* Page Header */}
           <div className="px-4 py-4">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Etsy Listing</h1>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+                  <h1 className="text-2xl font-bold tracking-tight text-foreground">Create Etsy Listing</h1>
+                </div>
+                <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
+                  Generate optimized Etsy listings using your product description and selected keywords.
+                </p>
+              </div>
+              
+              {/* Daily Usage Card - Placeholder for Create Listing */}
+              <Card className="w-64 border-muted/40 dark:border-muted/20 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Daily Usage</span>
+                    <Badge variant="outline" className="text-xs">
+                      Free
+                    </Badge>
+                  </div>
+                  <div className="space-y-2">
+                    <Progress value={60} className="h-2" />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>3/5 used</span>
+                      <span>2 remaining</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
-              Generate optimized Etsy listings using your product description and selected keywords.
-            </p>
           </div>
 
           {/* Input Form */}

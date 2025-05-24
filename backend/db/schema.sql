@@ -74,3 +74,25 @@ CREATE TABLE IF NOT EXISTS listings (
 
 -- Index to optimize user-based listing queries
 CREATE INDEX IF NOT EXISTS idx_listings_user_id ON listings(user_id);
+
+-- Google Trends Cache Table
+-- Stores cached Google Trends API responses to minimize API calls and improve performance
+CREATE TABLE IF NOT EXISTS google_trends_cache (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  keyword TEXT NOT NULL,
+  trend_data TEXT NOT NULL,           -- JSON string of trend data (interest over time)
+  related_queries TEXT,               -- JSON string of related queries (top & rising)
+  related_topics TEXT,                -- JSON string of related topics
+  geographic_data TEXT,               -- JSON string of geographic interest data
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  expires_at TEXT NOT NULL,           -- Cache expiration timestamp (24 hours from creation)
+  
+  -- Ensure unique cache entries per keyword
+  UNIQUE(keyword)
+);
+
+-- Index for faster keyword lookups in cache
+CREATE INDEX IF NOT EXISTS idx_google_trends_cache_keyword ON google_trends_cache(keyword);
+
+-- Index for cleanup operations (finding expired entries)
+CREATE INDEX IF NOT EXISTS idx_google_trends_cache_expires_at ON google_trends_cache(expires_at);

@@ -30,21 +30,31 @@ export const getCurrentUser = async (req, res) => {
     }
     
     // Get profile from database
-    const profile = await db.get(
-      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
+    const userResult = await db.get(
+      'SELECT u.email, u.plan, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
       [id]
     );
     
-    if (!profile) {
-      log.info(`[${requestId}] Profile not found for user: ${id}`);
+    if (!userResult) {
+      log.info(`[${requestId}] User not found: ${id}`);
       return res.status(404).json({
         success: false,
-        message: 'Profile not found',
+        message: 'User not found',
         requestId
       });
     }
     
-    log.info(`[${requestId}] Profile retrieved successfully for user: ${id}`);
+    // If user exists but has no profile data, return default values
+    const profile = {
+      email: userResult.email,
+      plan: userResult.plan || 'free',
+      firstName: userResult.firstName || '',
+      lastName: userResult.lastName || '',
+      storeName: userResult.storeName || '',
+      theme: userResult.theme || 'light'
+    };
+    
+    log.info(`[${requestId}] Profile retrieved successfully for user: ${id}`, profile);
     
     // Return the user profile data
     return res.status(200).json({
@@ -124,7 +134,7 @@ export const updateProfile = async (req, res) => {
     
     // Get the updated profile
     const updatedProfile = await db.get(
-      'SELECT u.email, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
+      'SELECT u.email, u.plan, p.first_name as firstName, p.last_name as lastName, p.store_name as storeName, p.theme FROM users u LEFT JOIN profiles p ON u.id = p.user_id WHERE u.id = ?', 
       [id]
     );
     

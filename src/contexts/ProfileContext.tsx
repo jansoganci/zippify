@@ -10,6 +10,7 @@ interface ProfileData {
   storeName: string;
   email?: string;
   theme?: string;
+  plan?: string;
 }
 
 interface ProfileContextType {
@@ -39,12 +40,17 @@ const fetchProfile = async (): Promise<ProfileData> => {
   }
   
   const apiPath = baseUrl.includes('/api') ? '/profile' : '/api/profile';
+  const fullUrl = `${baseUrl}${apiPath}`;
   
-  const response = await fetch(`${baseUrl}${apiPath}`, {
+  logger.info('Fetching profile from:', fullUrl);
+  
+  const response = await fetch(fullUrl, {
     headers: {
       'Authorization': `Bearer ${token}`
     }
   });
+  
+  logger.info('Profile API response status:', response.status);
   
   if (response.status === 401 || response.status === 403) {
     throw new Error('Unauthorized: Please login again');
@@ -54,7 +60,24 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('Failed to fetch profile data');
   }
   
-  return response.json();
+  const responseData = await response.json();
+  logger.info('Profile API response:', responseData);
+  
+  // Backend returns { success: true, firstName: "...", lastName: "...", ... }
+  if (responseData.success) {
+    const profileData = {
+      firstName: responseData.firstName || '',
+      lastName: responseData.lastName || '',
+      storeName: responseData.storeName || '',
+      email: responseData.email || '',
+      theme: responseData.theme || 'light',
+      plan: responseData.plan || 'free'
+    };
+    logger.info('Parsed profile data:', profileData);
+    return profileData;
+  } else {
+    throw new Error(responseData.message || 'Failed to fetch profile');
+  }
 };
 
 const updateProfileAPI = async (data: ProfileData): Promise<ProfileData> => {
@@ -105,19 +128,13 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    initialData: {
-      firstName: 'John',
-      lastName: 'Smith',
-      storeName: 'Handcrafted Treasures',
-      email: '',
-      theme: 'light',
-    },
+    // Remove initialData to let real API data load
   });
   
   // Handle auth errors globally
   React.useEffect(() => {
     if (error) {
-      logger.error('Profile fetch failed', { message: error.message });
+      logger.error('Profile fetch failed', { message: error.message, error });
       if (error instanceof Error && 
           (error.message.includes('Unauthorized') || 
            error.message.includes('No authentication token'))) {
@@ -125,6 +142,16 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [error, navigate]);
+
+  // Debug logging for profile state
+  React.useEffect(() => {
+    logger.info('Profile state update:', { 
+      isLoading, 
+      hasError: !!error, 
+      hasData: !!data, 
+      profileData: data 
+    });
+  }, [isLoading, error, data]);
 
   // Update profile mutation
   const mutation = useMutation({

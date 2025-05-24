@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,42 +45,50 @@
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* 2024 Dark Mode - Warmer & More Sophisticated */
+    --background: 220 13% 9%;          /* Warmer dark gray instead of pure cold blue */
+    --foreground: 220 9% 95%;          /* Softer white, easier on eyes */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 13% 11%;               /* Slightly lighter than background for elevation */
+    --card-foreground: 220 9% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 220 9% 95%;
 
-    --primary: 250 47% 60%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary stays strong but slightly desaturated for dark mode */
+    --primary: 250 40% 65%;            /* Less saturated, more accessible */
+    --primary-foreground: 220 9% 95%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    /* Secondary with warmer tone */
+    --secondary: 220 8% 18%;           /* Warmer gray for secondary elements */
+    --secondary-foreground: 220 9% 90%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    /* Muted with better contrast */
+    --muted: 220 8% 16%;               /* Better contrast for muted backgrounds */
+    --muted-foreground: 220 5% 65%;    /* Improved text readability */
 
-    --accent: 250 47% 25%;
-    --accent-foreground: 210 40% 98%;
+    /* Accent with 2024 digital vibe */
+    --accent: 220 8% 20%;              /* Subtle but visible accent background */
+    --accent-foreground: 220 9% 95%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    /* Destructive with better dark mode handling */
+    --destructive: 0 75% 55%;          /* Less harsh red for dark mode */
+    --destructive-foreground: 220 9% 95%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Borders and inputs with warmth */
+    --border: 220 8% 22%;              /* Visible but not harsh borders */
+    --input: 220 8% 18%;               /* Input backgrounds that stand out */
+    --ring: 250 40% 65%;               /* Focus rings match primary */
     
-    --sidebar-background: 222.2 47.4% 11.2%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 250 47% 60%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 250 47% 60%;
+    /* Enhanced Sidebar with 2024 aesthetic */
+    --sidebar-background: 220 12% 12%; /* Slightly different from main background */
+    --sidebar-foreground: 220 9% 95%;
+    --sidebar-primary: 250 40% 65%;    /* Consistent with main primary */
+    --sidebar-primary-foreground: 220 9% 95%;
+    --sidebar-accent: 220 8% 20%;      /* Better hover states */
+    --sidebar-accent-foreground: 220 9% 95%;
+    --sidebar-border: 220 8% 18%;      /* Subtle sidebar borders */
+    --sidebar-ring: 250 40% 65%;
   }
 }
 
@@ -92,20 +99,38 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    /* Better font smoothing for dark mode */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 @layer components {
   .card-glass {
-    @apply bg-white/80 dark:bg-black/40 backdrop-blur-sm border border-white/20 dark:border-white/10 shadow-sm;
+    @apply bg-white/80 dark:bg-background/80 backdrop-blur-sm border border-white/20 dark:border-border/30 shadow-sm;
   }
   
   .hover-lift {
-    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md;
+    @apply transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-md dark:hover:shadow-2xl dark:hover:shadow-black/20;
   }
   
   .stat-card {
     @apply card-glass p-6 rounded-xl hover-lift;
+  }
+
+  /* Enhanced dark mode shadows */
+  .shadow-enhanced-dark {
+    @apply shadow-lg dark:shadow-2xl dark:shadow-black/25;
+  }
+
+  /* Better focus states for dark mode */
+  .focus-enhanced {
+    @apply focus:ring-2 focus:ring-primary/50 focus:border-primary dark:focus:ring-primary/60;
+  }
+
+  /* Smooth dark mode transitions */
+  .theme-transition {
+    @apply transition-colors duration-300 ease-in-out;
   }
 }
 
@@ -126,4 +151,11 @@
 
 .header-shadow {
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+  .header-shadow {
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+  }
 }

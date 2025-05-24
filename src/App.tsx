@@ -30,6 +30,7 @@ import ListingGeneration from "./pages/ListingGeneration";
 import EditProductImage from "./features/imageEditing/EditImagePage";
 import EditImageGPT from "./features/imageEditing/EditImageGPT";
 import SeoKeywordAnalysis from "./features/seoAnalysis/SeoKeywordAnalysis";
+import AdvancedKeywordAnalysis from "./features/advancedKeywordAnalysis/components/AdvancedKeywordAnalysis";
 import NotFound from "./pages/NotFound";
 import LandingPage from "./pages/LandingPage";
 import RootRedirect from "./pages/RootRedirect";
@@ -142,6 +143,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <SeoKeywordAnalysis />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/advanced-keywords"
+                element={
+                  <ProtectedRoute>
+                    <AdvancedKeywordAnalysis />
                   </ProtectedRoute>
                 }
               />

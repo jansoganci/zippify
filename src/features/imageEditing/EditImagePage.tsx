@@ -5,6 +5,8 @@ import { createLogger } from '@/utils/logger';
 // Create logger for this component
 const logger = createLogger('EditImagePage');
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -315,13 +317,36 @@ const NewEditImagePage = () => {
       <div className="py-6 space-y-6">
         {/* Page Header Section */}
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Image Editor</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Image Editor</h1>
+              </div>
+              <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
+                Enhance your product images with AI-powered editing tools.
+              </p>
+            </div>
+            
+            {/* Daily Usage Card - Placeholder for Image Editing */}
+            <Card className="w-64 border-muted/40 dark:border-muted/20 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Daily Usage</span>
+                  <Badge variant="outline" className="text-xs">
+                    Free
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Progress value={80} className="h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>4/5 used</span>
+                    <span>1 remaining</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
-            Enhance your product images with AI-powered editing tools.
-          </p>
         </div>
 
         <div className="rounded-lg border border-muted/60 dark:border-muted/30 shadow-sm overflow-hidden">

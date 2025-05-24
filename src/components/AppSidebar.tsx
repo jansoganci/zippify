@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { useProfile } from '@/contexts/ProfileContext';
 
 type SidebarItemProps = {
   icon: React.ElementType;
@@ -39,10 +40,10 @@ const SidebarItem = ({ icon: Icon, label, href, isActive = false, isCollapsed }:
     <Link 
       to={href} 
       className={cn(
-        "flex items-center gap-3 px-3 py-3 my-1 rounded-lg transition-all duration-300 ease-in-out",
+        "flex items-center gap-3 px-3 py-3 my-1 rounded-lg theme-transition focus-enhanced",
         isActive 
-          ? "bg-sidebar-accent text-sidebar-accent-foreground dark:bg-sidebar-accent/80 dark:text-sidebar-accent-foreground/90 shadow-sm" 
-          : "text-sidebar-foreground hover:bg-sidebar-accent/50 dark:hover:bg-sidebar-accent/40",
+          ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm" 
+          : "text-sidebar-foreground hover:bg-sidebar-accent/50 dark:hover:bg-sidebar-accent/60",
         isCollapsed && "justify-center px-2"
       )}
     >
@@ -61,9 +62,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
   const activeRoute = window.location.pathname;
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
-  // Mock profile data (replace with real data later)
-  const profileData = { firstName: 'User', lastName: '', email: 'user@example.com' };
-  const isLoading = false;
+  const { profileData, isLoading } = useProfile();
 
   // Theme functionality from Header
   useEffect(() => {
@@ -86,7 +85,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
 
   // User info functions from Header
   const getUserInitial = () => {
-    if (isLoading) return '...';
+    if (isLoading || !profileData) return '...';
     if (profileData?.firstName) {
       return profileData.firstName.charAt(0).toUpperCase();
     }
@@ -94,22 +93,25 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
   };
 
   const getFullName = () => {
-    if (isLoading) return 'Loading...';
+    if (isLoading || !profileData) return 'Loading...';
     if (profileData?.firstName && profileData?.lastName) {
       return `${profileData.firstName} ${profileData.lastName}`;
+    }
+    if (profileData?.firstName) {
+      return profileData.firstName;
     }
     return 'User';
   };
 
   const getUserEmail = () => {
-    if (isLoading) return 'Loading...';
-    return profileData?.email || 'user@example.com';
+    if (isLoading || !profileData) return 'Loading...';
+    return profileData?.email || 'No email set';
   };
 
   return (
     <aside 
       className={cn(
-        "bg-sidebar h-screen fixed top-0 left-0 flex flex-col transition-all duration-300 ease-in-out border-r border-sidebar-border/60 dark:border-sidebar-border/30 z-50",
+        "bg-sidebar h-screen fixed top-0 left-0 flex flex-col theme-transition border-r border-sidebar-border/60 dark:border-sidebar-border/30 z-50 shadow-enhanced-dark",
         isCollapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
@@ -189,7 +191,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
               >
                 <Avatar className="h-8 w-8 mr-3">
                   <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary border border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 font-semibold">
                     {getUserInitial()}
                   </AvatarFallback>
                 </Avatar>
@@ -247,7 +249,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
               <Button variant="ghost" size="icon" className="w-full h-12">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback className="bg-sidebar-accent text-sidebar-accent-foreground">
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary border border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 font-semibold">
                     {getUserInitial()}
                   </AvatarFallback>
                 </Avatar>
@@ -261,7 +263,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
               <div className="flex items-center justify-start gap-2 p-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src="/placeholder.svg" alt="User" />
-                  <AvatarFallback>{getUserInitial()}</AvatarFallback>
+                  <AvatarFallback className="rounded-lg bg-primary/10 text-primary border border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 font-semibold">{getUserInitial()}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col space-y-0.5">
                   <p className="text-sm font-medium">{getFullName()}</p>

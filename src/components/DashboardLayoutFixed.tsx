@@ -23,7 +23,8 @@ import {
   Moon,
   Sun,
   Globe,
-  LogOut
+  LogOut,
+  TrendingUp
 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -54,6 +55,11 @@ const menuItems = [
     title: "SEO & Keywords",
     url: "/seo-keywords",
     icon: Search,
+  },
+  {
+    title: "Advanced Keywords",
+    url: "/advanced-keywords",
+    icon: TrendingUp,
   },
   {
     title: "Create Listing",
@@ -104,7 +110,7 @@ const DashboardLayoutFixed = ({ children }: DashboardLayoutProps) => {
 
   // User info functions
   const getUserInitial = () => {
-    if (isLoading) return '...';
+    if (isLoading || !profileData) return '...';
     if (profileData?.firstName) {
       return profileData.firstName.charAt(0).toUpperCase();
     }
@@ -112,16 +118,19 @@ const DashboardLayoutFixed = ({ children }: DashboardLayoutProps) => {
   };
 
   const getFullName = () => {
-    if (isLoading) return 'Loading...';
+    if (isLoading || !profileData) return 'Loading...';
     if (profileData?.firstName && profileData?.lastName) {
       return `${profileData.firstName} ${profileData.lastName}`;
+    }
+    if (profileData?.firstName) {
+      return profileData.firstName;
     }
     return 'User';
   };
 
   const getUserEmail = () => {
-    if (isLoading) return 'Loading...';
-    return profileData?.email || 'user@example.com';
+    if (isLoading || !profileData) return 'Loading...';
+    return profileData?.email || 'No email set';
   };
 
   return (
@@ -129,8 +138,8 @@ const DashboardLayoutFixed = ({ children }: DashboardLayoutProps) => {
       <div className="flex min-h-screen w-full">
         <Sidebar variant="sidebar" collapsible="icon">
           <SidebarHeader>
-            <div className="flex h-16 items-center justify-center border-b px-4">
-              <Link to="/" className="flex items-center justify-center">
+            <div className="flex h-16 items-center justify-center border-b px-4 theme-transition">
+              <Link to="/" className="flex items-center justify-center focus-enhanced rounded-lg">
                 <img 
                   src="/images/logo.svg" 
                   alt="Listify Logo" 
@@ -172,10 +181,10 @@ const DashboardLayoutFixed = ({ children }: DashboardLayoutProps) => {
             <div className="flex items-center justify-between p-2 group-data-[collapsible=icon]:justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors group-data-[collapsible=icon]:hidden">
+                  <button className="flex items-center gap-2 p-2 rounded-lg hover:bg-sidebar-accent hover:text-sidebar-accent-foreground theme-transition focus-enhanced group-data-[collapsible=icon]:hidden">
                     <Avatar className="h-8 w-8 rounded-lg">
                       <AvatarImage src="/placeholder.svg" alt="User" />
-                      <AvatarFallback className="rounded-lg">
+                      <AvatarFallback className="rounded-lg bg-primary/10 text-primary border border-primary/20 dark:bg-primary/20 dark:text-primary-foreground dark:border-primary/30 font-semibold">
                         {getUserInitial()}
                       </AvatarFallback>
                     </Avatar>

@@ -22,6 +22,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -283,13 +285,36 @@ const SeoKeywordAnalysis = () => {
       <div className="flex flex-col space-y-8">
         {/* Page Header */}
         <div className="px-4 py-4">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">SEO & Keyword Analysis</h1>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-8 w-1 bg-gradient-to-b from-primary to-primary/40 rounded-full"></div>
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">SEO & Keyword Analysis</h1>
+              </div>
+              <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
+                Analyze keywords for your product listings and optimize for search engines.
+              </p>
+            </div>
+            
+            {/* Daily Usage Card - Placeholder for SEO Analysis */}
+            <Card className="w-64 border-muted/40 dark:border-muted/20 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Daily Usage</span>
+                  <Badge variant="outline" className="text-xs">
+                    Free
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Progress value={40} className="h-2" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>2/5 used</span>
+                    <span>3 remaining</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-          <p className="text-muted-foreground pl-4 border-l-2 border-muted/30 dark:border-muted/10">
-            Analyze keywords for your product listings and optimize for search engines.
-          </p>
         </div>
 
         {/* Analysis Form */}
