@@ -14,7 +14,10 @@
     "test-production": "node scripts/test-production.js",
     "backup-db": "node scripts/backup-db.js",
     "backup-db:list": "node scripts/backup-db.js list",
-    "backup-db:help": "node scripts/backup-db.js help"
+    "backup-db:help": "node scripts/backup-db.js help",
+    "rollback": "node scripts/rollback.js",
+    "rollback:list": "node scripts/rollback.js list",
+    "rollback:help": "node scripts/rollback.js help"
   },
   "dependencies": {
     "@radix-ui/react-aspect-ratio": "^1.1.3",

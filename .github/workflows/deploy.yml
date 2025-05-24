@@ -18,17 +18,38 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.DEPLOY_KEY }}
 
+      # 1. PRE-DEPLOYMENT: Database Backup
+      - name: Backup Database
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "📁 Creating database backup before deployment..."
+            
+            cd /root/zippify
+            
+            # Create backup using the existing backup script
+            npm run backup-db
+            
+            # Also create a pre-deployment backup with timestamp
+            BACKUP_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+            cp -f backend/db/zippify.db "backups/pre_deploy_backup_${BACKUP_TIMESTAMP}.db" || true
+            
+            echo "✅ Database backup completed"
+          EOF
+
+      # 2. Copy environment files
       - name: Copy .env to Server
         run: |
-          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/backend/.env"
+          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env"
 
       - name: Copy .env.production to Server
         run: |
-          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@5.78.110.161 "cat > /root/zippify/backend/.env.production"
+          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env.production"
 
-      - name: Deploy and Restart Frontend
+      # 3. DEPLOYMENT: Pull new code and build
+      - name: Deploy and Build Frontend
         run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
             set -e
 
             DEPLOY_LOG="/root/zippify/deploy_$(date +%Y%m%d_%H%M%S).log"
@@ -43,7 +64,7 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            echo "📦 Installing frontend deps"
+            echo "📦 Installing frontend dependencies"
             npm install
 
             echo "🏗️ Building frontend"
@@ -53,60 +74,190 @@ jobs:
             rm -rf /var/www/zippify/*
             cp -r dist/* /var/www/zippify/
 
-            echo "🔁 Restarting Nginx"
-            systemctl restart nginx
+            echo "✅ Frontend deployment completed"
           EOF
 
+      # 4. BACKEND: Install dependencies
       - name: Install Backend Dependencies
         run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
             set -e
+            echo "📦 Installing backend dependencies"
             cd /root/zippify/backend
             npm install
+            echo "✅ Backend dependencies installed"
           EOF
 
-      - name: Stop Previous Backend Service
+      # 5. BACKEND: Graceful shutdown
+      - name: Stop Backend Service Gracefully
         run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
             set -e
-            pm2 delete zippify-backend || true
-
+            echo "🛑 Stopping backend service gracefully"
+            
+            # Try graceful PM2 stop first
+            pm2 stop zippify-backend || echo "⚠️ PM2 process not running"
+            
+            # Wait a bit for graceful shutdown
+            sleep 2
+            
+            # Force kill if still running
             PORT_PID=$(lsof -t -i:3001 || echo "")
             if [ ! -z "$PORT_PID" ]; then
+              echo "🔨 Force killing process on port 3001"
               kill -9 $PORT_PID || true
             fi
+            
+            # Clean up PM2 process
+            pm2 delete zippify-backend || true
+            
+            echo "✅ Backend stopped"
           EOF
 
-      - name: Start New Backend Service (with production env)
+      # 6. DATABASE: Run migrations if needed
+      - name: Run Database Migrations
         run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
             set -e
+            echo "🔄 Checking for database migrations"
+            
             cd /root/zippify/backend
-            NODE_ENV=production pm2 start server.js --name zippify-backend --update-env
-          EOF
-
-      - name: Check Backend Status
-        run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            pm2 status zippify-backend
-          EOF
-
-      - name: View Backend Logs
-        run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            echo "Output logs:"
-            tail -n 10 /root/.pm2/logs/zippify-backend-out.log
-            echo "Error logs:"
-            tail -n 10 /root/.pm2/logs/zippify-backend-error.log
-          EOF
-
-      - name: Perform Health Check
-        run: |
-          ssh -o StrictHostKeyChecking=no root@5.78.110.161 << 'EOF'
-            sleep 3
-            if curl -s http://localhost:3001/api/health | grep -q "ok"; then
-              echo "✅ Backend health check passed"
+            
+            # Check if there are any migration scripts
+            if [ -d "migrations" ] && [ "$(ls -A migrations)" ]; then
+              echo "📋 Running database migrations"
+              NODE_ENV=production node migrations/runMigrations.js || echo "⚠️ Migration script not found or failed"
             else
-              echo "⚠️ Backend health check warning"
+              echo "ℹ️ No migrations to run"
             fi
+            
+            echo "✅ Database migration check completed"
+          EOF
+
+      # 7. BACKEND: Start new service
+      - name: Start New Backend Service
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "🚀 Starting new backend service"
+            
+            cd /root/zippify/backend
+            
+            # Start with production environment
+            NODE_ENV=production pm2 start server.js --name zippify-backend --update-env
+            
+            echo "✅ Backend service started"
+          EOF
+
+      # 8. NGINX: Restart web server
+      - name: Restart Nginx
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "🔁 Restarting Nginx"
+            systemctl restart nginx
+            echo "✅ Nginx restarted"
+          EOF
+
+      # 9. HEALTH CHECKS: Verify deployment
+      - name: Comprehensive Health Check
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "🏥 Starting comprehensive health checks"
+            
+            # Wait for services to stabilize
+            sleep 5
+            
+            # Check PM2 status
+            echo "📊 PM2 Status:"
+            pm2 status zippify-backend
+            
+            # Check if backend is responding
+            echo "🔍 Testing backend health endpoint"
+            for i in {1..10}; do
+              if curl -s --max-time 5 http://localhost:3001/api/health | grep -q "ok"; then
+                echo "✅ Backend health check passed (attempt $i)"
+                break
+              else
+                echo "⏳ Backend not ready yet (attempt $i/10), waiting..."
+                sleep 3
+              fi
+              
+              if [ $i -eq 10 ]; then
+                echo "❌ Backend health check failed after 10 attempts"
+                echo "🔍 Backend logs:"
+                pm2 logs zippify-backend --lines 20
+                exit 1
+              fi
+            done
+            
+            # Check frontend
+            echo "🔍 Testing frontend"
+            if curl -s --max-time 5 http://localhost/api/health | grep -q "ok"; then
+              echo "✅ Frontend proxy to backend working"
+            else
+              echo "⚠️ Frontend might have proxy issues"
+            fi
+            
+            # Check database connectivity
+            echo "🗄️ Testing database connectivity"
+            cd /root/zippify/backend
+            if node -e "
+              const sqlite3 = require('sqlite3');
+              const db = new sqlite3.Database('./db/zippify.db', (err) => {
+                if (err) {
+                  console.error('❌ Database connection failed:', err.message);
+                  process.exit(1);
+                } else {
+                  console.log('✅ Database connection successful');
+                  db.close();
+                }
+              });
+            "; then
+              echo "✅ Database is accessible"
+            else
+              echo "❌ Database connection failed"
+              exit 1
+            fi
+            
+            echo "🎉 All health checks passed! Deployment successful!"
+          EOF
+
+      # 10. POST-DEPLOYMENT: Cleanup and notifications
+      - name: Post-Deployment Cleanup
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            echo "🧹 Post-deployment cleanup"
+            
+            # Clean old PM2 logs
+            pm2 flush
+            
+            # Clean old node_modules cache if needed
+            # npm cache clean --force
+            
+            # Log deployment success
+            echo "📝 Deployment completed at $(date)" >> /root/zippify/deployment.log
+            
+            echo "✅ Cleanup completed"
+          EOF
+
+      # 11. MONITORING: Show final status
+      - name: Show Final Status
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            echo ""
+            echo "🎯 DEPLOYMENT SUMMARY"
+            echo "===================="
+            echo "⏰ Completed at: $(date)"
+            echo ""
+            echo "📊 Service Status:"
+            pm2 status
+            echo ""
+            echo "🔗 Application URLs:"
+            echo "   Frontend: http://$(curl -s ifconfig.me)"
+            echo "   Backend Health: http://$(curl -s ifconfig.me)/api/health"
+            echo ""
+            echo "📈 Recent Logs:"
+            pm2 logs zippify-backend --lines 5
           EOF
