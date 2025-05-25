@@ -1,4 +1,4 @@
-name: Deploy to Hetzner
+name: Deploy to DigitalOcean
 
 on:
   push:
@@ -40,7 +40,7 @@ jobs:
       # 1. FIRST: ENSURE REPOSITORY EXISTS (handle first-time deployment)
       - name: Ensure Repository Exists
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🔍 Checking if repository exists at /root/zippify..."
             
@@ -74,7 +74,7 @@ jobs:
       # 2. PULL LATEST CODE (now we know the repo exists)
       - name: Pull Latest Code
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "📥 Pulling latest code"
             cd /root/zippify
@@ -89,13 +89,13 @@ jobs:
           echo "📁 Copying .env file to server..."
           
           # Ensure backend directory exists
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 "mkdir -p /root/zippify/backend && echo '✅ Backend directory ensured'"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "mkdir -p /root/zippify/backend && echo '✅ Backend directory ensured'"
           
           # Backup existing .env if it exists
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 "[ -f '/root/zippify/backend/.env' ] && cp /root/zippify/backend/.env /root/zippify/backend/.env.backup.\$(date +%Y%m%d_%H%M%S) && echo '✅ Existing .env backed up' || echo 'ℹ️ No existing .env to backup'"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "[ -f '/root/zippify/backend/.env' ] && cp /root/zippify/backend/.env /root/zippify/backend/.env.backup.\$(date +%Y%m%d_%H%M%S) && echo '✅ Existing .env backed up' || echo 'ℹ️ No existing .env to backup'"
           
           # Copy the secret
-          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env"
+          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "cat > /root/zippify/backend/.env"
           echo "✅ .env file copied successfully"
 
       - name: Copy .env.production to Server
@@ -103,19 +103,19 @@ jobs:
           echo "📁 Copying .env.production file to server..."
           
           # Ensure backend directory exists
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 "mkdir -p /root/zippify/backend && echo '✅ Backend directory ensured'"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "mkdir -p /root/zippify/backend && echo '✅ Backend directory ensured'"
           
           # Backup existing .env.production if it exists
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 "[ -f '/root/zippify/backend/.env.production' ] && cp /root/zippify/backend/.env.production /root/zippify/backend/.env.production.backup.\$(date +%Y%m%d_%H%M%S) && echo '✅ Existing .env.production backed up' || echo 'ℹ️ No existing .env.production to backup'"
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "[ -f '/root/zippify/backend/.env.production' ] && cp /root/zippify/backend/.env.production /root/zippify/backend/.env.production.backup.\$(date +%Y%m%d_%H%M%S) && echo '✅ Existing .env.production backed up' || echo 'ℹ️ No existing .env.production to backup'"
           
           # Copy the secret
-          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env.production"
+          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} "cat > /root/zippify/backend/.env.production"
           echo "✅ .env.production file copied successfully"
 
       # 3. Verify environment files
       - name: Verify Environment Files
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🔍 Verifying environment files..."
             
@@ -143,7 +143,7 @@ jobs:
       # 4. PRE-DEPLOYMENT: Database Backup (after pulling new code)
       - name: Backup Database
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "📁 Creating database backup before deployment..."
             
@@ -163,7 +163,7 @@ jobs:
       # 5. DEPLOYMENT: Build Frontend
       - name: Deploy and Build Frontend
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
 
             DEPLOY_LOG="/root/zippify/deploy_$(date +%Y%m%d_%H%M%S).log"
@@ -180,7 +180,7 @@ jobs:
             echo "🏗️ Building frontend"
             npm run build
 
-            echo "🧹 Cleaning /var/www/zippify"
+            echo "🧹 Cleaning /var/www/zippify and forcing cache refresh"
             mkdir -p /var/www/zippify
             rm -rf /var/www/zippify/*
 
@@ -188,13 +188,17 @@ jobs:
             cd /root/zippify
             cp -rv dist/* /var/www/zippify/
 
-            echo "✅ Frontend deployment completed"
+            echo "🔄 Adding cache-busting headers to nginx"
+            # Add current timestamp to help with cache busting
+            echo "<!-- Deployed: $(date) -->" >> /var/www/zippify/index.html
+
+            echo "✅ Frontend deployment completed with cache-busting"
           EOF
 
       # 6. BACKEND: Install dependencies
       - name: Install Backend Dependencies
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "📦 Installing backend dependencies"
             cd /root/zippify/backend
@@ -205,7 +209,7 @@ jobs:
       # 7. BACKEND: Graceful shutdown
       - name: Stop Backend Service Gracefully
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🛑 Stopping backend service gracefully"
             
@@ -231,7 +235,7 @@ jobs:
       # 8. DATABASE: Run migrations if needed
       - name: Run Database Migrations
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🔄 Checking for database migrations"
             
@@ -251,7 +255,7 @@ jobs:
       # 9. BACKEND: Start new service
       - name: Start New Backend Service
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🚀 Starting new backend service"
             
@@ -266,7 +270,7 @@ jobs:
       # 10. NGINX: Restart web server
       - name: Restart Nginx
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🔁 Restarting Nginx"
             systemctl restart nginx
@@ -276,7 +280,7 @@ jobs:
       # 11. HEALTH CHECKS: Verify deployment
       - name: Comprehensive Health Check
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             set -e
             echo "🏥 Starting comprehensive health checks"
             
@@ -369,7 +373,7 @@ jobs:
       # 12. POST-DEPLOYMENT: Cleanup and notifications
       - name: Post-Deployment Cleanup
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             echo "🧹 Post-deployment cleanup"
             
             # Clean old PM2 logs
@@ -387,7 +391,7 @@ jobs:
       # 13. MONITORING: Show final status
       - name: Show Final Status
         run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@${{ secrets.SERVER_IP }} << 'EOF'
             echo ""
             echo "🎯 DEPLOYMENT SUMMARY"
             echo "===================="
@@ -399,7 +403,7 @@ jobs:
             echo ""
             
             echo "🔗 Application URLs:"
-            PUBLIC_IP=$(curl -s --max-time 3 ifconfig.me || echo "64.23.195.7")
+            PUBLIC_IP=$(curl -s --max-time 3 ifconfig.me || echo "${{ secrets.SERVER_IP }}")
             echo "   Frontend: http://$PUBLIC_IP"
             echo "   Backend Health: http://$PUBLIC_IP/api/health"
             echo ""
