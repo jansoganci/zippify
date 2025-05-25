@@ -161,8 +161,8 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
           isActive={activeRoute === '/edit-image'} 
           isCollapsed={isCollapsed}
         />
-        {/* New Feature - Only show in development */}
-        {import.meta.env.DEV && (
+        {/* New Feature - Temporarily hidden */}
+        {/* {import.meta.env.DEV && (
           <SidebarItem 
             icon={Sparkles} 
             label="New Feature" 
@@ -170,7 +170,7 @@ const AppSidebar = ({ isCollapsed, toggleSidebar }: AppSidebarProps) => {
             isActive={activeRoute === '/edit-image-gpt'} 
             isCollapsed={isCollapsed}
           />
-        )}
+        )} */}
         <SidebarItem 
           icon={ListChecks} 
           label="My Listings" 
