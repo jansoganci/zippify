@@ -37,6 +37,70 @@ const CACHE_EXPIRATION_MS = CACHE_EXPIRATION_HOURS * 60 * 60 * 1000;
 const API_TIMEOUT = 10000;
 
 /**
+ * Sleep function to add delays between Google Trends API requests
+ * Helps prevent rate limiting and IP blocking by making requests more human-like
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Generate random delay between 2-3 seconds to mimic human behavior
+ * @returns {number} Random delay in milliseconds
+ */
+function getRandomDelay() {
+  return Math.floor(Math.random() * 1000) + 2000; // 2000-3000ms
+}
+
+/**
+ * Get realistic browser User-Agent to avoid bot detection
+ * @returns {string} Realistic Chrome User-Agent string
+ */
+function getBrowserUserAgent() {
+  return "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+}
+
+/**
+ * Send critical error notification to Telegram
+ * @param {string} errorMessage - Error message to send
+ * @param {string} context - Context information (function name, keyword, etc.)
+ */
+async function sendTelegramAlert(errorMessage, context = '') {
+  const TELEGRAM_BOT_TOKEN = '7737620448:AAFO2BP0AgfHVZKclmF124LvBcOXp3q2gLo';
+  const CHAT_ID = '886081382'; // Numeric Chat ID for direct message delivery
+  
+  try {
+    const message = `🚨 *Google Trends API Error*\n\n` +
+                   `*Context:* ${context}\n` +
+                   `*Error:* ${errorMessage}\n` +
+                   `*Time:* ${new Date().toISOString()}\n` +
+                   `*Server:* ${process.env.NODE_ENV || 'unknown'}`;
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown'
+      })
+    });
+
+    if (response.ok) {
+      console.log(`[GoogleTrends] Telegram alert sent successfully for: ${context}`);
+    } else {
+      console.error(`[GoogleTrends] Failed to send Telegram alert: ${response.status}`);
+    }
+  } catch (telegramError) {
+    console.error(`[GoogleTrends] Error sending Telegram notification:`, telegramError.message);
+  }
+}
+
+/**
  * Request queue to manage rate limiting
  */
 class RequestQueue {
@@ -253,7 +317,10 @@ async function fetchTrendDataWithTimeout(keyword, options = {}) {
       const interestOverTime = await googleTrends.interestOverTime({
         keyword,
         startTime: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year
-        geo: options.geo || 'US'
+        geo: options.geo || 'US',
+        headers: {
+          'User-Agent': getBrowserUserAgent()
+        }
       });
 
       // Check if response is valid JSON or HTML error
@@ -293,12 +360,19 @@ async function fetchTrendDataWithTimeout(keyword, options = {}) {
         };
       }
 
+      // Wait before making next API call to prevent rate limiting
+      console.log(`[GoogleTrends] Waiting ${getRandomDelay()}ms before fetching related queries...`);
+      await sleep(getRandomDelay());
+
       // Related queries - with fallback
       let relatedQueries = null;
       try {
         const queriesResponse = await googleTrends.relatedQueries({
           keyword,
-          geo: options.geo || 'US'
+          geo: options.geo || 'US',
+          headers: {
+            'User-Agent': getBrowserUserAgent()
+          }
         });
         
         try {
@@ -310,12 +384,19 @@ async function fetchTrendDataWithTimeout(keyword, options = {}) {
         console.warn(`[GoogleTrends] Could not fetch related queries for ${keyword}:`, error.message);
       }
 
+      // Wait before making final API call to prevent rate limiting
+      console.log(`[GoogleTrends] Waiting ${getRandomDelay()}ms before fetching related topics...`);
+      await sleep(getRandomDelay());
+
       // Related topics - with fallback
       let relatedTopics = null;
       try {
         const topicsResponse = await googleTrends.relatedTopics({
           keyword,
-          geo: options.geo || 'US'
+          geo: options.geo || 'US',
+          headers: {
+            'User-Agent': getBrowserUserAgent()
+          }
         });
         
         try {
@@ -337,6 +418,13 @@ async function fetchTrendDataWithTimeout(keyword, options = {}) {
       
     } catch (error) {
       console.error(`[GoogleTrends] API request failed for ${keyword}:`, error.message);
+      
+      // Send Telegram alert for critical Google Trends API failures
+      await sendTelegramAlert(
+        error.message,
+        `fetchTrendDataWithTimeout - Keyword: "${keyword}"`
+      );
+      
       throw error;
     }
   });
@@ -510,6 +598,14 @@ export async function getAdvancedKeywordAnalysis(keyword, userId, userPlan, opti
   } catch (error) {
     console.error(`[GoogleTrends] Error analyzing keyword "${cleanKeyword}":`, error);
     
+    // Send Telegram alert for critical errors (but not for quota/blocking issues)
+    if (!error.message.includes('quota') && !error.message.includes('Daily quota exceeded')) {
+      await sendTelegramAlert(
+        error.message,
+        `getAdvancedKeywordAnalysis - Keyword: "${cleanKeyword}", User: ${userId}`
+      );
+    }
+    
     // Handle Google Trends API blocking/captcha (HTML response)
     if (error.message.includes('HTML') || error.message.includes('blocking') || error.message.includes('captcha')) {
       // Return fallback data instead of failing
@@ -603,7 +699,16 @@ export async function getBatchKeywordAnalysis(keywords, userId, userPlan, option
   const results = [];
   const errors = [];
 
-  for (const keyword of keywords) {
+  for (let i = 0; i < keywords.length; i++) {
+    const keyword = keywords[i];
+    
+    // Add delay between batch requests to prevent rate limiting (except for first request)
+    if (i > 0) {
+      const delay = getRandomDelay();
+      console.log(`[GoogleTrends] Batch processing - waiting ${delay}ms before analyzing "${keyword}"...`);
+      await sleep(delay);
+    }
+    
     try {
       const analysis = await getAdvancedKeywordAnalysis(keyword, userId, userPlan, options);
       results.push(analysis);
