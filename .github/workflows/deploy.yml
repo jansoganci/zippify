@@ -18,18 +18,105 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
-      # 2. Copy environment files
+      # DEBUG: Verify secrets are loaded
+      - name: Verify Secrets
+        run: |
+          echo "🔍 Verifying GitHub Secrets..."
+          if [ -z "${{ secrets.ENV_FILE }}" ]; then
+            echo "❌ ENV_FILE secret is empty or missing!"
+            exit 1
+          else
+            echo "✅ ENV_FILE secret loaded (length: $(echo "${{ secrets.ENV_FILE }}" | wc -c) chars)"
+          fi
+          
+          if [ -z "${{ secrets.ENV_PRODUCTION_FILE }}" ]; then
+            echo "❌ ENV_PRODUCTION_FILE secret is empty or missing!"
+            exit 1
+          else
+            echo "✅ ENV_PRODUCTION_FILE secret loaded (length: $(echo "${{ secrets.ENV_PRODUCTION_FILE }}" | wc -c) chars)"
+          fi
+          echo "✅ All required secrets verified"
+
+      # 1. FIRST: PULL NEW CODE (to ensure directories exist)
+      - name: Pull Latest Code
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "📥 Pulling latest code"
+            cd /root/zippify
+            git fetch origin
+            git reset --hard origin/master
+            echo "✅ Code updated"
+          EOF
+
+      # 2. Copy environment files (after directories exist)
       - name: Copy .env to Server
         run: |
           echo "📁 Copying .env file to server..."
-          echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env"
-          echo "✅ .env file copied"
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            # Ensure backend directory exists
+            mkdir -p /root/zippify/backend
+            echo "✅ Backend directory ensured"
+            
+            # Backup existing .env if it exists
+            if [ -f "/root/zippify/backend/.env" ]; then
+              cp /root/zippify/backend/.env /root/zippify/backend/.env.backup.$(date +%Y%m%d_%H%M%S)
+              echo "✅ Existing .env backed up"
+            fi
+          EOF
+          
+          # Try to copy the secret, with error handling
+          if ! echo "${{ secrets.ENV_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env"; then
+            echo "❌ Failed to copy .env from GitHub secret!"
+            echo "🔄 Attempting to restore from backup or use existing..."
+            ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+              if [ -f "/root/zippify/backend/.env.backup."* ]; then
+                LATEST_BACKUP=$(ls -t /root/zippify/backend/.env.backup.* | head -1)
+                cp "$LATEST_BACKUP" /root/zippify/backend/.env
+                echo "✅ Restored .env from backup: $LATEST_BACKUP"
+              else
+                echo "❌ No backup available and secret failed!"
+                exit 1
+              fi
+            EOF
+          else
+            echo "✅ .env file copied successfully from GitHub secret"
+          fi
 
       - name: Copy .env.production to Server
         run: |
           echo "📁 Copying .env.production file to server..."
-          echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env.production"
-          echo "✅ .env.production file copied"
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            # Ensure backend directory exists
+            mkdir -p /root/zippify/backend
+            echo "✅ Backend directory ensured"
+            
+            # Backup existing .env.production if it exists
+            if [ -f "/root/zippify/backend/.env.production" ]; then
+              cp /root/zippify/backend/.env.production /root/zippify/backend/.env.production.backup.$(date +%Y%m%d_%H%M%S)
+              echo "✅ Existing .env.production backed up"
+            fi
+          EOF
+          
+          # Try to copy the secret, with error handling
+          if ! echo "${{ secrets.ENV_PRODUCTION_FILE }}" | sed 's/\\n/\n/g' | ssh -o StrictHostKeyChecking=no root@64.23.195.7 "cat > /root/zippify/backend/.env.production"; then
+            echo "❌ Failed to copy .env.production from GitHub secret!"
+            echo "🔄 Attempting to restore from backup or use existing..."
+            ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+              if [ -f "/root/zippify/backend/.env.production.backup."* ]; then
+                LATEST_BACKUP=$(ls -t /root/zippify/backend/.env.production.backup.* | head -1)
+                cp "$LATEST_BACKUP" /root/zippify/backend/.env.production
+                echo "✅ Restored .env.production from backup: $LATEST_BACKUP"
+              else
+                echo "❌ No backup available and secret failed!"
+                exit 1
+              fi
+            EOF
+          else
+            echo "✅ .env.production file copied successfully from GitHub secret"
+          fi
 
       # 3. Verify environment files
       - name: Verify Environment Files
@@ -59,19 +146,7 @@ jobs:
             echo "✅ Environment files verified"
           EOF
 
-      # 4. PULL NEW CODE FIRST
-      - name: Pull Latest Code
-        run: |
-          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
-            set -e
-            echo "📥 Pulling latest code"
-            cd /root/zippify
-            git fetch origin
-            git reset --hard origin/master
-            echo "✅ Code updated"
-          EOF
-
-      # 5. PRE-DEPLOYMENT: Database Backup (after pulling new code)
+      # 4. PRE-DEPLOYMENT: Database Backup (after pulling new code)
       - name: Backup Database
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -91,7 +166,7 @@ jobs:
             echo "✅ Database backup completed"
           EOF
 
-      # 6. DEPLOYMENT: Build Frontend
+      # 5. DEPLOYMENT: Build Frontend
       - name: Deploy and Build Frontend
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -122,7 +197,7 @@ jobs:
             echo "✅ Frontend deployment completed"
           EOF
 
-      # 7. BACKEND: Install dependencies
+      # 6. BACKEND: Install dependencies
       - name: Install Backend Dependencies
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -133,7 +208,7 @@ jobs:
             echo "✅ Backend dependencies installed"
           EOF
 
-      # 8. BACKEND: Graceful shutdown
+      # 7. BACKEND: Graceful shutdown
       - name: Stop Backend Service Gracefully
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -159,7 +234,7 @@ jobs:
             echo "✅ Backend stopped"
           EOF
 
-      # 9. DATABASE: Run migrations if needed
+      # 8. DATABASE: Run migrations if needed
       - name: Run Database Migrations
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -179,7 +254,7 @@ jobs:
             echo "✅ Database migration check completed"
           EOF
 
-      # 10. BACKEND: Start new service
+      # 9. BACKEND: Start new service
       - name: Start New Backend Service
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -194,7 +269,7 @@ jobs:
             echo "✅ Backend service started"
           EOF
 
-      # 11. NGINX: Restart web server
+      # 10. NGINX: Restart web server
       - name: Restart Nginx
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -204,7 +279,7 @@ jobs:
             echo "✅ Nginx restarted"
           EOF
 
-      # 12. HEALTH CHECKS: Verify deployment
+      # 11. HEALTH CHECKS: Verify deployment
       - name: Comprehensive Health Check
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -297,7 +372,7 @@ jobs:
             echo "🎉 Health checks completed! Deployment successful!"
           EOF
 
-      # 13. POST-DEPLOYMENT: Cleanup and notifications
+      # 12. POST-DEPLOYMENT: Cleanup and notifications
       - name: Post-Deployment Cleanup
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
@@ -315,7 +390,7 @@ jobs:
             echo "✅ Cleanup completed"
           EOF
 
-      # 14. MONITORING: Show final status
+      # 13. MONITORING: Show final status
       - name: Show Final Status
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
