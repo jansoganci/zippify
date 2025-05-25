@@ -186,11 +186,11 @@ jobs:
 
             echo "📁 Copying files from dist to production"
             cd /root/zippify
-            cp -rv dist/* /var/www/zippify/
+            cp -rv dist/* /var/www/listify/
 
             echo "🔄 Adding cache-busting headers to nginx"
             # Add current timestamp to help with cache busting
-            echo "<!-- Deployed: $(date) -->" >> /var/www/zippify/index.html
+            echo "<!-- Deployed: $(date) -->" >> /var/www/listify/index.html
 
             echo "✅ Frontend deployment completed with cache-busting"
           EOF
