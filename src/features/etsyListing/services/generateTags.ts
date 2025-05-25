@@ -31,7 +31,13 @@ export async function generateTags(promptInput: string, selectedKeywords: string
   // Return AI call structure (adjust model/provider if needed)
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
   // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
-  const baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
+  let baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
+  
+  // Eğer baseUrl /api ile bitmiyorsa, /api ekle
+  if (!baseUrl.endsWith('/api')) {
+    baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
+  }
+  
   const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 

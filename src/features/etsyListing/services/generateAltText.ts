@@ -32,13 +32,15 @@ export async function generateAltText(promptInput: string, selectedKeywords: str
   // Return AI call structure (adjust model/provider if needed)
   const aiProvider = provider || DEFAULT_AI_PROVIDER;
   
-  // Development'ta vite proxy kullan, production'da full URL
-  const isDev = import.meta.env.DEV;
-  const apiUrl = isDev 
-    ? `/api/ai/${aiProvider}` 
-    : `${import.meta.env.VITE_API_URL || 'https://listify.digital'}/api/ai/${aiProvider}`;
-    
-  const response = await fetch(apiUrl, {
+  // Production'da VITE_API_URL undefined olabilir, bu durumda fallback olarak 'https://listify.digital' kullan
+  let baseUrl = import.meta.env.VITE_API_URL || 'https://listify.digital';
+  
+  // Eğer baseUrl /api ile bitmiyorsa, /api ekle
+  if (!baseUrl.endsWith('/api')) {
+    baseUrl = baseUrl.endsWith('/') ? `${baseUrl}api` : `${baseUrl}/api`;
+  }
+  
+  const response = await fetch(`${baseUrl}/ai/${aiProvider}`, {
     method: "POST",
     headers: { 
       "Content-Type": "application/json",

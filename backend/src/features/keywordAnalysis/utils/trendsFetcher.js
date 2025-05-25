@@ -35,8 +35,14 @@ function getBrowserUserAgent() {
  * @param {string} context - Context information (function name, keyword, etc.)
  */
 async function sendTelegramAlert(errorMessage, context = '') {
-  const TELEGRAM_BOT_TOKEN = '7737620448:AAFO2BP0AgfHVZKclmF124LvBcOXp3q2gLo';
-  const CHAT_ID = '886081382'; // Numeric Chat ID for direct message delivery
+  const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+  
+  // Skip if environment variables are not set
+  if (!TELEGRAM_BOT_TOKEN || !CHAT_ID) {
+    console.warn('[TrendsFetcher] Telegram credentials not configured - skipping alert');
+    return;
+  }
   
   try {
     const message = `🚨 *Google Trends API Error*\n\n` +
