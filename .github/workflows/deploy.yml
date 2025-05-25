@@ -112,8 +112,12 @@ jobs:
             npm run build
 
             echo "🧹 Cleaning /var/www/zippify"
+            mkdir -p /var/www/zippify
             rm -rf /var/www/zippify/*
-            cp -r dist/* /var/www/zippify/
+
+            echo "📁 Copying files from dist to production"
+            cd /root/zippify
+            cp -rv dist/* /var/www/zippify/
 
             echo "✅ Frontend deployment completed"
           EOF

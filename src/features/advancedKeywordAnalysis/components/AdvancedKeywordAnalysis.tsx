@@ -48,15 +48,96 @@ import { toast } from "@/components/ui/use-toast";
 // Create component-specific logger
 const logger = createLogger('AdvancedKeywordAnalysis');
 
+// Enhanced logging utility functions for professional error tracking
+const logRequest = (action: string, data: any, metadata: any = {}) => {
+  const logData = {
+    action,
+    timestamp: new Date().toISOString(),
+    component: 'AdvancedKeywordAnalysis',
+    data,
+    ...metadata
+  };
+  logger.info(`🔍 [REQUEST] ${action}`, logData);
+  console.log(`🔍 [ADVANCED-KEYWORD] ${action}`, logData);
+};
+
+const logResponse = (action: string, success: boolean, data: any, metadata: any = {}) => {
+  const logData = {
+    action,
+    success,
+    timestamp: new Date().toISOString(),
+    component: 'AdvancedKeywordAnalysis',
+    data,
+    ...metadata
+  };
+  
+  if (success) {
+    logger.info(`✅ [SUCCESS] ${action}`, logData);
+    console.log(`✅ [ADVANCED-KEYWORD] ${action}`, logData);
+  } else {
+    logger.error(`❌ [ERROR] ${action}`, logData);
+    console.error(`❌ [ADVANCED-KEYWORD] ${action}`, logData);
+  }
+};
+
+const logError = (error: any, context: string, metadata: any = {}) => {
+  const errorData = {
+    context,
+    timestamp: new Date().toISOString(),
+    component: 'AdvancedKeywordAnalysis',
+    error: {
+      message: error?.message || 'Unknown error',
+      name: error?.name,
+      stack: error?.stack,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data
+    },
+    ...metadata
+  };
+  
+  logger.error(`🚨 [ERROR] ${context}`, errorData);
+  console.error(`🚨 [ADVANCED-KEYWORD-ERROR] ${context}`, errorData);
+  
+  // Also log to console for immediate debugging
+  console.group(`🚨 Advanced Keyword Analysis Error - ${context}`);
+  console.error('Error Details:', error);
+  console.error('Full Context:', errorData);
+  console.groupEnd();
+};
+
+const logPerformance = (action: string, startTime: number, metadata: any = {}) => {
+  const endTime = Date.now();
+  const duration = endTime - startTime;
+  
+  const perfData = {
+    action,
+    duration,
+    timestamp: new Date().toISOString(),
+    component: 'AdvancedKeywordAnalysis',
+    ...metadata
+  };
+  
+  logger.info(`⏱️ [PERFORMANCE] ${action} took ${duration}ms`, perfData);
+  console.log(`⏱️ [ADVANCED-KEYWORD-PERF] ${action}`, perfData);
+};
+
 interface FormValues {
   keyword: string;
   geo: string;
 }
 
+interface QuotaInfo {
+  currentUsage: number;
+  limit: number;
+  remaining: number;
+  percentage: number;
+  plan: string;
+}
+
 interface TrendPoint {
   date: string;
   value: number;
-  formattedDate: string;
 }
 
 interface RelatedQuery {
@@ -84,15 +165,6 @@ interface AdvancedKeywordData {
   fromCache: boolean;
 }
 
-interface QuotaInfo {
-  currentUsage: number;
-  limit: number;
-  remaining: number;
-  percentage: number;
-  plan: string;
-  resetDate: string;
-}
-
 const AdvancedKeywordAnalysis = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -105,14 +177,29 @@ const AdvancedKeywordAnalysis = () => {
     metrics: true
   });
 
-  // Check for auth token and load quota on component mount
+  // Log component initialization
   useEffect(() => {
+    logRequest('component_initialization', {
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    });
+    
     const token = localStorage.getItem('zippify_token');
     if (!token) {
-      logger.warn('No authentication token found - redirecting to login');
+      logError(
+        new Error('No authentication token found'), 
+        'component_initialization',
+        { redirectTo: '/login' }
+      );
       navigate('/login');
       return;
     }
+    
+    logRequest('auth_token_check', { 
+      tokenPresent: true,
+      tokenLength: token.length 
+    });
     
     loadQuotaInfo();
   }, [navigate]);
@@ -125,80 +212,124 @@ const AdvancedKeywordAnalysis = () => {
   });
 
   const loadQuotaInfo = async () => {
+    const startTime = Date.now();
+    
     try {
+      logRequest('load_quota_info', {
+        endpoint: 'advanced-keywords/quota'
+      });
+      
       const response = await backendApi.get('advanced-keywords/quota');
+      
+      logPerformance('load_quota_info', startTime, {
+        status: response.status,
+        success: response.data.success
+      });
+      
       if (response.status === 200 && response.data.success) {
         setQuotaInfo(response.data.data);
+        
+        logResponse('load_quota_info', true, response.data.data, {
+          currentUsage: response.data.data.currentUsage,
+          limit: response.data.data.limit,
+          remaining: response.data.data.remaining
+        });
+      } else {
+        throw new Error(`Invalid response: ${response.status}`);
       }
     } catch (error: any) {
-      logger.warn('Failed to load quota info', { error: error.message });
+      logError(error, 'load_quota_info', {
+        duration: Date.now() - startTime,
+        endpoint: 'advanced-keywords/quota'
+      });
+      
+      logResponse('load_quota_info', false, null, {
+        error: error?.message,
+        status: error?.response?.status
+      });
     }
   };
 
   const onSubmit = async (data: FormValues) => {
-    setLoading(true);
+    const startTime = Date.now();
+    const requestId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Clear previous state
     setError(null);
+    setLoading(true);
+    setKeywordData(null);
+    
+    logRequest('keyword_analysis_start', {
+      requestId,
+      keyword: data.keyword,
+      geo: data.geo,
+      keywordLength: data.keyword.length
+    });
     
     try {
-      logger.info('Requesting advanced keyword analysis', { 
-        keyword: data.keyword, 
-        geo: data.geo 
+      // Validate input
+      if (!data.keyword.trim()) {
+        throw new Error('Keyword cannot be empty');
+      }
+      
+      if (data.keyword.length < 2) {
+        throw new Error('Keyword must be at least 2 characters long');
+      }
+      
+      if (data.keyword.length > 100) {
+        throw new Error('Keyword cannot exceed 100 characters');
+      }
+      
+      logRequest('input_validation_passed', {
+        requestId,
+        keyword: data.keyword,
+        geo: data.geo
       });
       
-      const requestBody = {
-        keyword: data.keyword.trim(),
-        geo: data.geo === 'GLOBAL' ? '' : data.geo  // Global için boş string gönder
-      };
+      // Make API request
+      logRequest('api_request_start', {
+        requestId,
+        endpoint: 'advanced-keywords/analyze',
+        method: 'POST',
+        payload: data
+      });
       
-      const response = await backendApi.post('advanced-keywords/analyze', requestBody);
+      const response = await backendApi.post('advanced-keywords/analyze', data, {
+        headers: {
+          'X-Request-ID': requestId
+        }
+      });
       
-      // Handle error responses
-      if (response.status !== 200) {
-        if (response.status === 401) {
-          logger.warn('Authentication failed - redirecting to login');
-          navigate('/login');
-          return;
-        }
-        
-        if (response.status === 429) {
-          const errorData = response.data;
-          let errorMessage = "You have reached your daily quota limit.";
-          
-          if (errorData.errorType === 'QUOTA_EXCEEDED') {
-            errorMessage = errorData.error;
-          }
-          
-          toast({
-            title: "Quota Exceeded",
-            description: errorMessage,
-            variant: "destructive"
-          });
-          
-          setError(errorMessage);
-          await loadQuotaInfo(); // Refresh quota info
-          return;
-        }
-        
-        if (response.status === 408) {
-          setError("Request timeout - Google Trends API is taking too long to respond. Please try again.");
-          return;
-        }
-        
-        throw new Error(`API request failed with status ${response.status}`);
+      logPerformance('api_request', startTime, {
+        requestId,
+        status: response.status,
+        dataSize: JSON.stringify(response.data).length
+      });
+      
+      // Validate response
+      if (!response.data) {
+        throw new Error('Empty response from server');
       }
       
-      // Process response data
+      if (!response.data.success) {
+        throw new Error(response.data.message || 'Analysis failed');
+      }
+      
       const responseData = response.data;
       
-      if (!responseData.success || !responseData.data) {
-        logger.error('Invalid API response structure', { responseData });
-        setError("Failed to analyze keyword. Please try again.");
-        return;
+      if (!responseData.data) {
+        throw new Error('No analysis data in response');
       }
       
-      logger.info('Successfully received keyword analysis', { 
+      logResponse('keyword_analysis', true, {
         keyword: responseData.data.keyword,
-        fromCache: responseData.data.fromCache 
+        fromCache: responseData.data.fromCache,
+        timelineDataPoints: responseData.data.timelineData?.length || 0,
+        topQueriesCount: responseData.data.relatedQueries?.top?.length || 0,
+        risingQueriesCount: responseData.data.relatedQueries?.rising?.length || 0
+      }, {
+        requestId,
+        processingTime: responseData.meta?.processingTimeMs
       });
       
       setKeywordData(responseData.data);
@@ -211,20 +342,57 @@ const AdvancedKeywordAnalysis = () => {
         variant: "default"
       });
       
-    } catch (error: any) {
-      logger.error('Failed to analyze keyword', { 
-        message: error.message,
-        status: error.response?.status 
+      logRequest('analysis_success_notification', {
+        requestId,
+        keyword: responseData.data.keyword,
+        fromCache: responseData.data.fromCache
       });
       
-      setError("Failed to analyze keyword. Please try again.");
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      
+      logError(error, 'keyword_analysis', {
+        requestId,
+        keyword: data.keyword,
+        geo: data.geo,
+        duration,
+        userInput: data
+      });
+      
+      logResponse('keyword_analysis', false, null, {
+        requestId,
+        error: error?.message,
+        status: error?.response?.status,
+        duration
+      });
+      
+      setError(error?.response?.data?.message || error?.message || "Failed to analyze keyword. Please try again.");
       setKeywordData(null);
+      
+      // Show error toast
+      toast({
+        title: "Analysis Failed",
+        description: error?.message || "Please try again",
+        variant: "destructive"
+      });
+      
     } finally {
       setLoading(false);
+      
+      logPerformance('keyword_analysis_complete', startTime, {
+        requestId,
+        keyword: data.keyword,
+        success: !error
+      });
     }
   };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
+    logRequest('toggle_section', {
+      section,
+      newState: !expandedSections[section]
+    });
+    
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -256,95 +424,39 @@ const AdvancedKeywordAnalysis = () => {
   };
 
   const renderTrendChart = (timelineData: TrendPoint[]) => {
-    if (!timelineData || timelineData.length === 0) return null;
-
-    const chartWidth = 600;
-    const chartHeight = 200;
-    const padding = { top: 20, right: 20, bottom: 20, left: 40 };
-
+    logRequest('render_trend_chart', {
+      dataPoints: timelineData.length,
+      dateRange: timelineData.length > 0 ? {
+        start: timelineData[0]?.date,
+        end: timelineData[timelineData.length - 1]?.date
+      } : null
+    });
+    
+    const maxValue = Math.max(...timelineData.map(point => point.value));
+    const minValue = Math.min(...timelineData.map(point => point.value));
+    
     return (
-      <div className="mt-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Interest Over Time</span>
-          <span className="text-xs text-gray-500">Scale: 0-100</span>
-        </div>
-        <div className="relative h-48 border border-gray-200 rounded-lg p-4 bg-gradient-to-br from-blue-50 to-indigo-50">
-          <svg width="100%" height="100%" viewBox={`0 0 ${chartWidth} ${chartHeight + padding.top + padding.bottom}`} className="w-full h-full">
-            <defs>
-              <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.05" />
-              </linearGradient>
-            </defs>
-            
-            {/* Grid lines */}
-            {[0, 25, 50, 75, 100].map(value => {
-              const y = padding.top + chartHeight - (value / 100) * chartHeight;
-              return (
-                <g key={value}>
-                  <line
-                    x1={padding.left}
-                    y1={y}
-                    x2={chartWidth - padding.right}
-                    y2={y}
-                    stroke="#E5E7EB"
-                    strokeWidth="1"
-                    strokeDasharray="2,2"
-                  />
-                  <text
-                    x={padding.left - 5}
-                    y={y + 4}
-                    fontSize="10"
-                    fill="#6B7280"
-                    textAnchor="end"
-                  >
-                    {value}
-                  </text>
-                </g>
-              );
-            })}
-            
-            {/* Trend line and area */}
-            <path
-              d={timelineData.map((point, index) => {
-                const x = padding.left + (index / (timelineData.length - 1)) * (chartWidth - padding.left - padding.right);
-                const y = padding.top + chartHeight - (point.value / 100) * chartHeight;
-                return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ')}
-              fill="none"
-              stroke="#3B82F6"
-              strokeWidth="2"
-              className="drop-shadow-sm"
-            />
-            
-            {/* Area fill */}
-            <path
-              d={`${timelineData.map((point, index) => {
-                const x = padding.left + (index / (timelineData.length - 1)) * (chartWidth - padding.left - padding.right);
-                const y = padding.top + chartHeight - (point.value / 100) * chartHeight;
-                return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-              }).join(' ')} L ${padding.left + (chartWidth - padding.left - padding.right)} ${padding.top + chartHeight} L ${padding.left} ${padding.top + chartHeight} Z`}
-              fill="url(#trendGradient)"
-            />
-            
-            {/* Data points */}
-            {timelineData.map((point, index) => {
-              const x = padding.left + (index / (timelineData.length - 1)) * (chartWidth - padding.left - padding.right);
-              const y = padding.top + chartHeight - (point.value / 100) * chartHeight;
-              return (
-                <circle
-                  key={index}
-                  cx={x}
-                  cy={y}
-                  r="3"
-                  fill="#3B82F6"
-                  className="hover:r-4 transition-all cursor-pointer"
-                >
-                  <title>{`${point.formattedDate}: ${point.value}`}</title>
-                </circle>
-              );
-            })}
-          </svg>
+      <div className="space-y-4">
+        <div className="h-64 flex items-end justify-between px-2 border-b border-muted/30">
+          {timelineData.map((point, index) => {
+            const height = maxValue > 0 ? (point.value / maxValue) * 240 : 0;
+            return (
+              <div key={index} className="flex flex-col items-center group">
+                <div
+                  className="bg-gradient-to-t from-primary to-primary/60 rounded-t group-hover:from-primary/80 group-hover:to-primary/40 transition-colors cursor-pointer"
+                  style={{ 
+                    height: `${height}px`, 
+                    minHeight: point.value > 0 ? '4px' : '2px',
+                    width: `${Math.max(100 / timelineData.length - 1, 2)}%` 
+                  }}
+                  title={`${new Date(point.date).toLocaleDateString()}: ${point.value}`}
+                />
+                <span className="text-xs text-muted-foreground mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {point.value}
+                </span>
+              </div>
+            );
+          })}
         </div>
         <div className="flex justify-between text-xs text-gray-500 mt-2">
           <span>12 months ago</span>
@@ -353,6 +465,16 @@ const AdvancedKeywordAnalysis = () => {
       </div>
     );
   };
+
+  // Log component render
+  useEffect(() => {
+    logRequest('component_render', {
+      hasKeywordData: !!keywordData,
+      hasQuotaInfo: !!quotaInfo,
+      hasError: !!error,
+      isLoading: loading
+    });
+  });
 
   return (
     <DashboardLayoutFixed>
@@ -426,6 +548,14 @@ const AdvancedKeywordAnalysis = () => {
                             {...field}
                             disabled={loading}
                             className="border-input/60 focus-visible:ring-primary/20 bg-background"
+                            onChange={(e) => {
+                              field.onChange(e);
+                              logRequest('form_input_change', {
+                                field: 'keyword',
+                                value: e.target.value,
+                                length: e.target.value.length
+                              });
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
@@ -439,7 +569,16 @@ const AdvancedKeywordAnalysis = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Geographic Region</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select 
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            logRequest('form_select_change', {
+                              field: 'geo',
+                              value: value
+                            });
+                          }} 
+                          defaultValue={field.value}
+                        >
                           <FormControl>
                             <SelectTrigger disabled={loading}>
                               <SelectValue placeholder="Select region" />
@@ -465,6 +604,12 @@ const AdvancedKeywordAnalysis = () => {
                   disabled={loading}
                   className="w-full sm:w-auto"
                   size="lg"
+                  onClick={() => {
+                    logRequest('form_submit_clicked', {
+                      keyword: form.getValues('keyword'),
+                      geo: form.getValues('geo')
+                    });
+                  }}
                 >
                   {loading ? (
                     <>

@@ -58,6 +58,51 @@ log.info('DeepSeek API Key Status:', {
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Add detailed request/response logging middleware
+app.use((req, res, next) => {
+  const requestId = req.headers['x-request-id'] || `req-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  req.requestId = requestId;
+  req.startTime = Date.now();
+  
+  // Log incoming request
+  log.request(req, 'Incoming request');
+  
+  // Log request body for debugging (but sanitize sensitive data)
+  if (req.body && Object.keys(req.body).length > 0) {
+    const sanitizedBody = { ...req.body };
+    if (sanitizedBody.password) sanitizedBody.password = '***';
+    if (sanitizedBody.token) sanitizedBody.token = '***';
+    log.debug(`[${requestId}] Request body:`, sanitizedBody);
+  }
+  
+  // Override res.json to log responses
+  const originalJson = res.json;
+  res.json = function(obj) {
+    const duration = Date.now() - req.startTime;
+    log.response(res, 'Response sent', {
+      requestId,
+      responseSize: JSON.stringify(obj).length,
+      success: obj.success !== false,
+      duration: `${duration}ms`
+    });
+    return originalJson.call(this, obj);
+  };
+  
+  // Log response when request finishes
+  res.on('finish', () => {
+    const duration = Date.now() - req.startTime;
+    log.info(`[${requestId}] Request completed`, {
+      method: req.method,
+      url: req.url,
+      status: res.statusCode,
+      duration: `${duration}ms`,
+      userAgent: req.headers['user-agent']?.substring(0, 100) + '...'
+    });
+  });
+  
+  next();
+});
+
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
@@ -677,3 +722,74 @@ app.post('/api/generate-pdf', async (req, res) => {
   });
 
 app.use('/api/ai', aiRoutes);
+
+// Global error handling middleware - must be after all routes
+app.use((err, req, res, next) => {
+  const requestId = req.requestId || `error-${Date.now()}`;
+  
+  // Log the error
+  log.error(`[${requestId}] Unhandled error:`, {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+  
+  // Don't leak error details in production
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  // Handle specific error types
+  if (err.name === 'JsonWebTokenError') {
+    log.auth401(req, 'JWT Error in middleware', { 
+      requestId,
+      error: err.message 
+    });
+    return res.status(401).json({
+      success: false,
+      error: 'Invalid token',
+      message: 'Authentication failed',
+      requestId
+    });
+  }
+  
+  if (err.name === 'TokenExpiredError') {
+    log.auth401(req, 'Token expired in middleware', { 
+      requestId,
+      expiredAt: err.expiredAt 
+    });
+    return res.status(401).json({
+      success: false,
+      error: 'Token expired',
+      message: 'Please login again',
+      requestId
+    });
+  }
+  
+  // Generic error response
+  res.status(err.status || 500).json({
+    success: false,
+    error: isDevelopment ? err.message : 'Internal Server Error',
+    message: 'Something went wrong',
+    requestId,
+    ...(isDevelopment && { stack: err.stack })
+  });
+});
+
+// 404 handler for unmatched routes
+app.use((req, res) => {
+  const requestId = req.requestId || `404-${Date.now()}`;
+  
+  log.warn(`[${requestId}] 404 - Route not found: ${req.method} ${req.url}`, {
+    ip: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+  
+  res.status(404).json({
+    success: false,
+    error: 'Not Found',
+    message: 'The requested resource was not found',
+    requestId
+  });
+});
