@@ -235,7 +235,7 @@ export async function cleanupExpiredCache() {
 }
 
 /**
- * Fetch trend data from Google Trends API with timeout
+ * Fetch trend data with better error handling and retry logic
  * @param {string} keyword - The keyword to search for
  * @param {Object} options - Additional options
  * @returns {Promise<Object>} Trend data
@@ -246,40 +246,99 @@ async function fetchTrendDataWithTimeout(keyword, options = {}) {
   });
 
   const requestPromise = requestQueue.add(async () => {
-    // Interest over time (main trend data)
-    const interestOverTime = await googleTrends.interestOverTime({
-      keyword,
-      startTime: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year
-      geo: options.geo || 'US'
-    });
-
-    // Related queries
-    let relatedQueries = null;
     try {
-      relatedQueries = await googleTrends.relatedQueries({
+      console.log(`[GoogleTrends] Starting API request for keyword: ${keyword}`);
+      
+      // Interest over time (main trend data)
+      const interestOverTime = await googleTrends.interestOverTime({
         keyword,
+        startTime: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last year
         geo: options.geo || 'US'
       });
-    } catch (error) {
-      console.warn(`[GoogleTrends] Could not fetch related queries for ${keyword}:`, error.message);
-    }
 
-    // Related topics
-    let relatedTopics = null;
-    try {
-      relatedTopics = await googleTrends.relatedTopics({
-        keyword,
-        geo: options.geo || 'US'
-      });
-    } catch (error) {
-      console.warn(`[GoogleTrends] Could not fetch related topics for ${keyword}:`, error.message);
-    }
+      // Check if response is valid JSON or HTML error
+      let parsedTrends;
+      try {
+        parsedTrends = JSON.parse(interestOverTime);
+      } catch (parseError) {
+        console.error(`[GoogleTrends] Invalid response format for ${keyword}:`, parseError.message);
+        
+        // Check if it's an HTML response (indicates blocking/captcha)
+        if (interestOverTime.includes('<html') || interestOverTime.includes('<!DOCTYPE')) {
+          throw new Error('Google Trends API returned HTML (possible blocking/captcha). Try again later.');
+        }
+        
+        throw new Error(`Invalid API response format: ${parseError.message}`);
+      }
 
-    return {
-      trendData: JSON.parse(interestOverTime),
-      relatedQueries: relatedQueries ? JSON.parse(relatedQueries) : null,
-      relatedTopics: relatedTopics ? JSON.parse(relatedTopics) : null
-    };
+      // Validate that we have valid trend data
+      if (!parsedTrends || !parsedTrends.default || !parsedTrends.default.timelineData) {
+        console.warn(`[GoogleTrends] No valid trend data for keyword: ${keyword}`);
+        // Return minimal valid structure for fallback
+        return {
+          trendData: {
+            default: {
+              term: keyword,
+              timelineData: [
+                {
+                  formattedTime: new Date().toISOString().split('T')[0],
+                  value: [1],
+                  formattedAxisTime: 'Current'
+                }
+              ]
+            }
+          },
+          relatedQueries: null,
+          relatedTopics: null
+        };
+      }
+
+      // Related queries - with fallback
+      let relatedQueries = null;
+      try {
+        const queriesResponse = await googleTrends.relatedQueries({
+          keyword,
+          geo: options.geo || 'US'
+        });
+        
+        try {
+          relatedQueries = JSON.parse(queriesResponse);
+        } catch (parseError) {
+          console.warn(`[GoogleTrends] Could not parse related queries for ${keyword}:`, parseError.message);
+        }
+      } catch (error) {
+        console.warn(`[GoogleTrends] Could not fetch related queries for ${keyword}:`, error.message);
+      }
+
+      // Related topics - with fallback
+      let relatedTopics = null;
+      try {
+        const topicsResponse = await googleTrends.relatedTopics({
+          keyword,
+          geo: options.geo || 'US'
+        });
+        
+        try {
+          relatedTopics = JSON.parse(topicsResponse);
+        } catch (parseError) {
+          console.warn(`[GoogleTrends] Could not parse related topics for ${keyword}:`, parseError.message);
+        }
+      } catch (error) {
+        console.warn(`[GoogleTrends] Could not fetch related topics for ${keyword}:`, error.message);
+      }
+
+      console.log(`[GoogleTrends] Successfully fetched data for keyword: ${keyword}`);
+      
+      return {
+        trendData: parsedTrends,
+        relatedQueries,
+        relatedTopics
+      };
+      
+    } catch (error) {
+      console.error(`[GoogleTrends] API request failed for ${keyword}:`, error.message);
+      throw error;
+    }
   });
 
   return Promise.race([requestPromise, timeoutPromise]);
@@ -451,6 +510,13 @@ export async function getAdvancedKeywordAnalysis(keyword, userId, userPlan, opti
   } catch (error) {
     console.error(`[GoogleTrends] Error analyzing keyword "${cleanKeyword}":`, error);
     
+    // Handle Google Trends API blocking/captcha (HTML response)
+    if (error.message.includes('HTML') || error.message.includes('blocking') || error.message.includes('captcha')) {
+      // Return fallback data instead of failing
+      console.warn(`[GoogleTrends] API blocked, returning fallback data for: ${cleanKeyword}`);
+      return createFallbackData(cleanKeyword);
+    }
+    
     // Provide specific error messages
     if (error.message.includes('timeout')) {
       throw new Error('Request timeout - Google Trends API is taking too long to respond');
@@ -463,9 +529,52 @@ export async function getAdvancedKeywordAnalysis(keyword, userId, userPlan, opti
     if (error.message.includes('429')) {
       throw new Error('Rate limit exceeded - please try again later');
     }
+    
+    if (error.message.includes('Invalid API response format')) {
+      // Return fallback data for parsing errors too
+      console.warn(`[GoogleTrends] Invalid response format, returning fallback data for: ${cleanKeyword}`);
+      return createFallbackData(cleanKeyword);
+    }
 
     throw new Error(`Failed to analyze keyword: ${error.message}`);
   }
+}
+
+/**
+ * Create fallback data when Google Trends API fails
+ * @param {string} keyword - The keyword
+ * @returns {Object} Fallback analysis data
+ */
+function createFallbackData(keyword) {
+  const currentDate = new Date().toISOString().split('T')[0];
+  
+  return {
+    keyword,
+    timelineData: [
+      {
+        date: currentDate,
+        value: 50, // Moderate baseline value
+        formattedDate: 'Current'
+      }
+    ],
+    statistics: {
+      averageInterest: 50,
+      maxInterest: 50,
+      minInterest: 50,
+      totalDataPoints: 1,
+      trend: 'stable'
+    },
+    relatedQueries: {
+      top: [],
+      rising: []
+    },
+    estimatedSearchVolume: '10K-100K searches/month',
+    competitionLevel: 'Medium',
+    lastUpdated: new Date().toISOString(),
+    fromCache: false,
+    isFallback: true,
+    fallbackReason: 'Google Trends API temporarily unavailable'
+  };
 }
 
 /**

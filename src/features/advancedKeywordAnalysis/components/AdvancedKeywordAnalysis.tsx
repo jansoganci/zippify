@@ -163,6 +163,8 @@ interface AdvancedKeywordData {
   competitionLevel: string;
   lastUpdated: string;
   fromCache: boolean;
+  isFallback?: boolean;
+  fallbackReason?: string;
 }
 
 const AdvancedKeywordAnalysis = () => {
@@ -335,12 +337,20 @@ const AdvancedKeywordAnalysis = () => {
       setKeywordData(responseData.data);
       await loadQuotaInfo(); // Refresh quota info after successful request
       
-      // Show success toast
-      toast({
-        title: "Analysis Complete!",
-        description: `Successfully analyzed "${responseData.data.keyword}"${responseData.data.fromCache ? ' (from cache)' : ''}`,
-        variant: "default"
-      });
+      // Show success toast - with fallback warning if applicable
+      if (responseData.data.isFallback) {
+        toast({
+          title: "Analysis Complete (Limited Data)",
+          description: `Analyzed "${responseData.data.keyword}" with fallback data. ${responseData.data.fallbackReason || 'Full data temporarily unavailable.'}`,
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Analysis Complete!",
+          description: `Successfully analyzed "${responseData.data.keyword}"${responseData.data.fromCache ? ' (from cache)' : ''}`,
+          variant: "default"
+        });
+      }
       
       logRequest('analysis_success_notification', {
         requestId,
@@ -640,6 +650,19 @@ const AdvancedKeywordAnalysis = () => {
           {/* Results */}
           {keywordData && (
             <div className="space-y-6">
+              {/* Fallback Warning */}
+              {keywordData.isFallback && (
+                <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+                  <Info className="h-4 w-4 text-orange-600" />
+                  <AlertTitle className="text-orange-800 dark:text-orange-200">Limited Data Available</AlertTitle>
+                  <AlertDescription className="text-orange-700 dark:text-orange-300">
+                    {keywordData.fallbackReason || 'Google Trends API is temporarily unavailable. Showing baseline data for reference.'}
+                    <br />
+                    <span className="text-sm italic">Try again later for complete analysis data.</span>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               {/* Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card className="border-muted/40 dark:border-muted/20 shadow-sm">
