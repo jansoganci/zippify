@@ -37,7 +37,41 @@ jobs:
           fi
           echo "✅ All required secrets verified"
 
-      # 1. FIRST: PULL NEW CODE (to ensure directories exist)
+      # 1. FIRST: ENSURE REPOSITORY EXISTS (handle first-time deployment)
+      - name: Ensure Repository Exists
+        run: |
+          ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
+            set -e
+            echo "🔍 Checking if repository exists at /root/zippify..."
+            
+            if [ ! -d "/root/zippify" ]; then
+              echo "📁 Repository not found! This appears to be the first deployment."
+              echo "🔄 Cloning repository for the first time..."
+              
+              cd /root
+              git clone https://github.com/jansoganci/zippify.git
+              
+              echo "✅ Repository cloned successfully"
+            else
+              echo "✅ Repository already exists"
+            fi
+            
+            # Ensure we're in the right directory and it's a git repo
+            cd /root/zippify
+            
+            if [ ! -d ".git" ]; then
+              echo "❌ Directory exists but is not a git repository!"
+              echo "🔄 Removing and re-cloning..."
+              cd /root
+              rm -rf zippify
+              git clone https://github.com/jansoganci/zippify.git
+              echo "✅ Repository re-cloned successfully"
+            fi
+            
+            echo "✅ Repository verification completed"
+          EOF
+
+      # 2. PULL LATEST CODE (now we know the repo exists)
       - name: Pull Latest Code
         run: |
           ssh -o StrictHostKeyChecking=no root@64.23.195.7 << 'EOF'
