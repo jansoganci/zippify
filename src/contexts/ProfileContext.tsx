@@ -34,6 +34,12 @@ const fetchProfile = async (): Promise<ProfileData> => {
     throw new Error('No authentication token found');
   }
   
+  // Double check token format
+  if (!token.startsWith('eyJ')) {
+    localStorage.removeItem('zippify_token');
+    throw new Error('Invalid authentication token');
+  }
+  
   let baseUrl = import.meta.env.VITE_API_URL || '';
   if (baseUrl.endsWith('/')) {
     baseUrl = baseUrl.slice(0, -1);
@@ -126,32 +132,44 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     queryFn: fetchProfile,
     enabled: !!token,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
-    // Remove initialData to let real API data load
   });
   
-  // Handle auth errors globally
+  // Handle auth errors globally - only once per error
   React.useEffect(() => {
-    if (error) {
+    if (error && error instanceof Error) {
       logger.error('Profile fetch failed', { message: error.message, error });
-      if (error instanceof Error && 
-          (error.message.includes('Unauthorized') || 
-           error.message.includes('No authentication token'))) {
-        navigate('/login');
+      
+      // Only redirect on auth errors, and only once
+      if (error.message.includes('Unauthorized') || 
+          error.message.includes('No authentication token')) {
+        
+        // Clear the token and redirect
+        localStorage.removeItem('zippify_token');
+        
+        // Use a timeout to avoid infinite loops
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 100);
       }
     }
-  }, [error, navigate]);
+  }, [error?.message, navigate]); // Only depend on error message, not whole error object
 
-  // Debug logging for profile state
+  // Debug logging for profile state - reduced frequency
   React.useEffect(() => {
-    logger.info('Profile state update:', { 
-      isLoading, 
-      hasError: !!error, 
-      hasData: !!data, 
-      profileData: data 
-    });
-  }, [isLoading, error, data]);
+    if (import.meta.env.DEV) {
+      logger.info('Profile state update:', { 
+        isLoading, 
+        hasError: !!error, 
+        hasData: !!data, 
+        profileData: data ? { ...data, email: data.email ? '***' : undefined } : undefined
+      });
+    }
+  }, [isLoading, !!error, !!data]); // Less granular dependencies
 
   // Update profile mutation
   const mutation = useMutation({
