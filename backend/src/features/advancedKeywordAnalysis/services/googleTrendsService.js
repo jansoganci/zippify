@@ -21,8 +21,8 @@ async function getDb() {
  * User plan limits configuration
  */
 const PLAN_LIMITS = {
-  free: 5,
-  premium: 50  // Premium same as pro
+  free: 10,
+  premium: 100  // Premium same as pro
 };
 
 /**

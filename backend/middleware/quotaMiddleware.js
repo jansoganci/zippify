@@ -54,7 +54,7 @@ export function checkQuota(featureName) {
       );
       
       // 3. Log the calculated daily limit (based on plan)
-      const DAILY_LIMIT = req.user.plan === 'premium' ? 50 : 5;
+      const DAILY_LIMIT = req.user.plan === 'premium' ? 100 : 10;
       
       // 4. Log the current usage (request_count from the database)
       const currentUsage = userQuota?.request_count || 0;

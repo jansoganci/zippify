@@ -8,14 +8,16 @@ const API_BASE_URL = import.meta.env.DEV
   ? '/api'  // Use proxy in development
   : import.meta.env.VITE_API_URL || '/api';  // Use env variable in production
 
-// DEBUG: Log environment information
-console.log('🔍 API CLIENT DEBUG:', {
-  isDEV: import.meta.env.DEV,
-  MODE: import.meta.env.MODE,
-  VITE_API_URL: import.meta.env.VITE_API_URL,
-  API_BASE_URL: API_BASE_URL,
-  currentURL: window.location.href
-});
+// DEBUG: Log environment information - only in development
+if (import.meta.env.MODE === 'development') {
+  console.log('🔍 API CLIENT DEBUG:', {
+    isDEV: import.meta.env.DEV,
+    MODE: import.meta.env.MODE,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
+    API_BASE_URL: API_BASE_URL,
+    currentURL: window.location.href
+  });
+}
 
 // Development-only logging function - only logs essential information
 const devLog = (message, ...args) => {

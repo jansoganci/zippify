@@ -56,7 +56,7 @@ const CreateListing: React.FC = () => {
   const [quotaExceeded, setQuotaExceeded] = useState<boolean>(false);
   
   // Quota states
-  const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 5, plan: 'free' });
+  const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 10, plan: 'free' });
   const [quotaLoading, setQuotaLoading] = useState(true);
 
   // Load quota information
@@ -67,7 +67,7 @@ const CreateListing: React.FC = () => {
       if (response.data && response.data.success) {
         setQuotaInfo({
           used: response.data.used || 0,
-          limit: response.data.limit || 5,
+          limit: response.data.limit || 10,
           plan: response.data.plan || 'free'
         });
       }
@@ -230,7 +230,7 @@ const CreateListing: React.FC = () => {
         // Extract quota information from the response if available
         const quotaData = err.response.data?.quota || {};
         const feature = quotaData.feature || 'create-listing';
-        const limit = quotaData.limit || 5;
+        const limit = quotaData.limit || 10;
         const plan = quotaData.plan || 'free';
         
         const errorMessage = `You have reached your daily limit of ${limit} listing creations for your ${plan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`;
@@ -315,7 +315,7 @@ const CreateListing: React.FC = () => {
                   <AlertCircle className="h-4 w-4 mr-2" />
                   <AlertTitle>Quota Exceeded</AlertTitle>
                   <AlertDescription>
-                    Your daily listing quota has been used (5/5). Please upgrade to continue.
+                    Your daily listing quota has been used (10/10). Please upgrade to continue.
                   </AlertDescription>
                 </Alert>
               )}

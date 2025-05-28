@@ -279,7 +279,7 @@ async function getUserQuotaInfo(userId, featureName, userPlan) {
     );
     
     const currentUsage = result ? result.request_count : 0;
-    const limit = userPlan === 'premium' ? 50 : 5;
+    const limit = userPlan === 'premium' ? 100 : 10;
     
     return {
       used: currentUsage,
@@ -290,7 +290,7 @@ async function getUserQuotaInfo(userId, featureName, userPlan) {
     console.error('Error getting quota info:', error);
     return {
       used: 0,
-      limit: userPlan === 'premium' ? 50 : 5,
+      limit: userPlan === 'premium' ? 100 : 10,
       plan: userPlan
     };
   } finally {

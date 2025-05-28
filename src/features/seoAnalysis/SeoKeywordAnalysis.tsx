@@ -69,7 +69,7 @@ const SeoKeywordAnalysis = () => {
   const [isPlaceholder, setIsPlaceholder] = useState(false);
   
   // Quota states
-  const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 5, plan: 'free' });
+  const [quotaInfo, setQuotaInfo] = useState({ used: 0, limit: 10, plan: 'free' });
   const [quotaLoading, setQuotaLoading] = useState(true);
   
   // Access the keyword context for transferring selected keywords to the CreateListing page
@@ -83,7 +83,7 @@ const SeoKeywordAnalysis = () => {
       if (response.data && response.data.success) {
         setQuotaInfo({
           used: response.data.used || 0,
-          limit: response.data.limit || 5,
+          limit: response.data.limit || 10,
           plan: response.data.plan || 'free'
         });
       }
@@ -143,7 +143,7 @@ const SeoKeywordAnalysis = () => {
           logger.warn('Quota exceeded for SEO analysis');
           const quotaData = response.data?.quota || {};
           const feature = quotaData.feature || 'seo-analysis';
-          const limit = quotaData.limit || 5;
+          const limit = quotaData.limit || 10;
           const plan = quotaData.plan || 'free';
           
           const errorMessage = `You have reached your daily limit of ${limit} SEO keyword searches for your ${plan} plan. Your quota will reset tomorrow or you can upgrade to a premium plan for higher limits.`;
@@ -215,7 +215,7 @@ const SeoKeywordAnalysis = () => {
       
       // Set error state for UI display
       if (error.response?.status === 403) {
-        setError("Your daily quota of 5 SEO analyses has been used.");
+        setError("Your daily quota of 10 SEO analyses has been used.");
       } else {
         setError("Something went wrong while fetching keywords.");
       }

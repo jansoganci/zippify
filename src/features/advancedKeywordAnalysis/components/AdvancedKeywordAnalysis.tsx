@@ -58,7 +58,10 @@ const logRequest = (action: string, data: any, metadata: any = {}) => {
     ...metadata
   };
   logger.info(`🔍 [REQUEST] ${action}`, logData);
-  console.log(`🔍 [ADVANCED-KEYWORD] ${action}`, logData);
+  // Remove console.log in production
+  if (import.meta.env.MODE === 'development') {
+    console.log(`🔍 [ADVANCED-KEYWORD] ${action}`, logData);
+  }
 };
 
 const logResponse = (action: string, success: boolean, data: any, metadata: any = {}) => {
@@ -73,10 +76,14 @@ const logResponse = (action: string, success: boolean, data: any, metadata: any 
   
   if (success) {
     logger.info(`✅ [SUCCESS] ${action}`, logData);
-    console.log(`✅ [ADVANCED-KEYWORD] ${action}`, logData);
+    if (import.meta.env.MODE === 'development') {
+      console.log(`✅ [ADVANCED-KEYWORD] ${action}`, logData);
+    }
   } else {
     logger.error(`❌ [ERROR] ${action}`, logData);
-    console.error(`❌ [ADVANCED-KEYWORD] ${action}`, logData);
+    if (import.meta.env.MODE === 'development') {
+      console.error(`❌ [ADVANCED-KEYWORD] ${action}`, logData);
+    }
   }
 };
 
@@ -97,13 +104,15 @@ const logError = (error: any, context: string, metadata: any = {}) => {
   };
   
   logger.error(`🚨 [ERROR] ${context}`, errorData);
-  console.error(`🚨 [ADVANCED-KEYWORD-ERROR] ${context}`, errorData);
   
-  // Also log to console for immediate debugging
-  console.group(`🚨 Advanced Keyword Analysis Error - ${context}`);
-  console.error('Error Details:', error);
-  console.error('Full Context:', errorData);
-  console.groupEnd();
+  // Only show detailed console logs in development
+  if (import.meta.env.MODE === 'development') {
+    console.error(`🚨 [ADVANCED-KEYWORD-ERROR] ${context}`, errorData);
+    console.group(`🚨 Advanced Keyword Analysis Error - ${context}`);
+    console.error('Error Details:', error);
+    console.error('Full Context:', errorData);
+    console.groupEnd();
+  }
 };
 
 const logPerformance = (action: string, startTime: number, metadata: any = {}) => {
@@ -119,7 +128,9 @@ const logPerformance = (action: string, startTime: number, metadata: any = {}) =
   };
   
   logger.info(`⏱️ [PERFORMANCE] ${action} took ${duration}ms`, perfData);
-  console.log(`⏱️ [ADVANCED-KEYWORD-PERF] ${action}`, perfData);
+  if (import.meta.env.MODE === 'development') {
+    console.log(`⏱️ [ADVANCED-KEYWORD-PERF] ${action}`, perfData);
+  }
 };
 
 interface FormValues {

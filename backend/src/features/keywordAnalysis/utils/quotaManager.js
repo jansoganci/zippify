@@ -29,7 +29,7 @@ export async function checkUserQuota(userId) {
     );
     
     // Define daily limit (can be moved to environment variable or config)
-    const DAILY_LIMIT = 5;
+    const DAILY_LIMIT = 10;
     
     // If no record exists or count is below limit, user is allowed to make a request
     if (!userQuota || userQuota.request_count < DAILY_LIMIT) {

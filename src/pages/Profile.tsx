@@ -58,7 +58,7 @@ const Profile = () => {
   // Usage data based on user plan
   const usageStats = React.useMemo(() => {
     const isPremium = profileData?.plan === 'premium';
-    const limit = isPremium ? 50 : 5;
+    const limit = isPremium ? 100 : 10;
     
     return {
       listings: { used: isPremium ? 12 : 3, limit },
